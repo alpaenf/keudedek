@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "SIPEDA FT UNSOED - System Architecture",
+    "output": "sipeda-architecture.html",
+    "quality_profile": "showcase",
+    "views": [
+      { "id": "full-flow", "label": "Full System Pipeline", "focus": ["client", "inertia", "controllers", "rule_engine", "services", "db"], "note": "End-to-end request lifecycle from Vue 3 frontend to database with Rule Engine validation." },
+      { "id": "auth-rbac", "label": "RBAC & Security", "focus": ["client", "auth_middleware", "controllers", "audit_log"], "note": "7-Tier role-based access control and immutable audit trail logging." },
+      { "id": "rule-engine-locking", "label": "Rule Engine & Budget Locking", "focus": ["controllers", "rule_engine", "services", "db"], "note": "Atomic reservation locking and Early Warning System evaluations." }
+    ]
+  },
+  "components": [
+    { "id": "client", "type": "external", "label": "Web Client", "sublabel": "Desktop / Mobile SPA", "pos": [40, 300], "size": [120, 60] },
+    { "id": "auth_middleware", "type": "security", "label": "RBAC Middleware", "sublabel": "7 Roles & Dept Scope", "pos": [240, 140], "size": [130, 60], "tag": "RBAC" },
+    { "id": "inertia", "type": "frontend", "label": "Vue 3 + Inertia", "sublabel": "Reactive UI Layer", "pos": [240, 300], "size": [130, 60], "tag": "Vite / Tailwind" },
+    { "id": "rule_engine", "type": "backend", "label": "Rule Engine (EWS)", "sublabel": "Threshold & Overbudget", "pos": [460, 140], "size": [140, 60], "tag": "EWS Core" },
+    { "id": "controllers", "type": "backend", "label": "Laravel Controllers", "sublabel": "HTTP & Form Requests", "pos": [460, 300], "size": [140, 60], "tag": "PHP 8.3" },
+    { "id": "audit_log", "type": "security", "label": "Audit Logger", "sublabel": "IP & Mutation Diffs", "pos": [680, 140], "size": [140, 60], "tag": "100% Traceable" },
+    { "id": "services", "type": "backend", "label": "Service Layer", "sublabel": "Atomic Budget Locking", "pos": [680, 300], "size": [140, 60], "tag": "Transactions" },
+    { "id": "db", "type": "database", "label": "MySQL 8.0+", "sublabel": "Relational InnoDB", "pos": [890, 300], "size": [130, 60] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "SIPEDA Monolith Core (Laravel + Inertia)", "wraps": ["inertia", "auth_middleware", "controllers", "rule_engine", "services", "audit_log"] },
+    { "kind": "security-group", "label": "Financial Execution & Storage", "wraps": ["services", "db", "audit_log"] }
+  ],
+  "connections": [
+    { "id": "client-to-inertia", "from": "client", "to": "inertia", "label": "HTTPS", "variant": "emphasis", "labelDy": -20 },
+    { "id": "auth-check", "from": "inertia", "to": "auth_middleware", "label": "Authorize", "variant": "security", "fromSide": "top", "toSide": "bottom", "labelDx": 10 },
+    { "id": "inertia-to-controllers", "from": "inertia", "to": "controllers", "label": "Inertia", "labelDy": -20 },
+    { "id": "eval-rules", "from": "controllers", "to": "rule_engine", "label": "EWS Check", "fromSide": "top", "toSide": "bottom", "labelDx": 10 },
+    { "id": "controllers-to-services", "from": "controllers", "to": "services", "label": "Execute", "labelDy": -20 },
+    { "id": "log-audit", "from": "services", "to": "audit_log", "label": "Audit", "variant": "dashed", "fromSide": "top", "toSide": "bottom", "labelDx": 10 },
+    { "id": "services-to-db", "from": "services", "to": "db", "label": "Commit", "variant": "emphasis", "labelDy": -20 }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "Client & UI Layer", "items": ["Vue 3 SPA with modern Composition API", "Inertia.js bridge eliminating separate REST APIs", "Tailwind CSS 4 with fully responsive desktop & mobile layouts"] },
+    { "dot": "emerald", "title": "Core Business Engine", "items": ["Laravel 11.x / 12.x on PHP 8.3+", "Atomic budget reservation locking during approval", "Service layer with transactional database integrity"] },
+    { "dot": "rose", "title": "Security & Governance", "items": ["7-Tier Role-Based Access Control (RBAC)", "Rule-Based Early Warning System (< 15% threshold)", "Immutable Audit Trail logging every mutation"] }
+  ]
+}
