@@ -27,6 +27,10 @@
   <strong><a href="docs/">Dokumentasi Spesifikasi</a></strong>
 </p>
 
+<p align="center">
+  <img src="docs/assets/sipeda-live-demo.svg" alt="SIPEDA Live Financial Engine Animation" width="100%" />
+</p>
+
 ---
 
 ## 📌 Ringkasan Eksekutif
