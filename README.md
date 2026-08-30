@@ -10,20 +10,20 @@
 </p>
 
 <p align="center">
-  <a href="#-fitur-utama"><img src="https://img.shields.io/badge/Laravel-11.x%20%2F%2012.x-FF2D20?style=flat-square&logo=laravel&logoColor=white" alt="Laravel Framework" /></a>
-  <a href="#-fitur-utama"><img src="https://img.shields.io/badge/Vue.js-3.x-4FC08D?style=flat-square&logo=vue.js&logoColor=white" alt="Vue 3" /></a>
-  <a href="#-fitur-utama"><img src="https://img.shields.io/badge/Inertia.js-SPA%20Bridge-9553E9?style=flat-square&logo=inertia&logoColor=white" alt="Inertia.js" /></a>
-  <a href="#-fitur-utama"><img src="https://img.shields.io/badge/Tailwind-CSS%204.x-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white" alt="Tailwind CSS" /></a>
-  <a href="#-fitur-utama"><img src="https://img.shields.io/badge/PHP-8.3%2B-777BB4?style=flat-square&logo=php&logoColor=white" alt="PHP 8.3+" /></a>
-  <a href="#-lisensi"><img src="https://img.shields.io/badge/License-MIT-22c55e?style=flat-square" alt="MIT License" /></a>
-  <a href="#-status"><img src="https://img.shields.io/badge/Build-Passing-0891b2?style=flat-square" alt="Build Status" /></a>
+  <a href="#fitur-utama"><img src="https://img.shields.io/badge/Laravel-11.x%20%2F%2012.x-FF2D20?style=flat-square&logo=laravel&logoColor=white" alt="Laravel Framework" /></a>
+  <a href="#fitur-utama"><img src="https://img.shields.io/badge/Vue.js-3.x-4FC08D?style=flat-square&logo=vue.js&logoColor=white" alt="Vue 3" /></a>
+  <a href="#fitur-utama"><img src="https://img.shields.io/badge/Inertia.js-SPA%20Bridge-9553E9?style=flat-square&logo=inertia&logoColor=white" alt="Inertia.js" /></a>
+  <a href="#fitur-utama"><img src="https://img.shields.io/badge/Tailwind-CSS%204.x-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white" alt="Tailwind CSS" /></a>
+  <a href="#fitur-utama"><img src="https://img.shields.io/badge/PHP-8.3%2B-777BB4?style=flat-square&logo=php&logoColor=white" alt="PHP 8.3+" /></a>
+  <a href="#lisensi"><img src="https://img.shields.io/badge/License-MIT-22c55e?style=flat-square" alt="MIT License" /></a>
+  <a href="#status"><img src="https://img.shields.io/badge/Build-Passing-0891b2?style=flat-square" alt="Build Status" /></a>
 </p>
 
 <p align="center">
-  <strong><a href="#-quick-start">Quick Start</a></strong> &bull;
-  <strong><a href="#-alur-workflow--siklus-pengajuan">Alur Workflow</a></strong> &bull;
-  <strong><a href="#-matriks-7-peran-pengguna-rbac">Matriks 7 Role</a></strong> &bull;
-  <strong><a href="#-arsitektur-sistem">Arsitektur</a></strong> &bull;
+  <strong><a href="#quick-start">Quick Start</a></strong> &bull;
+  <strong><a href="#alur-workflow--siklus-pengajuan">Alur Workflow</a></strong> &bull;
+  <strong><a href="#matriks-7-peran-pengguna-rbac">Matriks 7 Role</a></strong> &bull;
+  <strong><a href="#arsitektur-sistem">Arsitektur</a></strong> &bull;
   <strong><a href="docs/">Dokumentasi Spesifikasi</a></strong>
 </p>
 
@@ -46,7 +46,7 @@ flowchart LR
     DRAFT -->|Submit Pengajuan| REVIEW
     REVIEW -->|Disetujui Jurusan| APPROVED
     APPROVED -->|SPJ Diverifikasi| COMPLETED
-    APPROVED -.->|Deteksi Saldo &lt; 15%| EWS["🚨 <b>Early Warning (EWS)</b><br/>Notifikasi Otomatis Pimpinan"]
+    APPROVED -.->|Deteksi Saldo &lt; 15%| EWS["<b>Early Warning (EWS)</b><br/>Notifikasi Otomatis Pimpinan"]
 
     style DRAFT fill:#0f172a,stroke:#38bdf8,stroke-width:2px,color:#ffffff
     style REVIEW fill:#0f172a,stroke:#818cf8,stroke-width:2px,color:#ffffff
@@ -57,20 +57,20 @@ flowchart LR
 
 ---
 
-## 📌 Ringkasan Eksekutif
+## Ringkasan Eksekutif
 
 **SIPEDA (Sistem Informasi Pagu & Pengendalian Anggaran)** adalah platform tata kelola dan kontrol keuangan institusi modern yang dirancang khusus untuk Fakultas Teknik Universitas Jenderal Soedirman. Sistem ini menjamin transparansi alokasi dana, otomatisasi komitmen belanja (*budget reservation locking*), deteksi dini anomali anggaran (*Rule-Based Early Warning System*), serta pelaporan real-time LRA (Laporan Realisasi Anggaran).
 
 ### Nilai Utama Sistem:
-- **🔒 Atomic Commitment Locking** — Mencegah risiko *overbudget* dan *double-spending* secara otomatis saat pengajuan disetujui.
-- **⚡ Proactive Early Warning System (EWS)** — Peringatan dini otomatis ketika saldo pagu kritis (< 15%) dan blokir transaksi defisit.
-- **🛡️ 100% Audit Trail Security** — Seluruh mutasi pagu, revisi, dan transisi status tersimpan lengkap dengan alamat IP, timestamp, dan payload perubahan (*before vs after*).
-- **👥 7-Tier Role-Based Access Control (RBAC)** — Pemisahan wewenang yang tegas dengan isolasi data tingkat unit kerja (*department-scoped*).
-- **🚀 Modern Monolith Single-Page Application (SPA)** — Kombinasi Laravel + Inertia.js + Vue 3 untuk navigasi tanpa *full-page reload*.
+- **Atomic Commitment Locking** — Mencegah risiko *overbudget* dan *double-spending* secara otomatis saat pengajuan disetujui.
+- **Proactive Early Warning System (EWS)** — Peringatan dini otomatis ketika saldo pagu kritis (< 15%) dan blokir transaksi defisit.
+- **100% Audit Trail Security** — Seluruh mutasi pagu, revisi, dan transisi status tersimpan lengkap dengan alamat IP, timestamp, dan payload perubahan (*before vs after*).
+- **7-Tier Role-Based Access Control (RBAC)** — Pemisahan wewenang yang tegas dengan isolasi data tingkat unit kerja (*department-scoped*).
+- **Modern Monolith Single-Page Application (SPA)** — Kombinasi Laravel + Inertia.js + Vue 3 untuk navigasi tanpa *full-page reload*.
 
 ---
 
-## 🌟 Fitur Unggulan
+## Fitur Utama
 
 | Modul | Kemampuan & Fungsi Utama | Dampak Operasional |
 |---|---|---|
@@ -84,7 +84,7 @@ flowchart LR
 
 ---
 
-## 👥 Matriks 7 Peran Pengguna (RBAC)
+## Matriks 7 Peran Pengguna (RBAC)
 
 SIPEDA mengimplementasikan pemisahan tanggung jawab (*Separation of Duties*) yang ketat melalui 7 role pengguna:
 
@@ -127,7 +127,7 @@ graph LR
 
 ---
 
-## 🔄 Alur Workflow & Siklus Pengajuan
+## Alur Workflow & Siklus Pengajuan
 
 Setiap rupiah belanja melalui siklus hidup (*lifecycle state*) yang divalidasi oleh Rule Engine:
 
@@ -158,7 +158,7 @@ $$\text{Saldo Bebas (Available)} = \text{Pagu Aktif (Allocated)} - \left( \text{
 
 ---
 
-## 🏗️ Arsitektur Sistem
+## Arsitektur Sistem
 
 SIPEDA mengadopsi pola **Modern Monolithic Layered Architecture**:
 
@@ -187,11 +187,11 @@ sipeda/
     └── api.php                   # Endpoint Integrasi & Eksternal
 ```
 
-> 🗺️ **Peta Arsitektur Interaktif (Archify):** Buka [`docs/sipeda-architecture.html`](docs/sipeda-architecture.html) di browser Anda untuk menjelajahi diagram interaktif berfitur *live route trace*, *focus view*, *dark/light theme*, dan *export*.
+> **Peta Arsitektur Interaktif (Archify):** Buka [`docs/sipeda-architecture.html`](docs/sipeda-architecture.html) di browser Anda untuk menjelajahi diagram interaktif berfitur *live route trace*, *focus view*, *dark/light theme*, dan *export*.
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 Ikuti langkah-langkah berikut untuk menjalankan SIPEDA di lingkungan lokal pengembangan:
 
@@ -269,7 +269,7 @@ Aplikasi siap diakses di peramban Anda melalui: **`http://127.0.0.1:8000`**
 
 ---
 
-## 🔑 Kredensial Akun Uji Coba (*Demo Accounts*)
+## Kredensial Akun Uji Coba (*Demo Accounts*)
 
 Semua akun default menggunakan kata sandi (*default password*): **`password`**
 
@@ -283,11 +283,11 @@ Semua akun default menggunakan kata sandi (*default password*): **`password`**
 | **Ketua Jurusan** | `kajur.informatika@ft.unsoed.ac.id` | Teknik Informatika | Approval Usulan Jurusan |
 | **Operator PTK** | `ptk.informatika@ft.unsoed.ac.id` | Teknik Informatika | Input Usulan & Rincian Belanja |
 
-> 💡 **Tip:** Anda dapat menggunakan fitur **Quick Demo Role** pada halaman login (`/login`) untuk beralih peran dalam 1-klik tanpa perlu mengetik ulang kredensial.
+> **Tip:** Anda dapat menggunakan fitur **Quick Demo Role** pada halaman login (`/login`) untuk beralih peran dalam 1-klik tanpa perlu mengetik ulang kredensial.
 
 ---
 
-## 🧪 Pengujian & Standar Koding
+## Pengujian & Standar Koding
 
 ```bash
 # Menjalankan automated test suite (PHPUnit)
@@ -299,19 +299,19 @@ vendor/bin/pint --format agent
 
 ---
 
-## 📚 Dokumentasi Terkait
+## Dokumentasi Terkait
 
 Spesifikasi teknis mendalam tersedia pada direktori [`/docs`](docs/):
-- 📘 [`docs/PRD.md`](docs/PRD.md) — *Product Requirements Document*
-- 📐 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — *Architecture & Layering Specification*
-- 👥 [`docs/ROLES-WORKFLOW.md`](docs/ROLES-WORKFLOW.md) — *Role Governance & Business Workflow*
-- ⚙️ [`docs/RULE-ENGINE.md`](docs/RULE-ENGINE.md) — *Early Warning System & Calculation Rules*
-- 🗄️ [`docs/DATABASE.md`](docs/DATABASE.md) — *Relational Schema & Entity Relationship*
-- 🔒 [`docs/AUDIT-SECURITY.md`](docs/AUDIT-SECURITY.md) — *Audit Trail & Security Policies*
+- [`docs/PRD.md`](docs/PRD.md) — *Product Requirements Document*
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — *Architecture & Layering Specification*
+- [`docs/ROLES-WORKFLOW.md`](docs/ROLES-WORKFLOW.md) — *Role Governance & Business Workflow*
+- [`docs/RULE-ENGINE.md`](docs/RULE-ENGINE.md) — *Early Warning System & Calculation Rules*
+- [`docs/DATABASE.md`](docs/DATABASE.md) — *Relational Schema & Entity Relationship*
+- [`docs/AUDIT-SECURITY.md`](docs/AUDIT-SECURITY.md) — *Audit Trail & Security Policies*
 
 ---
 
-## 📄 Lisensi
+## Lisensi
 
 SIPEDA FT UNSOED dilisensikan di bawah [Lisensi MIT](LICENSE).
 
