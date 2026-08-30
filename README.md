@@ -27,9 +27,33 @@
   <strong><a href="docs/">Dokumentasi Spesifikasi</a></strong>
 </p>
 
-<p align="center">
-  <img src="docs/assets/sipeda-live-demo.svg" alt="SIPEDA Live Financial Engine Animation" width="100%" />
-</p>
+```mermaid
+%%{init: {'theme': 'dark', 'themeVariables': { 'fontFamily': 'sans-serif', 'primaryColor': '#0284c7', 'primaryTextColor': '#ffffff', 'primaryBorderColor': '#38bdf8', 'lineColor': '#38bdf8', 'secondaryColor': '#059669', 'tertiaryColor': '#1e293b'}}}%%
+flowchart LR
+    subgraph S1["1. Usulan Unit"]
+      DRAFT["<b>PTK UNIT</b><br/>Input Draft Rincian Belanja"]
+    end
+    subgraph S2["2. Verifikasi & SPJ"]
+      REVIEW["<b>KAJUR &amp; PTU</b><br/>Validasi SBM &amp; Administrasi"]
+    end
+    subgraph S3["3. Eksekusi & Reservasi"]
+      APPROVED["<b>KABAG KEUANGAN</b><br/>Lock Saldo Komitmen (Reserved)"]
+    end
+    subgraph S4["4. Realisasi"]
+      COMPLETED["<b>PENCAIRAN</b><br/>Realisasi Belanja Sah"]
+    end
+
+    DRAFT -->|Submit Pengajuan| REVIEW
+    REVIEW -->|Disetujui Jurusan| APPROVED
+    APPROVED -->|SPJ Diverifikasi| COMPLETED
+    APPROVED -.->|Deteksi Saldo &lt; 15%| EWS["🚨 <b>Early Warning (EWS)</b><br/>Notifikasi Otomatis Pimpinan"]
+
+    style DRAFT fill:#0f172a,stroke:#38bdf8,stroke-width:2px,color:#ffffff
+    style REVIEW fill:#0f172a,stroke:#818cf8,stroke-width:2px,color:#ffffff
+    style APPROVED fill:#0f172a,stroke:#fbbf24,stroke-width:2px,color:#ffffff
+    style COMPLETED fill:#0f172a,stroke:#34d399,stroke-width:2px,color:#ffffff
+    style EWS fill:#450a0a,stroke:#f43f5e,stroke-width:2px,color:#fda4af
+```
 
 ---
 
