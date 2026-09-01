@@ -6,8 +6,8 @@ import GlobalFilterBar from '../Components/GlobalFilterBar.vue';
 // Role Dashboards
 import PtkDashboard from './Dashboard/PtkDashboard.vue';
 import KajurDashboard from './Dashboard/KajurDashboard.vue';
+import KaprodiDashboard from './Dashboard/KaprodiDashboard.vue';
 import PtuDashboard from './Dashboard/PtuDashboard.vue';
-import KetuaPtkDashboard from './Dashboard/KetuaPtkDashboard.vue';
 import KabagDashboard from './Dashboard/KabagDashboard.vue';
 import WdDashboard from './Dashboard/WdDashboard.vue';
 import DekanDashboard from './Dashboard/DekanDashboard.vue';
@@ -33,7 +33,6 @@ const props = defineProps({
   departmentSummaries: Array,
   monthlyTrend: Object,
   agingDistribution: Object,
-  ptkWorkload: Array,
   verificationQueue: Array,
   highRiskSubmissions: Array,
   attentionBuckets: Array,
@@ -42,18 +41,37 @@ const props = defineProps({
   fundingSources: Array,
   selectedDepartmentId: [String, Number],
   activeFiscalYear: [String, Number],
+  departmentName: String,
+  prodiName: String,
+  revisionNumber: String,
+  fundSourceCode: String,
+  thisMonthCount: Number,
+  thisMonthAmount: Number,
+  returnedSubmissions: Array,
+  processingSubmissions: Array,
+  avgReviewDays: Number,
+  targetSlaDays: Number,
+  attentionItemsCount: Number,
 });
 
 const currentRole = computed(() => {
   if (props.userRole === 'WD') return 'WAKIL_DEKAN';
   return props.userRole || 'PTK';
 });
+
+const dashboardTitle = computed(() => {
+  if (currentRole.value === 'PTU' || currentRole.value === 'BENDAHARA') {
+    return 'Dashboard PTU / Bendahara';
+  }
+  return `Dashboard ${currentRole.value}`;
+});
 </script>
 
 <template>
-  <AppLayout :title="`Dashboard ${currentRole}`">
-    <!-- Single Clean Global Filter Bar -->
+  <AppLayout :title="dashboardTitle">
+    <!-- Single Clean Global Filter Bar (Hidden for PTK as PTK uses dedicated Context Bar) -->
     <GlobalFilterBar 
+      v-if="currentRole !== 'PTK'"
       :departments="departments"
       :fundingSources="fundingSources"
       :selectedDepartmentId="selectedDepartmentId"
@@ -75,6 +93,15 @@ const currentRole = computed(() => {
       :recentSubmissions="recentSubmissions"
       :activeWarnings="activeWarnings"
       :attentionBuckets="attentionBuckets"
+      :departmentName="departmentName"
+      :activeFiscalYear="activeFiscalYear"
+      :revisionNumber="revisionNumber"
+      :fundSourceCode="fundSourceCode"
+      :thisMonthCount="thisMonthCount"
+      :thisMonthAmount="thisMonthAmount"
+      :returnedSubmissions="returnedSubmissions"
+      :processingSubmissions="processingSubmissions"
+      :monthlyTrend="monthlyTrend"
     />
 
     <KajurDashboard 
@@ -94,21 +121,28 @@ const currentRole = computed(() => {
       :monthlyTrend="monthlyTrend"
     />
 
+    <KaprodiDashboard 
+      v-else-if="currentRole === 'KAPRODI'"
+      :totalRealized="totalRealized"
+      :totalReserved="totalReserved"
+      :statusCounts="statusCounts"
+      :recentSubmissions="recentSubmissions"
+      :activeWarnings="activeWarnings"
+      :prodiName="prodiName"
+      :thisMonthCount="thisMonthCount"
+      :thisMonthAmount="thisMonthAmount"
+      :monthlyTrend="monthlyTrend"
+    />
+
     <PtuDashboard 
-      v-else-if="currentRole === 'PTU'"
+      v-else-if="currentRole === 'PTU' || currentRole === 'BENDAHARA'"
       :verificationQueue="verificationQueue"
-      :highRiskSubmissions="highRiskSubmissions"
       :statusCounts="statusCounts"
       :activeWarningsCount="activeWarningsCount"
       :agingDistribution="agingDistribution"
-    />
-
-    <KetuaPtkDashboard 
-      v-else-if="currentRole === 'KETUA_PTK'"
-      :ptkWorkload="ptkWorkload"
-      :statusCounts="statusCounts"
-      :agingDistribution="agingDistribution"
-      :recentSubmissions="recentSubmissions"
+      :avgReviewDays="avgReviewDays"
+      :targetSlaDays="targetSlaDays"
+      :attentionItemsCount="attentionItemsCount"
     />
 
     <KabagDashboard 

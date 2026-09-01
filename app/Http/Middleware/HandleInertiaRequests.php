@@ -32,27 +32,37 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $user = $request->user();
+
         return [
             ...parent::share($request),
             'auth' => [
-                'user' => $request->user() ? [
-                    'id' => $request->user()->id,
-                    'name' => $request->user()->name,
-                    'email' => $request->user()->email,
-                    'role' => $request->user()->role === 'WD' ? 'WAKIL_DEKAN' : $request->user()->role,
-                    'department' => $request->user()->department ? [
-                        'id' => $request->user()->department->id,
-                        'code' => $request->user()->department->code,
-                        'name' => $request->user()->department->name,
+                'user' => $user ? [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'role' => $user->role === 'WD' ? 'WAKIL_DEKAN' : $user->role,
+                    'roles' => $user->roles()->pluck('code')->toArray(),
+                    'department' => $user->department ? [
+                        'id' => $user->department->id,
+                        'code' => $user->department->code,
+                        'name' => $user->department->name,
                     ] : null,
-                    'has_faculty_scope' => $request->user()->hasFacultyScope(),
-                    'can_approve_financial' => ScopeService::canApproveFinancial($request->user()),
+                    'study_program' => $user->studyProgram ? [
+                        'id' => $user->studyProgram->id,
+                        'code' => $user->studyProgram->code,
+                        'name' => $user->studyProgram->name,
+                    ] : null,
+                    'has_faculty_scope' => $user->hasFacultyScope(),
+                    'can_approve_financial' => ScopeService::canApproveFinancial($user),
+                    'can_create_transaction' => ScopeService::canCreateTransaction($user),
+                    'can_import_transaction' => ScopeService::canImportTransaction($user),
                 ] : null,
             ],
-            'unreadNotificationsCount' => fn () => $request->user()
-                ? Notification::where(function ($q) use ($request) {
-                    $q->where('user_id', $request->user()->id)
-                        ->orWhere('role', $request->user()->role);
+            'unreadNotificationsCount' => fn () => $user
+                ? Notification::where(function ($q) use ($user) {
+                    $q->where('user_id', $user->id)
+                        ->orWhere('role', $user->role);
                 })->where('is_read', false)->count()
                 : 0,
             'activeFiscalYear' => fn () => FiscalYear::where('status', 'ACTIVE')->first()?->year ?? 2026,

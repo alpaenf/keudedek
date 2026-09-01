@@ -14,35 +14,29 @@ import {
 ChartJS.register(Title, Tooltip, Legend, BarElement, LinearScale, CategoryScale);
 
 const props = defineProps({
-  title: { type: String, default: 'Pengajuan Berdasarkan Status' },
-  description: { type: String, default: 'Jumlah usulan kegiatan pada setiap tahapan alur kerja' },
+  title: { type: String, default: 'Distribusi Status Transaksi Fakultas' },
+  description: { type: String, default: 'Jumlah transaksi berdasarkan status proses saat ini.' },
   statusCounts: { type: Object, default: () => ({}) },
 });
 
 const chartData = computed(() => {
   const counts = props.statusCounts || {};
   return {
-    labels: ['Draft', 'Diajukan', 'Review', 'Returned', 'Reserved', 'Processing', 'Final'],
+    labels: ['Dalam Proses', 'Perlu Perbaikan', 'Final / Realisasi', 'Dibatalkan'],
     datasets: [
       {
-        label: 'Jumlah Pengajuan',
+        label: 'Jumlah Transaksi',
         data: [
-          counts.DRAFT || 0,
-          counts.SUBMITTED || 0,
-          counts.UNDER_REVIEW || 0,
+          (counts.PROCESSING || 0) + (counts.SUBMITTED || 0) + (counts.UNDER_REVIEW || 0),
           counts.RETURNED || 0,
-          counts.RESERVED || 0,
-          counts.PROCESSING || 0,
           counts.FINAL || 0,
+          counts.REJECTED || counts.CANCELLED || 0,
         ],
         backgroundColor: [
-          '#64748B', // Draft
-          '#3B82F6', // Diajukan
-          '#F59E0B', // Review
-          '#F97316', // Returned
-          '#6366F1', // Reserved
-          '#06B6D4', // Processing
-          '#10B981', // Final
+          '#6366F1', // Dalam Proses (Indigo)
+          '#F59E0B', // Perlu Perbaikan (Amber)
+          '#10B981', // Final / Realisasi (Emerald)
+          '#F43F5E', // Dibatalkan (Rose)
         ],
         borderRadius: 8,
       }
@@ -62,7 +56,7 @@ const chartOptions = computed(() => ({
       padding: 10,
       cornerRadius: 10,
       callbacks: {
-        label: (context) => ` ${context.raw} pengajuan`
+        label: (context) => ` ${context.raw} transaksi`
       }
     }
   },

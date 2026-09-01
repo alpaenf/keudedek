@@ -23,8 +23,8 @@ class DashboardService
     {
         $role = $user->role === 'WD' ? 'WAKIL_DEKAN' : $user->role;
 
-        // Enforce department scope for PTK and KAJUR
-        if (in_array($role, ['PTK', 'KAJUR'])) {
+        // Enforce department scope for PTK, KAJUR, and KAPRODI
+        if (in_array($role, ['PTK', 'KAJUR', 'KAPRODI'])) {
             $selectedDepartmentId = $user->department_id;
         }
 
@@ -33,18 +33,30 @@ class DashboardService
 
         // Base scoped queries
         $queryBuckets = BudgetBucket::with(['department', 'fundingSource']);
-        $querySubmissions = Submission::with(['department', 'budgetBucket', 'creator', 'currentWorkflowStep']);
+        $querySubmissions = Submission::with(['department', 'studyProgram', 'budgetBucket', 'creator', 'currentWorkflowStep']);
         $queryWarnings = EarlyWarning::with(['department', 'budgetBucket', 'acknowledger']);
 
         ScopeService::applyDepartmentScope($queryBuckets, $user, $selectedDepartmentId);
         ScopeService::applyDepartmentScope($querySubmissions, $user, $selectedDepartmentId);
         ScopeService::applyDepartmentScope($queryWarnings, $user, $selectedDepartmentId);
 
+        // If KAPRODI, strictly filter submissions to the user's study program (exclude NULL / general dept transactions)
+        if ($role === 'KAPRODI' && $user->study_program_id) {
+            $querySubmissions->where('study_program_id', $user->study_program_id);
+        }
+
         // Core Financial Totals
-        $totalAllocated = (float) $queryBuckets->clone()->sum('allocated_budget');
-        $totalReserved = (float) $queryBuckets->clone()->sum('reserved_budget');
-        $totalRealized = (float) $queryBuckets->clone()->sum('realized_budget');
-        $totalAvailable = (float) $queryBuckets->clone()->sum('available_balance');
+        if ($role === 'KAPRODI' && $user->study_program_id) {
+            $totalAllocated = 0; // No official standalone pagu at study program level
+            $totalRealized = (float) $querySubmissions->clone()->whereIn('status', ['FINAL', 'COMPLETED'])->sum('amount');
+            $totalReserved = (float) $querySubmissions->clone()->whereIn('status', ['PROCESSING', 'SUBMITTED', 'UNDER_REVIEW'])->sum('amount');
+            $totalAvailable = 0;
+        } else {
+            $totalAllocated = (float) $queryBuckets->clone()->sum('allocated_budget');
+            $totalReserved = (float) $queryBuckets->clone()->sum('reserved_budget');
+            $totalRealized = (float) $queryBuckets->clone()->sum('realized_budget');
+            $totalAvailable = (float) $queryBuckets->clone()->sum('available_balance');
+        }
 
         // Authoritative Statistical Ratios
         $serapanRate = $totalAllocated > 0 ? round(($totalRealized / $totalAllocated) * 100, 1) : 0;
@@ -59,7 +71,7 @@ class DashboardService
             'RETURNED' => $querySubmissions->clone()->where('status', 'RETURNED')->count(),
             'APPROVED' => $querySubmissions->clone()->where('status', 'APPROVED')->count(),
             'RESERVED' => $querySubmissions->clone()->where('status', 'RESERVED')->count(),
-            'PROCESSING' => $querySubmissions->clone()->where('status', 'PROCESSING')->count(),
+            'PROCESSING' => $querySubmissions->clone()->whereIn('status', ['PROCESSING', 'SUBMITTED', 'UNDER_REVIEW', 'RESERVED'])->count(),
             'FINAL' => $querySubmissions->clone()->whereIn('status', ['FINAL', 'COMPLETED'])->count(),
             'REJECTED' => $querySubmissions->clone()->where('status', 'REJECTED')->count(),
         ];
@@ -145,7 +157,7 @@ class DashboardService
         });
 
         // Monthly Realization Trend (Jan - Des 2026)
-        $monthlyTrend = self::getMonthlyRealizationTrend($selectedDepartmentId);
+        $monthlyTrend = self::getMonthlyRealizationTrend($selectedDepartmentId, $role === 'KAPRODI' ? $user->study_program_id : null);
 
         // Submission Aging Distribution
         $agingDistribution = self::getAgingDistribution($querySubmissions->clone());
@@ -154,8 +166,8 @@ class DashboardService
         $ptkWorkload = self::getPtkWorkload();
 
         // Verification Queue & High Risk Submissions for PTU / Pimpinan
-        $verificationQueue = Submission::with(['department', 'budgetBucket', 'creator'])
-            ->whereIn('status', ['SUBMITTED', 'UNDER_REVIEW', 'REVIEW'])
+        $verificationQueue = Submission::with(['department', 'studyProgram', 'budgetBucket', 'creator'])
+            ->whereIn('status', ['SUBMITTED', 'UNDER_REVIEW', 'REVIEW', 'PROCESSING'])
             ->when($selectedDepartmentId, fn ($q) => $q->where('department_id', $selectedDepartmentId))
             ->latest()
             ->take(10)
@@ -167,8 +179,8 @@ class DashboardService
                 return $s;
             });
 
-        $highRiskSubmissions = Submission::with(['department', 'budgetBucket'])
-            ->whereIn('status', ['SUBMITTED', 'UNDER_REVIEW', 'REVIEW'])
+        $highRiskSubmissions = Submission::with(['department', 'studyProgram', 'budgetBucket'])
+            ->whereIn('status', ['SUBMITTED', 'UNDER_REVIEW', 'REVIEW', 'PROCESSING'])
             ->where('amount', '>=', 30000000)
             ->latest()
             ->take(5)
@@ -206,13 +218,61 @@ class DashboardService
             ];
         }
 
-        // Scope Label
-        $selectedDeptObj = $selectedDepartmentId ? Department::find($selectedDepartmentId) : null;
+        // Scope Label & Department Name
+        $selectedDeptObj = $selectedDepartmentId ? Department::find($selectedDepartmentId) : ($user->department ?? null);
         $scopeLabel = $selectedDeptObj ? $selectedDeptObj->code : 'FT-UNSOED';
+        $departmentName = $selectedDeptObj ? $selectedDeptObj->name : 'Fakultas Teknik UNSOED';
+
+        $prodiName = $user->studyProgram ? $user->studyProgram->name : ($user->department ? $user->department->name : 'Program Studi');
+
+        // This Month Transactions Stats (PTK / Unit Workbench)
+        $thisMonthCount = $querySubmissions->clone()
+            ->where(function ($q) {
+                $q->whereMonth('transaction_date', now()->month)
+                    ->orWhereMonth('created_at', now()->month);
+            })
+            ->count();
+
+        $thisMonthAmount = (float) $querySubmissions->clone()
+            ->where(function ($q) {
+                $q->whereMonth('transaction_date', now()->month)
+                    ->orWhereMonth('created_at', now()->month);
+            })
+            ->sum('amount');
+
+        // Filtered Action Items for PTK Workbench
+        $returnedSubmissions = $querySubmissions->clone()
+            ->where('status', 'RETURNED')
+            ->with(['budgetBucket', 'studyProgram', 'creator'])
+            ->latest()
+            ->take(5)
+            ->get();
+
+        $processingSubmissions = $querySubmissions->clone()
+            ->whereIn('status', ['PROCESSING', 'SUBMITTED', 'UNDER_REVIEW'])
+            ->with(['budgetBucket', 'studyProgram', 'creator'])
+            ->latest()
+            ->take(5)
+            ->get();
+
+        // Dynamic Review SLA calculation
+        $avgDiff = Submission::whereIn('status', ['FINAL', 'PROCESSING', 'APPROVED'])
+            ->selectRaw('AVG(TIMESTAMPDIFF(HOUR, created_at, updated_at)) as avg_hours')
+            ->value('avg_hours');
+        $avgReviewDays = $avgDiff ? round($avgDiff / 24, 1) : 1.2;
+
+        $slaRule = RuleConfig::where('rule_code', 'EWS-003')->first();
+        $targetSlaDays = ($slaRule && isset($slaRule->parameters['max_stale_days'])) ? (int) $slaRule->parameters['max_stale_days'] : 3;
+
+        $attentionItemsCount = $queryWarnings->clone()
+            ->where(fn ($q) => $q->where('status', 'ACTIVE')->orWhere('lifecycle_state', 'OPEN'))
+            ->count();
 
         return [
             'userRole' => $role,
             'scopeLabel' => $scopeLabel,
+            'departmentName' => $departmentName,
+            'prodiName' => $prodiName,
             'totalAllocated' => $totalAllocated,
             'totalReserved' => $totalReserved,
             'totalRealized' => $totalRealized,
@@ -225,7 +285,11 @@ class DashboardService
             'criticalWarningsCount' => $criticalWarningsCount,
             'warningSeverityCounts' => $warningSeverityCounts,
             'statusCounts' => $statusCounts,
-            'recentSubmissions' => $querySubmissions->clone()->latest()->take(6)->get(),
+            'thisMonthCount' => $thisMonthCount,
+            'thisMonthAmount' => $thisMonthAmount,
+            'returnedSubmissions' => $returnedSubmissions,
+            'processingSubmissions' => $processingSubmissions,
+            'recentSubmissions' => $querySubmissions->clone()->with(['budgetBucket', 'studyProgram', 'department'])->latest()->take(8)->get(),
             'activeWarnings' => $activeWarnings,
             'departmentSummaries' => $departmentSummaries,
             'monthlyTrend' => $monthlyTrend,
@@ -234,6 +298,9 @@ class DashboardService
             'verificationQueue' => $verificationQueue,
             'highRiskSubmissions' => $highRiskSubmissions,
             'attentionBuckets' => $attentionBuckets,
+            'avgReviewDays' => $avgReviewDays,
+            'targetSlaDays' => $targetSlaDays,
+            'attentionItemsCount' => $attentionItemsCount,
             'adminMetrics' => $adminMetrics,
             'departments' => ScopeService::getSelectableDepartments($user),
             'fundingSources' => FundingSource::all(),
@@ -248,21 +315,31 @@ class DashboardService
     /**
      * Monthly Realization & Reserved Trend (Jan–Des)
      */
-    private static function getMonthlyRealizationTrend(?string $departmentId): array
+    private static function getMonthlyRealizationTrend(?string $departmentId, ?string $studyProgramId = null): array
     {
         $months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
         $cumulativeRealized = [];
         $cumulativeReserved = [];
         $serapanPct = [];
 
-        $query = BudgetBucket::query();
-        if ($departmentId) {
-            $query->where('department_id', $departmentId);
-        }
+        if ($studyProgramId) {
+            $totalRealized = (float) Submission::where('study_program_id', $studyProgramId)
+                ->whereIn('status', ['FINAL', 'COMPLETED'])
+                ->sum('amount');
+            $totalReserved = (float) Submission::where('study_program_id', $studyProgramId)
+                ->whereIn('status', ['PROCESSING', 'SUBMITTED', 'UNDER_REVIEW'])
+                ->sum('amount');
+            $totalAllocated = $totalRealized + $totalReserved;
+        } else {
+            $query = BudgetBucket::query();
+            if ($departmentId) {
+                $query->where('department_id', $departmentId);
+            }
 
-        $totalAllocated = (float) $query->clone()->sum('allocated_budget');
-        $totalRealized = (float) $query->clone()->sum('realized_budget');
-        $totalReserved = (float) $query->clone()->sum('reserved_budget');
+            $totalAllocated = (float) $query->clone()->sum('allocated_budget');
+            $totalRealized = (float) $query->clone()->sum('realized_budget');
+            $totalReserved = (float) $query->clone()->sum('reserved_budget');
+        }
 
         $monthRatios = [0.05, 0.12, 0.22, 0.35, 0.50, 0.68, 0.82, 1.00, 1.00, 1.00, 1.00, 1.00];
 
@@ -295,7 +372,7 @@ class DashboardService
     {
         $now = now();
 
-        $subs = $query->whereIn('status', ['SUBMITTED', 'UNDER_REVIEW', 'REVIEW', 'RETURNED'])->get();
+        $subs = $query->whereIn('status', ['SUBMITTED', 'UNDER_REVIEW', 'REVIEW', 'RETURNED', 'PROCESSING'])->get();
 
         $under1 = 0;
         $oneToThree = 0;
@@ -340,7 +417,7 @@ class DashboardService
                 ->count();
 
             $staleCount = Submission::where('department_id', $d->id)
-                ->whereIn('status', ['SUBMITTED', 'UNDER_REVIEW', 'REVIEW'])
+                ->whereIn('status', ['SUBMITTED', 'UNDER_REVIEW', 'REVIEW', 'PROCESSING'])
                 ->where('created_at', '<', now()->subDays(7))
                 ->count();
 

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Department;
+use App\Models\StudyProgram;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -19,11 +20,11 @@ class ScopeService
             return [];
         }
 
-        if (in_array($user->role, ['PTK', 'KAJUR'])) {
+        if ($user->hasRole(['PTK', 'KAJUR', 'KAPRODI'])) {
             return $user->department_id ? [$user->department_id] : [];
         }
 
-        // PTU, KABAG, WAKIL_DEKAN, DEKAN, ADMIN have faculty-wide visibility
+        // PTU, BENDAHARA, KABAG, WAKIL_DEKAN, DEKAN, ADMIN have faculty-wide visibility
         return null;
     }
 
@@ -36,7 +37,7 @@ class ScopeService
             return false;
         }
 
-        if (in_array($user->role, ['PTK', 'KAJUR'])) {
+        if ($user->hasRole(['PTK', 'KAJUR', 'KAPRODI'])) {
             return (int) $user->department_id === (int) $departmentId;
         }
 
@@ -44,7 +45,33 @@ class ScopeService
     }
 
     /**
-     * Apply department scope filter to any Eloquent query builder.
+     * Check if user is authorized to create / submit new transactions.
+     * PTK & Admin can create.
+     * KAJUR, KAPRODI, PTU, BENDAHARA, DEKAN, WAKIL_DEKAN are reviewers / monitors unless explicit permission.
+     */
+    public static function canCreateTransaction(?User $user): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        return $user->hasRole(['PTK', 'ADMIN']);
+    }
+
+    /**
+     * Check if user is authorized to perform batch import.
+     */
+    public static function canImportTransaction(?User $user): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        return $user->hasRole(['ADMIN', 'PTK']);
+    }
+
+    /**
+     * Apply department and optional study program scope filter to any Eloquent query builder.
      */
     public static function applyDepartmentScope(Builder $query, ?User $user, ?int $requestedDeptId = null, string $column = 'department_id'): Builder
     {
@@ -52,7 +79,21 @@ class ScopeService
             return $query->whereRaw('1 = 0');
         }
 
-        if (in_array($user->role, ['PTK', 'KAJUR'])) {
+        if ($user->hasRole('KAPRODI') && $user->study_program_id) {
+            $query->where($column, $user->department_id);
+
+            // If the model has study_program_id, also scope to it
+            if ($query->getModel()->isFillable('study_program_id') || in_array('study_program_id', $query->getModel()->getDates() ?? [])) {
+                $query->where(function ($q) use ($user) {
+                    $q->where('study_program_id', $user->study_program_id)
+                        ->orWhereNull('study_program_id');
+                });
+            }
+
+            return $query;
+        }
+
+        if ($user->hasRole(['PTK', 'KAJUR'])) {
             return $query->where($column, $user->department_id);
         }
 
@@ -64,8 +105,7 @@ class ScopeService
     }
 
     /**
-     * Check if a role has financial approval permission.
-     * ADMIN is explicitly FALSE - Admin only manages config & master data.
+     * Check if a role has financial verification/approval permission.
      */
     public static function canApproveFinancial(?User $user): bool
     {
@@ -73,7 +113,7 @@ class ScopeService
             return false;
         }
 
-        return in_array($user->role, ['KAJUR', 'PTU', 'KABAG', 'WAKIL_DEKAN', 'WD', 'DEKAN']);
+        return $user->hasRole(['PTU', 'BENDAHARA', 'KABAG', 'WAKIL_DEKAN', 'WD', 'DEKAN']);
     }
 
     /**
@@ -85,10 +125,36 @@ class ScopeService
             return collect();
         }
 
-        if (in_array($user->role, ['PTK', 'KAJUR'])) {
+        if ($user->hasRole(['PTK', 'KAJUR', 'KAPRODI'])) {
             return Department::where('id', $user->department_id)->get();
         }
 
         return Department::whereNotNull('parent_id')->where('is_active', true)->get();
+    }
+
+    /**
+     * Get list of selectable study programs for filter / form UI.
+     */
+    public static function getSelectableStudyPrograms(?User $user, ?int $departmentId = null)
+    {
+        if (! $user) {
+            return collect();
+        }
+
+        $query = StudyProgram::where('is_active', true);
+
+        if ($user->hasRole('KAPRODI') && $user->study_program_id) {
+            return $query->where('id', $user->study_program_id)->get();
+        }
+
+        if ($user->hasRole(['PTK', 'KAJUR'])) {
+            return $query->where('department_id', $user->department_id)->get();
+        }
+
+        if ($departmentId) {
+            return $query->where('department_id', $departmentId)->get();
+        }
+
+        return $query->get();
     }
 }
