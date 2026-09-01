@@ -1,23 +1,39 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { useForm, router, Link } from '@inertiajs/vue3';
-import { ChevronRight, LogIn, Sparkles, KeyRound, ArrowLeft, Building2, ShieldCheck, UserCheck } from 'lucide-vue-next';
+import { 
+  ChevronRight, 
+  LogIn, 
+  Sparkles, 
+  KeyRound, 
+  ArrowLeft, 
+  Building2, 
+  ShieldCheck, 
+  UserCheck,
+  AlertCircle
+} from 'lucide-vue-next';
 
 const props = defineProps({
   users: Array,
+  isDemoOrLocal: {
+    type: Boolean,
+    default: false,
+  },
 });
 
-const activeTab = ref('quick'); // default to quick role switcher for convenience
+const activeTab = ref(props.isDemoOrLocal ? 'quick' : 'formal');
 const selectedDeptTab = ref('ALL');
 
 const loginForm = useForm({
-  email: '',
+  login: '',
   password: '',
   remember: false,
 });
 
 const submitFormalLogin = () => {
-  loginForm.post('/login');
+  loginForm.post('/login', {
+    preserveScroll: true,
+  });
 };
 
 const loginAs = (userId) => {
@@ -28,10 +44,17 @@ const filteredUsers = computed(() => {
   if (!props.users) return [];
   if (selectedDeptTab.value === 'ALL') return props.users;
   if (selectedDeptTab.value === 'FAKULTAS') {
-    return props.users.filter(u => u.role === 'ADMIN' || u.role === 'DEKAN' || u.role === 'WAKIL_DEKAN' || u.role === 'KABAG' || u.role === 'PTU' || u.role === 'KETUA_PTK');
+    return props.users.filter(u => ['ADMIN', 'DEKAN', 'WAKIL_DEKAN', 'WD', 'KABAG', 'PTU', 'BENDAHARA', 'KETUA_PTK'].includes(u.role));
   }
   return props.users.filter(u => u.department?.code === selectedDeptTab.value);
 });
+
+const getRoleDisplay = (usr) => {
+  if (usr.roles && usr.roles.length > 1) {
+    return usr.roles.map(r => r.code).join(' & ');
+  }
+  return usr.role;
+};
 </script>
 
 <template>
@@ -45,19 +68,19 @@ const filteredUsers = computed(() => {
           <ArrowLeft class="w-4 h-4" /> Kembali ke Beranda
         </Link>
 
-        <!-- Compact Tab Switcher -->
-        <div class="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
+        <!-- Compact Tab Switcher (Only in Demo/Local Environment) -->
+        <div v-if="isDemoOrLocal && users && users.length > 0" class="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
           <button 
             @click="activeTab = 'quick'" 
             :class="['px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition', activeTab === 'quick' ? 'bg-sky-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900']"
           >
-            <Sparkles class="w-3.5 h-3.5" /> Switch Demo Role (16 Akun)
+            <Sparkles class="w-3.5 h-3.5" /> Switch Demo Role ({{ users?.length || 0 }} Akun)
           </button>
           <button 
             @click="activeTab = 'formal'" 
             :class="['px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition', activeTab === 'formal' ? 'bg-sky-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900']"
           >
-            <KeyRound class="w-3.5 h-3.5" /> Login Form Email
+            <KeyRound class="w-3.5 h-3.5" /> Form Login
           </button>
         </div>
       </div>
@@ -71,21 +94,27 @@ const filteredUsers = computed(() => {
         </div>
       </div>
 
-      <!-- TAB 1: QUICK ROLE SWITCHER -->
-      <div v-if="activeTab === 'quick'" class="space-y-4">
+      <!-- Error Alert Box -->
+      <div v-if="loginForm.errors.login || loginForm.errors.password" class="mb-5 p-3.5 bg-rose-50 border border-rose-200 text-rose-800 rounded-2xl flex items-start gap-2.5 text-xs">
+        <AlertCircle class="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+        <span class="font-medium">{{ loginForm.errors.login || loginForm.errors.password }}</span>
+      </div>
+
+      <!-- TAB 1: QUICK ROLE SWITCHER (Demo / Local Only) -->
+      <div v-if="isDemoOrLocal && activeTab === 'quick'" class="space-y-4">
         <!-- Sub-filter Pills for Faculty & 5 Jurusan -->
         <div class="flex flex-wrap items-center gap-1.5 bg-slate-50 p-1.5 rounded-2xl border border-slate-200 text-xs">
           <button 
             @click="selectedDeptTab = 'ALL'"
             :class="['px-3 py-1.5 rounded-xl font-bold transition text-[11px]', selectedDeptTab === 'ALL' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200']"
           >
-            Semua (16 Akun)
+            Semua ({{ users?.length || 0 }} Akun)
           </button>
           <button 
             @click="selectedDeptTab = 'FAKULTAS'"
             :class="['px-3 py-1.5 rounded-xl font-bold transition text-[11px]', selectedDeptTab === 'FAKULTAS' ? 'bg-purple-700 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200']"
           >
-            Level Fakultas (6 Role)
+            Level Fakultas
           </button>
           <button 
             v-for="code in ['JTIF', 'JTS', 'JTE', 'JTG', 'JTI']" 
@@ -111,9 +140,11 @@ const filteredUsers = computed(() => {
               </div>
               <div class="flex items-center gap-1.5 mt-1">
                 <span class="px-2 py-0.5 bg-sky-100 text-sky-800 border border-sky-200 text-[9px] font-black rounded uppercase">
-                  {{ usr.role }}
+                  {{ getRoleDisplay(usr) }}
                 </span>
-                <span class="text-[10px] text-slate-500 truncate block">{{ usr.department?.code ?? 'FAKULTAS' }}</span>
+                <span class="text-[10px] text-slate-500 truncate block">
+                  {{ usr.study_program ? usr.study_program.name : (usr.department?.code ?? 'FAKULTAS') }}
+                </span>
               </div>
             </div>
             <ChevronRight class="w-4 h-4 text-slate-400 group-hover:text-sky-600 group-hover:translate-x-0.5 transition shrink-0" />
@@ -126,19 +157,19 @@ const filteredUsers = computed(() => {
         <form @submit.prevent="submitFormalLogin" class="space-y-4">
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label class="block text-xs font-semibold text-slate-700 mb-1.5">Email Pengguna</label>
+              <label class="block text-xs font-semibold text-slate-700 mb-1.5">Email / Username</label>
               <input 
-                v-model="loginForm.email" 
-                type="email" 
+                v-model="loginForm.login" 
+                type="text" 
                 required 
-                placeholder="admin@ft.unsoed.ac.id" 
+                autofocus
+                placeholder="nama@ft.unsoed.ac.id atau username" 
                 class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-sky-500 focus:outline-none"
               >
-              <div v-if="loginForm.errors.email" class="text-rose-600 text-[11px] mt-1 font-medium">{{ loginForm.errors.email }}</div>
             </div>
 
             <div>
-              <label class="block text-xs font-semibold text-slate-700 mb-1.5">Kata Sandi (Password)</label>
+              <label class="block text-xs font-semibold text-slate-700 mb-1.5">Password</label>
               <input 
                 v-model="loginForm.password" 
                 type="password" 
@@ -146,16 +177,19 @@ const filteredUsers = computed(() => {
                 placeholder="••••••••" 
                 class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-sky-500 focus:outline-none"
               >
-              <div v-if="loginForm.errors.password" class="text-rose-600 text-[11px] mt-1 font-medium">{{ loginForm.errors.password }}</div>
             </div>
           </div>
 
           <div class="flex items-center justify-between text-xs text-slate-600 pt-0.5">
             <label class="flex items-center gap-2 cursor-pointer select-none">
               <input v-model="loginForm.remember" type="checkbox" class="rounded border-slate-300 text-sky-600 focus:ring-sky-500">
-              <span class="font-medium">Ingat saya di perangkat ini</span>
+              <span class="font-medium">Remember Me (Ingat saya di perangkat ini)</span>
             </label>
-            <span class="text-slate-400 text-[11px]">Default password: <span class="font-sans font-semibold text-slate-600">password</span></span>
+            
+            <!-- Demo Password Helper only shown when isDemoOrLocal is true -->
+            <span v-if="isDemoOrLocal" class="text-slate-400 text-[11px]">
+              Default password: <span class="font-sans font-semibold text-slate-600">password</span>
+            </span>
           </div>
 
           <button 
@@ -175,3 +209,6 @@ const filteredUsers = computed(() => {
     </div>
   </div>
 </template>
+
+<style scoped>
+</style>

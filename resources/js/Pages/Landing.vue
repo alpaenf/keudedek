@@ -14,16 +14,15 @@ import {
   Lock, 
   LogIn,
   KeyRound,
-  Sparkles,
   UserCheck,
   ChevronRight,
-  ChevronLeft,
   Search,
   Sliders,
-  Check,
-  Compass,
   Layers,
-  FileCheck
+  FileCheck,
+  Info,
+  Clock,
+  Sparkles
 } from 'lucide-vue-next';
 
 defineProps({
@@ -42,25 +41,6 @@ const handleScroll = () => {
 onMounted(() => {
   window.addEventListener('scroll', handleScroll, { passive: true });
   handleScroll();
-
-  const observerOptions = {
-    root: null,
-    rootMargin: '0px 0px -40px 0px',
-    threshold: 0.1,
-  };
-
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach((entry) => {
-      if (entry.isIntersecting) {
-        entry.target.classList.add('is-revealed');
-        observer.unobserve(entry.target);
-      }
-    });
-  }, observerOptions);
-
-  document.querySelectorAll('.reveal-on-scroll').forEach((el) => {
-    observer.observe(el);
-  });
 });
 
 onUnmounted(() => {
@@ -72,132 +52,168 @@ const selectedRoleTab = ref('PTK');
 const rolesDetail = [
   {
     key: 'PTK',
-    title: 'PTK Unit (Operator Jurusan)',
+    title: 'Petugas Pengelola Keuangan (Operator Jurusan)',
     badge: 'Level Operasional',
     badgeColor: 'bg-sky-100 text-sky-800 border-sky-300',
-    description: 'Petugas Teknis Kegiatan yang bertanggung jawab mengusulkan kegiatan dan menginput rincian item belanja barang/jasa pada tingkat unit jurusan.',
+    description: 'Pencatat transaksi belanja unit jurusan dengan master-assisted quick entry tanpa perlu input kode berulang.',
     responsibilities: [
-      'Membuat dan menyimpan draft pengajuan kegiatan (Status: DRAFT).',
-      'Mengisi rincian belanja, volume barang/jasa, dan harga satuan.',
-      'Mengirimkan pengajuan ke tahap verifikasi jurusan & fakultas (Status: SUBMITTED).',
-      'Melakukan revisi jika terdapat catatan perbaikan dari KAJUR / PTU (Status: RETURNED).'
+      'Memilih pos anggaran aktif dari Master Pagu tanpa input kode manual.',
+      'Mencatat bukti transaksi, uraian belanja, dan nominal pengeluaran.',
+      'Menyimpan draft atau mengajukan transaksi ke tahap Dalam Proses.',
+      'Melakukan perbaikan data jika terdapat pengembalian berkas SPJ.'
     ],
-    scope: 'Terisolasi khusus untuk unit kerja yang ditugaskan (department_id).'
+    scope: 'Terisolasi khusus untuk unit jurusan yang ditugaskan (department_id).'
   },
   {
-    key: 'KAJUR',
-    title: 'Ketua Jurusan (KAJUR)',
-    badge: 'Level Persetujuan Jurusan',
-    badgeColor: 'bg-indigo-100 text-indigo-800 border-indigo-300',
-    description: 'Pejabat penanggung jawab unit jurusan yang bertugas mereview dan menyetujui prioritas pengajuan kegiatan jurusan.',
-    responsibilities: [
-      'Memeriksa kelayakan dan urgensi pengajuan dari operator PTK.',
-      'Menyetujui pengajuan kegiatan untuk diteruskan ke fakultas (Status: APPROVED).',
-      'Mengembalikan pengajuan ke operator jika terdapat kekurangan rincian (Status: RETURNED).',
-      'Memantau indikator Early Warning System (EWS) dan penyerapan pagu jurusan.'
-    ],
-    scope: 'Akses penuh terhadap data pagu, pengajuan, dan LRA jurusan bersangkutan.'
-  },
-  {
-    key: 'PTU',
-    title: 'PTU (Reviewer Keuangan Fakultas)',
-    badge: 'Level Verifikasi SPJ',
+    key: 'PTU / Bendahara',
+    title: 'PTU & Bendahara Pengeluaran Pembantu',
+    badge: 'Level Verifikasi & Kas',
     badgeColor: 'bg-blue-100 text-blue-800 border-blue-300',
-    description: 'Tim pemeriksa keuangan fakultas yang melakukan verifikasi administrasi SPJ dan kepatuhan akun belanja.',
+    description: 'Pemeriksa kelengkapan berkas SPJ transaksi dan pengelola kas belanja operasional fakultas.',
     responsibilities: [
-      'Verifikasi kesesuaian kode akun belanja dengan Standar Biaya Masukan (SBM).',
-      'Memeriksa fisik dan kelengkapan dokumen pendukung SPJ (Status: REVIEW).',
-      'Memberikan rekomendasi persetujuan ke Kabag Keuangan atau catatan revisi.'
+      'Memeriksa kelengkapan bukti administrasi dan dokumen SPJ transaksi.',
+      'Memantau antrean transaksi berjalan (Workbench Verifikasi).',
+      'Memfinalisasi transaksi menjadi realisasi belanja lunas.',
+      'Mengembalikan berkas transaksi yang belum memenuhi syarat administrasi.'
     ],
-    scope: 'Akses pemeriksaan seluruh pengajuan dari seluruh unit di Fakultas Teknik.'
+    scope: 'Akses pemeriksaan dan finalisasi transaksi seluruh unit Fakultas Teknik.'
   },
   {
-    key: 'KABAG',
-    title: 'Kabag Keuangan (Eksekutor Anggaran)',
-    badge: 'Eksekutif Keuangan',
+    key: 'Kajur / Kaprodi',
+    title: 'Ketua Jurusan & Ketua Program Studi',
+    badge: 'Monitoring Read-Only',
+    badgeColor: 'bg-indigo-100 text-indigo-800 border-indigo-300',
+    description: 'Pimpinan unit yang memantau sisa pagu, serapan realisasi belanja, dan aktivitas anggaran (Read-Only).',
+    responsibilities: [
+      'Memantau realisasi anggaran dan ketersediaan saldo pos anggaran jurusan.',
+      'Melihat rincian transaksi belanja yang berkaitan dengan program studi.',
+      'Memantau indikator peringatan dini (EWS) saldo kritis.',
+      'Mengevaluasi laporan penyerapan anggaran unit kerja.'
+    ],
+    scope: 'Monitoring data pagu dan transaksi sesuai jurusan & program studi masing-masing.'
+  },
+  {
+    key: 'Kabag',
+    title: 'Kepala Bagian Tata Usaha / Keuangan',
+    badge: 'Kontrol Anggaran',
     badgeColor: 'bg-amber-100 text-amber-800 border-amber-300',
-    description: 'Eksekutor puncak pengelolaan anggaran fakultas yang berwenang mengunci reservasi dana, mencairkan anggaran, dan melakukan revisi pagu.',
+    description: 'Pengendali operasional anggaran fakultas yang mengawasi kepatuhan pagu dan pergeseran revisi anggaran.',
     responsibilities: [
-      'Menyetujui pengajuan final & mengunci komitmen saldo (Status: RESERVED / APPROVED).',
-      'Mencairkan dana realisasi setelah SPJ diverifikasi lengkap (Status: COMPLETED).',
-      'Menerapkan pergeseran dan revisi pagu aktif anggaran (Budget Revision).',
-      'Memantau Audit Log Security dan histori transaksi fakultas.'
+      'Mengawasi ketersediaan saldo dan serapan anggaran 5 jurusan.',
+      'Menerapkan pergeseran dan usulan revisi pagu anggaran (Budget Revision).',
+      'Memantau kepatuhan aturan Rule-Based Budget Control (RBC).',
+      'Mengevaluasi rekapitulasi realisasi belanja operasional fakultas.'
     ],
-    scope: 'Akses eksekutif pengelolaan finansial seluruh unit Fakultas Teknik.'
+    scope: 'Akses eksekutif kontrol anggaran seluruh unit di Fakultas Teknik.'
   },
   {
-    key: 'WD',
-    title: 'Wakil Dekan II (Pimpinan / Executive)',
-    badge: 'Level Strategis Eksekutif',
+    key: 'Wakil Dekan',
+    title: 'Wakil Dekan II (Bidang Umum & Keuangan)',
+    badge: 'Level Strategis',
     badgeColor: 'bg-purple-100 text-purple-800 border-purple-300',
-    description: 'Pimpinan fakultas yang membutuhkan informasi keuangan strategis dan indikator pengendalian anggaran untuk pengambilan keputusan.',
+    description: 'Pimpinan fakultas yang memantau kesehatan finansial, tren penyerapan 5 jurusan, dan arahan kebijakan.',
     responsibilities: [
-      'Memantau Executive Dashboard realisasi dan penyerapan anggaran fakultas.',
-      'Menerima notifikasi Early Warning System (EWS) untuk ketersediaan saldo kritis (< 15%).',
-      'Mengevaluasi Laporan Realisasi Anggaran (LRA) komprehensif per semester / tahun.'
+      'Memantau tren penyerapan anggaran bulanan seluruh unit jurusan.',
+      'Menerima notifikasi Early Warning System untuk pos saldo kritis (< 15%).',
+      'Mengevaluasi Laporan Realisasi Anggaran (LRA) berkala per semester.',
+      'Merumuskan kebijakan efisiensi dan pergeseran anggaran fakultas.'
     ],
-    scope: 'Akses eksekutif read-only & decision support seluruh Fakultas Teknik.'
+    scope: 'Akses monitoring strategis dan decision support seluruh Fakultas Teknik.'
   },
   {
-    key: 'DEKAN',
+    key: 'Dekan',
     title: 'Dekan Fakultas Teknik (Pimpinan Utama)',
-    badge: 'Pimpinan Tertinggi Fakultas',
+    badge: 'Pimpinan Tertinggi',
     badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-300',
-    description: 'Pimpinan tertinggi Fakultas Teknik (KPA) yang memegang otoritas kebijakan strategis, pengawasan penyerapan anggaran, dan persetujuan belanja institusi.',
+    description: 'Kuasa Pengguna Anggaran (KPA) yang memantau performa makro anggaran dan akuntabilitas institusi.',
     responsibilities: [
-      'Memantau performa serapan anggaran seluruh jurusan secara komprehensif.',
-      'Menerima peringatan dini risiko defisit / under-spending dari Early Warning System.',
-      'Mengevaluasi laporan akuntabilitas keuangan dan audit trail fakultas.',
-      'Memberikan persetujuan kebijakan belanja strategis fakultas.'
+      'Memantau pencapaian serapan anggaran global Fakultas Teknik.',
+      'Mengevaluasi ringkasan performa finansial dan indikator risiko EWS.',
+      'Meninjau laporan akuntabilitas keuangan dan audit trail fakultas.',
+      'Memberikan arahan prioritas strategis belanja fakultas.'
     ],
-    scope: 'Akses pimpinan tertinggi seluruh unit kerja di lingkungan Fakultas Teknik.'
+    scope: 'Akses pimpinan tertinggi seluruh unit kerja di Fakultas Teknik.'
   },
   {
-    key: 'ADMIN',
-    title: 'Super Admin (Administrator Sistem)',
-    badge: 'Administrator Sistem',
+    key: 'Admin',
+    title: 'Administrator Sistem',
+    badge: 'Pengelola Sistem',
     badgeColor: 'bg-rose-100 text-rose-800 border-rose-300',
-    description: 'Pengelola teknis aplikasi yang bertanggung jawab menjaga integritas sistem, akun pengguna, dan konfigurasi master data.',
+    description: 'Pengelola teknis yang mengatur konfigurasi master pagu, multi-role pengguna, dan integritas data.',
     responsibilities: [
-      'Mengelola akun pengguna dan perizinan akses per role (PTK, KAJUR, PTU, KABAG, WD, DEKAN).',
-      'Memastikan isolasi data unit kerja (department_id) dikonfigurasi secara benar.',
-      'Memantau jejak Audit Trail Log seluruh aktivitas pengguna.',
-      'Mengonfigurasi master data tahun anggaran, sumber dana, unit kerja, dan alokasi pagu.'
+      'Mengelola akun pengguna, penetapan peran (Multi-Role), dan unit kerja.',
+      'Mengelola master tahun anggaran, versi pagu DIPA, dan sumber dana.',
+      'Memantau validitas pemetaan kode anggaran dan kesehatan database.',
+      'Memeriksa Comprehensive Audit Trail log aktivitas sistem.'
     ],
-    scope: 'Akses penuh ke modul administrasi, master data, user management, dan audit trail.'
+    scope: 'Akses penuh ke modul konfigurasi, master data, user management, dan audit trail.'
   }
 ];
 
-const workflowSteps = [
+const systemWorkflowSteps = [
   {
-    step: '01',
-    title: 'Penyusunan Rincian',
-    role: 'PTK Unit',
-    desc: 'Pengusulan belanja kegiatan dan pengisian rincian barang/jasa.'
+    num: '1',
+    title: 'Master Pagu',
+    desc: 'Data anggaran tahun berjalan dan versi revisi dimasukkan terlebih dahulu sebagai acuan pengendali.'
   },
   {
-    step: '02',
-    title: 'Verifikasi & Validasi',
-    role: 'KAJUR & PTU',
-    desc: 'Pemeriksaan kesesuaian pagu jurusan dan kepatuhan SPJ administrasi.'
+    num: '2',
+    title: 'PTK Memilih Pos',
+    desc: 'PTK memilih pos anggaran aktif dari daftar tanpa perlu mengetik ulang struktur kode bertingkat.'
   },
   {
-    step: '03',
-    title: 'Persetujuan & Reservasi',
-    role: 'Kabag Keuangan & Pimpinan',
-    desc: 'Persetujuan final diterbitkan & sistem mengunci saldo komitmen (Reserved).'
+    num: '3',
+    title: 'Catat Transaksi',
+    desc: 'PTK cukup mengisi nomor bukti, tanggal, uraian belanja, nominal, dan data transaksi yang diperlukan.'
   },
   {
-    step: '04',
-    title: 'Pencairan & Realisasi',
-    role: 'Kabag Keuangan',
-    desc: 'SPJ selesai diverifikasi murni, saldo komitmen dicairkan menjadi Realisasi.'
+    num: '4',
+    title: 'Sistem Mengendalikan',
+    desc: 'SIKARA menghitung saldo dan mencegah penggunaan melampaui sisa anggaran secara otomatis (RBC-001).'
   },
   {
-    step: '05',
-    title: 'Monitoring & Audit',
-    role: 'Dekan, WD II & Admin',
-    desc: 'Pimpinan memantau LRA, indikator EWS, dan jejak transaksi Audit Trail Log.'
+    num: '5',
+    title: 'Monitoring & Laporan',
+    desc: 'Informasi realisasi dapat dipantau langsung per jurusan sesuai kewenangan dan diekspor ke format LRA.'
+  }
+];
+
+const highlightedFeatures = [
+  {
+    title: 'Master-Assisted Transaction Entry',
+    desc: 'Pemilihan pos anggaran otomatis memuat struktur mata anggaran, kode subkomponen, dan sisa saldo tanpa input berulang.',
+    icon: Wallet,
+    color: 'bg-sky-100 text-sky-700'
+  },
+  {
+    title: 'Rule-Based Budget Control',
+    desc: 'Pengendalian server-side aktif (RBC-001) yang memblokir transaksi overbudget dan mengunci komitmen secara atomik.',
+    icon: Lock,
+    color: 'bg-indigo-100 text-indigo-700'
+  },
+  {
+    title: 'Monitoring per Jurusan',
+    desc: 'Pemisahan dan pemantauan realisasi anggaran per jurusan (JTIF, JTS, JTE, JTG, JTI) dan program studi secara terstruktur.',
+    icon: Building2,
+    color: 'bg-emerald-100 text-emerald-700'
+  },
+  {
+    title: 'Early Warning System (EWS)',
+    desc: 'Deteksi dini otomatis notifikasi saldo kritis (< 15%), high utilization, zero spending, dan aging verifikasi.',
+    icon: AlertTriangle,
+    color: 'bg-amber-100 text-amber-700'
+  },
+  {
+    title: 'Comprehensive Audit Trail',
+    desc: 'Pencatatan transparan seluruh mutasi data, alamat IP, timestamp, dan payload perubahan untuk akuntabilitas institusi.',
+    icon: ShieldCheck,
+    color: 'bg-blue-100 text-blue-700'
+  },
+  {
+    title: 'Reporting & Export',
+    desc: 'Penyajian laporan LRA komprehensif secara berkala dengan dukungan ekspor siap cetak PDF Landscape dan CSV.',
+    icon: BarChart3,
+    color: 'bg-purple-100 text-purple-700'
   }
 ];
 </script>
@@ -221,27 +237,14 @@ const workflowSteps = [
         <!-- Navigation -->
         <nav class="hidden md:flex items-center space-x-6 text-xs font-semibold text-slate-600">
           <a class="hover:text-sky-600 transition-colors" href="#about">Tentang SIKARA</a>
-          <a class="hover:text-sky-600 transition-colors" href="#simulation">Simulasi Live</a>
-          <a class="hover:text-sky-600 transition-colors" href="#roles">Peran &amp; Role</a>
-          <a class="hover:text-sky-600 transition-colors" href="#workflow">Siklus Workflow</a>
+          <a class="hover:text-sky-600 transition-colors" href="#alur">Alur Sistem</a>
           <a class="hover:text-sky-600 transition-colors" href="#features">Fitur Unggulan</a>
+          <a class="hover:text-sky-600 transition-colors" href="#simulation">Simulasi Live</a>
+          <a class="hover:text-sky-600 transition-colors" href="#roles">Struktur Peran</a>
         </nav>
 
         <!-- Right Actions -->
         <div class="flex items-center space-x-4">
-          <!-- Search -->
-          <div class="relative hidden lg:block">
-            <input 
-              v-model="searchQuery" 
-              class="pl-4 pr-10 py-2 rounded-full bg-slate-100 border-none text-xs w-64 focus:ring-2 focus:ring-sky-600 outline-none placeholder-slate-400" 
-              placeholder="Cari fitur atau usulan..." 
-              type="text"
-            />
-            <button class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
-              <Search class="w-3.5 h-3.5" />
-            </button>
-          </div>
-
           <!-- CTA -->
           <Link 
             v-if="user" 
@@ -255,7 +258,7 @@ const workflowSteps = [
             href="/login" 
             class="bg-sky-600 text-white px-6 py-2.5 rounded-full text-xs font-bold hover:bg-sky-500 transition-all shadow-md shadow-sky-600/20 flex items-center gap-1.5"
           >
-            <LogIn class="w-3.5 h-3.5" /> Login Aplikasi
+            <LogIn class="w-3.5 h-3.5" /> Masuk ke SIKARA
           </Link>
         </div>
       </header>
@@ -281,120 +284,84 @@ const workflowSteps = [
           <!-- Hero Content (Vertically Centered on Left) -->
           <div class="absolute inset-0 flex flex-col justify-center p-8 sm:p-12 lg:p-16 text-white max-w-3xl">
             <span class="px-3.5 py-1 bg-sky-500/20 border border-sky-400/30 text-sky-200 text-xs font-bold rounded-full uppercase tracking-wider inline-block mb-3.5 self-start">
-              Fakultas Teknik Universitas Jenderal Soedirman
+              Monitoring dan Pengendalian Realisasi Anggaran Fakultas Teknik
             </span>
 
-            <h1 class="text-2xl sm:text-4xl lg:text-5xl font-black leading-tight mb-3.5 tracking-tight max-w-2xl">
-              SIKARA — Sistem Informasi Kendali Anggaran dan Realisasi
+            <h1 class="text-2xl sm:text-4xl lg:text-5xl font-black leading-tight mb-2 tracking-tight max-w-2xl">
+              SIKARA
             </h1>
+            <h2 class="text-lg sm:text-2xl font-bold text-sky-200 mb-3.5 tracking-tight">
+              Sistem Informasi Kendali Anggaran dan Realisasi
+            </h2>
 
             <p class="text-xs sm:text-sm lg:text-base mb-6 max-w-xl text-slate-200 leading-relaxed font-sans opacity-95">
-              Transparansi alokasi dana, otomatisasi reservasi komitmen pagu, dan pemantauan real-time LRA Fakultas Teknik Universitas Jenderal Soedirman.
+              Sistem internal Fakultas Teknik untuk membantu pencatatan realisasi, pengendalian ketersediaan anggaran, monitoring per jurusan, dan penyajian informasi keuangan secara terstruktur.
             </p>
 
             <div class="flex flex-wrap items-center gap-3">
-              <Link href="/login" class="bg-sky-600 hover:bg-sky-500 text-white px-6 py-3 rounded-full font-bold text-xs flex items-center gap-2 shadow-lg shadow-sky-600/30 hover:scale-105">
+              <Link href="/login" class="bg-sky-600 hover:bg-sky-500 text-white px-6 py-3 rounded-full font-bold text-xs flex items-center gap-2 shadow-lg shadow-sky-600/30 hover:scale-105 transition">
                 <KeyRound class="w-4 h-4" />
-                Mulai Sesi Demo &amp; Login
+                Masuk ke SIKARA
               </Link>
-              <a href="#workflow" class="bg-white/10 border border-white/30 text-white px-6 py-3 rounded-full font-bold text-xs backdrop-blur-md flex items-center gap-2 hover:scale-105">
-                Pelajari Alur Sistem
+              <a href="#alur" class="bg-white/10 border border-white/30 text-white px-6 py-3 rounded-full font-bold text-xs backdrop-blur-md flex items-center gap-2 hover:scale-105 transition">
+                Lihat Alur Sistem
                 <ArrowRight class="w-4 h-4" />
               </a>
+            </div>
+
+            <div class="mt-6 flex items-center gap-2 text-[11px] text-slate-300">
+              <Info class="w-3.5 h-3.5 text-sky-400 shrink-0" />
+              <span>Monitoring berdasarkan data internal terkini Fakultas Teknik UNSOED.</span>
             </div>
           </div>
         </section>
 
-        <!-- FEATURES & STATS SECTION -->
-        <section class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start pt-4">
-          <!-- Left Side: Trust & Stats -->
-          <div class="lg:col-span-5 space-y-6">
-            <span class="text-xs font-bold tracking-wider text-sky-600 uppercase block">MENGAPA MEMILIH SIKARA</span>
-            <h2 class="text-2xl sm:text-4xl font-black text-slate-900 leading-tight tracking-tight">
-              Instrumen Pengendalian Anggaran Fakultas Terpercaya
-            </h2>
-            <p class="text-slate-600 text-xs sm:text-sm leading-relaxed">
-              SIKARA dirancang khusus untuk memastikan setiap rupiah alokasi pagu jurusan terpantau secara transparan, akuntabel, dan bebas dari *overbudget*.
+        <!-- SECTION: BAGAIMANA SIKARA BEKERJA (5 STEPS PIPELINE) -->
+        <section id="alur" class="pt-4 space-y-8">
+          <div class="text-center max-w-2xl mx-auto">
+            <span class="text-xs font-bold text-sky-600 uppercase tracking-wider block mb-1">ALUR KERJA RINGKAS</span>
+            <h2 class="text-2xl sm:text-3xl font-black text-slate-900">Bagaimana SIKARA Bekerja</h2>
+            <p class="text-xs text-slate-500 mt-1">
+              Prinsip minimal input dengan kendali anggaran otomatis dari master pagu hingga monitoring realisasi.
             </p>
-
-            <!-- Social Links / Quick Nav -->
-            <div class="flex items-center space-x-3 pt-2">
-              <a class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-700 hover:bg-sky-600 hover:text-white transition-colors" href="https://ft.unsoed.ac.id" target="_blank" title="Website FT UNSOED">
-                <Building2 class="w-4 h-4" />
-              </a>
-              <a class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-700 hover:bg-sky-600 hover:text-white transition-colors" href="/login" title="Akses Login">
-                <KeyRound class="w-4 h-4" />
-              </a>
-              <a class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-700 hover:bg-sky-600 hover:text-white transition-colors" href="#simulation" title="Simulasi Pagu">
-                <BarChart3 class="w-4 h-4" />
-              </a>
-            </div>
-
-            <!-- Stats Grid -->
-            <div class="grid grid-cols-3 gap-4 border-t border-slate-200 pt-6">
-              <div>
-                <div class="w-10 h-10 rounded-full bg-sky-100 flex items-center justify-center text-sky-700 mb-2">
-                  <Building2 class="w-4 h-4" />
-                </div>
-                <p class="text-xl sm:text-2xl font-black text-slate-900 font-sans">5 Jurusan</p>
-                <p class="text-[11px] text-slate-500 mt-0.5">JTIF, JTS, JTE, JTG, JTI</p>
-              </div>
-              <div>
-                <div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-700 mb-2">
-                  <Users class="w-4 h-4" />
-                </div>
-                <p class="text-xl sm:text-2xl font-black text-slate-900 font-sans">7 Roles</p>
-                <p class="text-[11px] text-slate-500 mt-0.5">RBAC 7 Tingkat Peran</p>
-              </div>
-              <div>
-                <div class="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 mb-2">
-                  <ShieldCheck class="w-4 h-4" />
-                </div>
-                <p class="text-xl sm:text-2xl font-black text-slate-900 font-sans">100% Audit</p>
-                <p class="text-[11px] text-slate-500 mt-0.5">Audit Trail &amp; EWS Guard</p>
-              </div>
-            </div>
           </div>
 
-          <!-- Right Side: Feature Cards -->
-          <div class="lg:col-span-7 space-y-4">
-            <!-- Card 1: EWS -->
-            <div class="bg-slate-50 p-6 rounded-3xl flex items-start space-x-5 hover:shadow-md transition-all border border-slate-200">
-              <div class="w-12 h-12 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center shadow-sm shrink-0">
-                <AlertTriangle class="w-6 h-6" />
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6">
+            <div 
+              v-for="w in systemWorkflowSteps" 
+              :key="w.num" 
+              class="bg-slate-50 p-6 rounded-3xl border border-slate-200/80 hover:border-sky-300 hover:shadow-md transition space-y-3 relative group"
+            >
+              <div class="w-9 h-9 rounded-2xl bg-sky-600 text-white font-black text-sm flex items-center justify-center shadow-md shadow-sky-600/20 group-hover:scale-105 transition">
+                {{ w.num }}
               </div>
-              <div>
-                <h3 class="font-bold text-slate-900 text-base mb-1">Rule-Based Early Warning (EWS)</h3>
-                <p class="text-xs text-slate-600 leading-relaxed">
-                  Deteksi dini otomatis notifikasi saldo kritis (&lt; 15%) dan pemblokiran instan terhadap upaya pengajuan yang melebihi pagu (*overbudget*).
-                </p>
-              </div>
+              <h3 class="font-bold text-slate-900 text-sm">{{ w.title }}</h3>
+              <p class="text-xs text-slate-600 leading-relaxed">{{ w.desc }}</p>
             </div>
+          </div>
+        </section>
 
-            <!-- Card 2: Locking -->
-            <div class="bg-slate-50 p-6 rounded-3xl flex items-start space-x-5 hover:shadow-md transition-all border border-slate-200">
-              <div class="w-12 h-12 rounded-2xl bg-sky-600 text-white flex items-center justify-center shadow-sm shrink-0">
-                <Lock class="w-6 h-6" />
-              </div>
-              <div>
-                <h3 class="font-bold text-slate-900 text-base mb-1">Budget Reservation Locking</h3>
-                <p class="text-xs text-slate-600 leading-relaxed">
-                  Penguncian saldo komitmen secara atomik saat pengajuan disetujui, menjamin saldo tidak terpakai ganda oleh kegiatan lain.
-                </p>
-              </div>
-            </div>
+        <!-- SECTION: FITUR UNGGULAN -->
+        <section id="features" class="border-t border-slate-200 pt-12 space-y-8">
+          <div class="text-center max-w-2xl mx-auto">
+            <span class="text-xs font-bold text-sky-600 uppercase tracking-wider block mb-1">KAPABILITAS UTAMA</span>
+            <h2 class="text-2xl sm:text-3xl font-black text-slate-900">Fitur Unggulan SIKARA</h2>
+            <p class="text-xs text-slate-500 mt-1">
+              Dirancang untuk efisiensi operator jurusan dan akurasi monitoring pimpinan fakultas.
+            </p>
+          </div>
 
-            <!-- Card 3: Audit Trail -->
-            <div class="bg-slate-50 p-6 rounded-3xl flex items-start space-x-5 hover:shadow-md transition-all border border-slate-200">
-              <div class="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center shadow-sm shrink-0">
-                <ShieldCheck class="w-6 h-6" />
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div 
+              v-for="(f, idx) in highlightedFeatures" 
+              :key="idx" 
+              class="bg-slate-50 p-6 rounded-3xl border border-slate-200/80 hover:border-sky-300 hover:shadow-md transition space-y-3"
+            >
+              <div :class="['w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm', f.color]">
+                <component :is="f.icon" class="w-6 h-6" />
               </div>
-              <div>
-                <h3 class="font-bold text-slate-900 text-base mb-1">100% Audit Trail Security</h3>
-                <p class="text-xs text-slate-600 leading-relaxed">
-                  Pencatatan transparan seluruh mutasi data, alamat IP, timestamp, dan payload perubahan untuk penelusuran akuntabilitas finansial.
-                </p>
-              </div>
+              <h3 class="font-bold text-slate-900 text-sm">{{ f.title }}</h3>
+              <p class="text-xs text-slate-600 leading-relaxed">{{ f.desc }}</p>
             </div>
           </div>
         </section>
@@ -404,10 +371,10 @@ const workflowSteps = [
           <div class="flex justify-between items-end mb-8">
             <div>
               <span class="text-xs font-bold text-sky-600 uppercase tracking-wider block mb-1">SIMULASI LIVE &amp; MONITORING</span>
-              <h2 class="text-2xl sm:text-3xl font-black text-slate-900">Kendali Anggaran Real-Time &amp; Transparan</h2>
+              <h2 class="text-2xl sm:text-3xl font-black text-slate-900">Kendali Anggaran Berbasis Aturan (RBC-001)</h2>
             </div>
             <p class="text-xs text-slate-500 max-w-xs text-right hidden md:block leading-relaxed">
-              Gambaran visual bagaimana SIKARA secara otomatis mengunci komitmen dan menghitung sisa saldo bebas.
+              Monitoring ketersediaan dana secara otomatis dan pencegahan pengeluaran melampaui sisa pagu.
             </p>
           </div>
 
@@ -415,30 +382,30 @@ const workflowSteps = [
             <!-- Header Status -->
             <div class="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-100">
               <div>
-                <span class="text-[11px] font-sans font-bold text-sky-700 block">SIMULATION STATE ACTIVE &bull; TA {{ fiscalYear }}</span>
-                <h3 class="text-base sm:text-lg font-bold text-slate-900">Mata Anggaran: 521111 - Belanja Bahan Operasional Lab</h3>
+                <span class="text-[11px] font-sans font-bold text-sky-700 block">SIMULATION STATE ACTIVE &bull; TA {{ fiscalYear }} (RM)</span>
+                <h3 class="text-base sm:text-lg font-bold text-slate-900">Mata Anggaran: 521211 - Belanja Bahan Praktikum Lab</h3>
               </div>
               <div class="flex items-center gap-2">
                 <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span class="text-xs font-bold text-slate-700">Live Simulation Status</span>
+                <span class="text-xs font-bold text-slate-700">Internal Data Live</span>
               </div>
             </div>
 
             <!-- Total Pagu Banner -->
             <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex flex-wrap items-center justify-between gap-4">
               <div>
-                <span class="text-xs text-slate-500 font-semibold block">Total Pagu Alokasi Aktif (Allocated)</span>
+                <span class="text-xs text-slate-500 font-semibold block">Total Pagu Alokasi Aktif (Rev 02)</span>
                 <span class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight font-sans">Rp 12.500.000.000</span>
               </div>
               <span class="px-3 py-1.5 bg-sky-100 text-sky-800 text-xs font-extrabold rounded-xl border border-sky-200">
-                Formula: Pagu Aktif = Realisasi + Komitmen + Saldo Bebas
+                Pagu Aktif = Realisasi + Dalam Proses + Saldo Tersedia
               </span>
             </div>
 
             <!-- 3 Vertical Bars Visualization Chart -->
             <div class="p-6 bg-slate-50/50 rounded-2xl border border-slate-200 space-y-4">
               <h4 class="text-xs font-bold text-slate-900 uppercase tracking-wider text-center">
-                Distribusi Alokasi Anggaran (Visualisasi Komparasi)
+                Distribusi Realisasi &amp; Ketersediaan Saldo
               </h4>
 
               <div class="h-44 flex items-end justify-around gap-6 sm:gap-12 border-b border-slate-200 pb-2 px-4">
@@ -450,7 +417,7 @@ const workflowSteps = [
                   </div>
                 </div>
 
-                <!-- Bar 2: Komitmen (Reserved) -->
+                <!-- Bar 2: Dalam Proses -->
                 <div class="flex-1 flex flex-col items-center h-full justify-end group">
                   <div class="text-[10px] font-bold text-slate-700 mb-1 opacity-0 group-hover:opacity-100 transition">16.8%</div>
                   <div class="w-full max-w-[56px] bg-sky-600 rounded-t-xl transition-all duration-500 relative flex items-start justify-center pt-1.5 shadow-sm" style="height: 35%;">
@@ -458,7 +425,7 @@ const workflowSteps = [
                   </div>
                 </div>
 
-                <!-- Bar 3: Saldo Bebas (Available) -->
+                <!-- Bar 3: Saldo Tersedia -->
                 <div class="flex-1 flex flex-col items-center h-full justify-end group">
                   <div class="text-[10px] font-bold text-slate-700 mb-1 opacity-0 group-hover:opacity-100 transition">41.6%</div>
                   <div class="w-full max-w-[56px] bg-sky-200 border border-sky-300 rounded-t-xl transition-all duration-500 relative flex items-start justify-center pt-1.5 shadow-sm" style="height: 65%;">
@@ -474,11 +441,11 @@ const workflowSteps = [
                   <span class="text-[10px] font-medium text-slate-500">Rp 5,2 M</span>
                 </div>
                 <div class="flex-1">
-                  <span class="block font-bold text-sky-700">Komitmen Locked</span>
+                  <span class="block font-bold text-sky-700">Dalam Proses</span>
                   <span class="text-[10px] font-medium text-slate-500">Rp 2,1 M</span>
                 </div>
                 <div class="flex-1">
-                  <span class="block font-bold text-slate-900">Saldo Bebas</span>
+                  <span class="block font-bold text-slate-900">Saldo Tersedia</span>
                   <span class="text-[10px] font-medium text-slate-500">Rp 5,2 M</span>
                 </div>
               </div>
@@ -492,11 +459,11 @@ const workflowSteps = [
                     <FileText class="w-4 h-4" />
                   </div>
                   <div>
-                    <span class="font-bold text-slate-900 block text-[11px]">Pengadaan Perangkat Lab Informatika</span>
-                    <span class="text-[10px] text-slate-500">PTK Informatika &bull; Rp 45.000.000</span>
+                    <span class="font-bold text-slate-900 block text-[11px]">Bahan Praktikum Pemrograman Dasar</span>
+                    <span class="text-[10px] text-slate-500">PTK Informatika &bull; Rp 5.000.000</span>
                   </div>
                 </div>
-                <span class="px-2 py-0.5 bg-sky-100 text-sky-800 text-[10px] font-extrabold rounded-md">APPROVED</span>
+                <span class="px-2.5 py-0.5 bg-indigo-100 text-indigo-800 text-[10px] font-extrabold rounded-md">PROCESSING</span>
               </div>
 
               <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between text-xs">
@@ -505,37 +472,37 @@ const workflowSteps = [
                     <CheckCircle2 class="w-4 h-4" />
                   </div>
                   <div>
-                    <span class="font-bold text-slate-900 block text-[11px]">Seminar Nasional Teknik Elektro</span>
-                    <span class="text-[10px] text-slate-500">PTK Elektro &bull; Rp 28.500.000</span>
+                    <span class="font-bold text-slate-900 block text-[11px]">Uji Kuat Tekan Beton Laboratorium</span>
+                    <span class="text-[10px] text-slate-500">PTK Sipil &bull; Rp 35.000.000</span>
                   </div>
                 </div>
-                <span class="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-extrabold rounded-md">COMPLETED</span>
+                <span class="px-2.5 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-extrabold rounded-md">FINAL</span>
               </div>
             </div>
 
             <!-- EWS Alert -->
-            <div class="p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-2 text-xs text-rose-800 font-medium">
-              <AlertTriangle class="w-4 h-4 text-rose-600 shrink-0" />
-              <span><strong>EWS-001:</strong> Pagu Akun 521111 Jurusan Mesin tersisa 14.2% (&lt; 15%).</span>
+            <div class="p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-2 text-xs text-amber-900 font-medium">
+              <AlertTriangle class="w-4 h-4 text-amber-600 shrink-0" />
+              <span><strong>EWS-001:</strong> Sisa saldo bebas pos 521211 Jurusan Elektro tersisa 14.2% (&lt; 15%). Perlu pengendalian belanja.</span>
             </div>
           </div>
         </section>
 
-        <!-- RBAC 7 ROLES SECTION -->
-        <section id="roles">
+        <!-- ROLE OVERVIEW SECTION -->
+        <section id="roles" class="border-t border-slate-200 pt-12">
           <div class="text-center max-w-2xl mx-auto mb-8">
-            <span class="text-xs font-bold text-sky-600 uppercase tracking-wider block mb-1">ROLE-BASED ACCESS CONTROL (RBAC)</span>
-            <h2 class="text-2xl sm:text-3xl font-black text-slate-900">Struktur 7 Peran Pengguna &amp; Tanggung Jawab</h2>
-            <p class="text-xs text-slate-500 mt-1">Klik salah satu peran di bawah untuk melihat rincian tugas spesifik dan cakupan akses datanya.</p>
+            <span class="text-xs font-bold text-sky-600 uppercase tracking-wider block mb-1">STRUKTUR PENGGUNA</span>
+            <h2 class="text-2xl sm:text-3xl font-black text-slate-900">Peran dan Tanggung Jawab Pengguna</h2>
+            <p class="text-xs text-slate-500 mt-1">Pilih peran pengguna di bawah untuk melihat tanggung jawab dan cakupan akses data.</p>
           </div>
 
           <!-- Role Selector Pills -->
-          <div class="flex flex-wrap justify-center gap-2 mb-8 bg-slate-50 p-2 rounded-2xl max-w-3xl mx-auto border border-slate-200">
+          <div class="flex flex-wrap justify-center gap-2 mb-8 bg-slate-50 p-2 rounded-2xl max-w-4xl mx-auto border border-slate-200">
             <button 
               v-for="r in rolesDetail" 
               :key="r.key" 
               @click="selectedRoleTab = r.key" 
-              :class="['px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2', selectedRoleTab === r.key ? 'bg-sky-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900']"
+              :class="['px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5', selectedRoleTab === r.key ? 'bg-sky-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900']"
             >
               <Users class="w-3.5 h-3.5" />
               {{ r.key }}
@@ -544,11 +511,11 @@ const workflowSteps = [
 
           <!-- Selected Role Display Card -->
           <div v-for="r in rolesDetail" :key="r.key" v-show="selectedRoleTab === r.key">
-            <div class="bg-slate-50 border border-slate-200 rounded-3xl p-8 shadow-sm grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            <div class="bg-slate-50 border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
               <!-- Left Info -->
               <div class="lg:col-span-5 space-y-4">
                 <span :class="['px-3 py-1 rounded-full text-xs font-extrabold border inline-block', r.badgeColor]">{{ r.badge }}</span>
-                <h3 class="text-2xl font-bold text-slate-900">{{ r.title }}</h3>
+                <h3 class="text-xl sm:text-2xl font-bold text-slate-900">{{ r.title }}</h3>
                 <p class="text-slate-600 text-xs leading-relaxed">{{ r.description }}</p>
 
                 <div class="p-4 bg-white rounded-2xl border border-slate-200">
@@ -558,7 +525,7 @@ const workflowSteps = [
 
                 <div class="pt-2">
                   <Link href="/login" class="inline-flex items-center gap-2 text-xs font-bold text-sky-600 hover:text-sky-700 transition">
-                    Coba Login sebagai {{ r.key }} <ChevronRight class="w-4 h-4" />
+                    Coba Akses sebagai {{ r.key }} <ChevronRight class="w-4 h-4" />
                   </Link>
                 </div>
               </div>
@@ -582,28 +549,6 @@ const workflowSteps = [
           </div>
         </section>
 
-        <!-- STEPS SECTION -->
-        <section id="workflow" class="border-t border-slate-200 pt-12 pb-4">
-          <div class="text-center max-w-2xl mx-auto mb-10">
-            <span class="text-xs font-bold text-sky-600 uppercase tracking-wider block mb-1">END-TO-END PIPELINE</span>
-            <h2 class="text-2xl font-black text-slate-900">5 Tahapan Alur Pengajuan Anggaran</h2>
-            <p class="text-xs text-slate-500 mt-1">Dari penyusunan draft hingga realisasi belanja dan monitoring laporan akuntabilitas.</p>
-          </div>
-
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
-            <div 
-              v-for="w in workflowSteps" 
-              :key="w.step" 
-              class="bg-slate-50 p-6 rounded-3xl border border-slate-200 space-y-2 hover:border-sky-300 transition"
-            >
-              <span class="text-xs font-bold text-sky-700 font-sans block">{{ w.step }}</span>
-              <h3 class="font-bold text-slate-900 text-sm mb-1">{{ w.title }}</h3>
-              <span class="text-[10px] font-bold text-slate-500 uppercase block">{{ w.role }}</span>
-              <p class="text-xs text-slate-600 leading-relaxed">{{ w.desc }}</p>
-            </div>
-          </div>
-        </section>
-
         <!-- FOOTER SECTION -->
         <footer class="mt-12 pt-12 pb-6 border-t border-slate-200 text-center space-y-4">
           <div class="flex items-center justify-center gap-3">
@@ -618,7 +563,7 @@ const workflowSteps = [
           </p>
           <div class="pt-2">
             <Link href="/login" class="inline-flex items-center gap-2 px-6 py-2.5 bg-sky-600 hover:bg-sky-500 text-white rounded-full text-xs font-bold transition shadow-md shadow-sky-600/20">
-              <LogIn class="w-3.5 h-3.5" /> Masuk ke Aplikasi SIKARA
+              <LogIn class="w-3.5 h-3.5" /> Masuk ke SIKARA
             </Link>
           </div>
         </footer>
@@ -628,8 +573,4 @@ const workflowSteps = [
 </template>
 
 <style scoped>
-.reveal-on-scroll {
-  opacity: 1;
-  transform: translateY(0);
-}
 </style>
