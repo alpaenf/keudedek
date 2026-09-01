@@ -13,14 +13,21 @@ class Submission extends Model
 
     protected $fillable = [
         'submission_number',
+        'reference_no',
         'title',
         'department_id',
         'fiscal_year_id',
+        'transaction_type_id',
+        'submission_template_id',
         'budget_bucket_id',
         'amount',
+        'beneficiary_name',
         'status',
+        'current_workflow_step_id',
         'created_by',
         'notes',
+        'attachment_path',
+        'electronic_signoff_hash',
     ];
 
     protected $casts = [
@@ -37,9 +44,24 @@ class Submission extends Model
         return $this->belongsTo(FiscalYear::class);
     }
 
+    public function transactionType(): BelongsTo
+    {
+        return $this->belongsTo(TransactionType::class);
+    }
+
+    public function template(): BelongsTo
+    {
+        return $this->belongsTo(SubmissionTemplate::class, 'submission_template_id');
+    }
+
     public function budgetBucket(): BelongsTo
     {
         return $this->belongsTo(BudgetBucket::class);
+    }
+
+    public function currentWorkflowStep(): BelongsTo
+    {
+        return $this->belongsTo(WorkflowStep::class, 'current_workflow_step_id');
     }
 
     public function creator(): BelongsTo
@@ -50,5 +72,20 @@ class Submission extends Model
     public function items(): HasMany
     {
         return $this->hasMany(SubmissionItem::class);
+    }
+
+    public function documents(): HasMany
+    {
+        return $this->hasMany(SubmissionDocument::class);
+    }
+
+    public function approvals(): HasMany
+    {
+        return $this->hasMany(Approval::class)->latest();
+    }
+
+    public function statusHistories(): HasMany
+    {
+        return $this->hasMany(SubmissionStatusHistory::class)->latest();
     }
 }

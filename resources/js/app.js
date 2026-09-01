@@ -4,7 +4,7 @@ import { createInertiaApp } from '@inertiajs/vue3';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 
 createInertiaApp({
-    title: (title) => title ? `${title} - SIPEDA FT UNSOED` : 'SIPEDA - FT UNSOED',
+    title: (title) => title ? `${title} - SIKARA FT UNSOED` : 'SIKARA - FT UNSOED',
     resolve: (name) => resolvePageComponent(`./Pages/${name}.vue`, import.meta.glob('./Pages/**/*.vue')),
     setup({ el, App, props, plugin }) {
         return createApp({ render: () => h(App, props) })

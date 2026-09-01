@@ -65,6 +65,11 @@ class BudgetService
 
     public function applyRevision(BudgetBucket $bucket, float $newAllocatedAmount, string $reason, int $approvedById): BudgetRevision
     {
+        $usedAmount = (float) ($bucket->reserved_budget + $bucket->realized_budget);
+        if ($newAllocatedAmount < $usedAmount) {
+            throw new \InvalidArgumentException('Gagal Revisi: Pagu baru (Rp '.number_format($newAllocatedAmount, 0, ',', '.').') tidak mencukupi untuk menutup total komitmen dan realisasi berjalan (Rp '.number_format($usedAmount, 0, ',', '.').').');
+        }
+
         $oldAmount = $bucket->allocated_budget;
         $difference = $newAllocatedAmount - $oldAmount;
 

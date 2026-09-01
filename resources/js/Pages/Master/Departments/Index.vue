@@ -121,11 +121,11 @@ const deleteDepartment = (dept) => {
           </thead>
           <tbody class="divide-y divide-slate-100 text-slate-900">
             <tr v-for="dept in departments.data" :key="dept.id" class="hover:bg-slate-50/80 transition">
-              <td class="py-4 px-6 font-mono font-bold text-sky-700 whitespace-nowrap">{{ dept.code }}</td>
+              <td class="py-4 px-6 font-sans font-bold text-sky-700 whitespace-nowrap">{{ dept.code }}</td>
               <td class="py-4 px-6 font-bold text-slate-900">{{ dept.name }}</td>
               <td class="py-4 px-6 text-slate-600">{{ dept.parent?.name ?? 'Tingkat Fakultas (Root)' }}</td>
-              <td class="py-4 px-6 text-center font-mono font-semibold text-slate-700">{{ dept.budget_buckets_count }} Pos</td>
-              <td class="py-4 px-6 text-center font-mono font-semibold text-slate-700">{{ dept.users_count }} Akun</td>
+              <td class="py-4 px-6 text-center font-sans font-semibold text-slate-700">{{ dept.budget_buckets_count }} Pos</td>
+              <td class="py-4 px-6 text-center font-sans font-semibold text-slate-700">{{ dept.users_count }} Akun</td>
               <td class="py-4 px-6 text-center whitespace-nowrap">
                 <button 
                   @click="toggleActive(dept)" 
@@ -203,7 +203,7 @@ const deleteDepartment = (dept) => {
               type="text" 
               required 
               placeholder="Contoh: IF" 
-              class="w-full px-3.5 py-2 border border-slate-300 rounded-xl text-xs font-mono font-bold text-slate-900 focus:ring-2 focus:ring-sky-500" 
+              class="w-full px-3.5 py-2 border border-slate-300 rounded-xl text-xs font-sans font-bold text-slate-900 focus:ring-2 focus:ring-sky-500" 
             />
             <div v-if="form.errors.code" class="text-rose-600 text-[11px] mt-1 font-medium">{{ form.errors.code }}</div>
           </div>

@@ -90,12 +90,12 @@ const formatRupiah = (val) => {
           <tbody class="divide-y divide-slate-100 text-slate-900">
             <tr v-for="bucket in buckets.data" :key="bucket.id" class="hover:bg-slate-50/80 transition">
               <td class="py-4 px-6">
-                <span class="font-mono font-bold text-sky-700 block whitespace-nowrap">{{ bucket.account_code }}</span>
+                <span class="font-sans font-bold text-sky-700 block whitespace-nowrap">{{ bucket.account_code }}</span>
                 <span class="font-medium text-slate-900">{{ bucket.account_name }}</span>
               </td>
               <td class="py-4 px-6 font-semibold text-slate-900 whitespace-nowrap">{{ bucket.department?.code ?? 'FT' }}</td>
               <td class="py-4 px-6 whitespace-nowrap">
-                <span class="px-2 py-0.5 bg-slate-100 border border-slate-200 rounded text-[11px] font-mono text-slate-700">
+                <span class="px-2 py-0.5 bg-slate-100 border border-slate-200 rounded text-[11px] font-sans text-slate-700">
                   {{ bucket.funding_source?.code ?? bucket.fundingSource?.code ?? 'BOPTN' }}
                 </span>
               </td>

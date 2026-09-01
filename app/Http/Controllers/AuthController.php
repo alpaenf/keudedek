@@ -31,7 +31,7 @@ class AuthController extends Controller
             $request->session()->regenerate();
 
             return redirect()->intended(route('dashboard'))
-                ->with('success', 'Berhasil masuk ke dalam sistem SIPEDA.');
+                ->with('success', 'Berhasil masuk ke dalam sistem SIKARA.');
         }
 
         return redirect()->back()->withErrors([

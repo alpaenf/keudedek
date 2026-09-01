@@ -89,7 +89,7 @@ const getRoleBadge = (r) => {
           <tbody class="divide-y divide-slate-100 text-slate-700">
             <tr v-for="usr in users.data" :key="usr.id" class="hover:bg-slate-50/80 transition">
               <td class="py-4 px-6 font-bold text-slate-900">{{ usr.name }}</td>
-              <td class="py-4 px-6 font-mono text-sky-700">{{ usr.email }}</td>
+              <td class="py-4 px-6 font-sans text-sky-700">{{ usr.email }}</td>
               <td class="py-4 px-6">
                 <span :class="['px-2.5 py-1 rounded-full text-[10px] font-extrabold border', getRoleBadge(usr.role)]">{{ usr.role }}</span>
               </td>

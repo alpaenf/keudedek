@@ -2,7 +2,7 @@
 import { ref } from 'vue';
 import { router } from '@inertiajs/vue3';
 import AppLayout from '../../Layouts/AppLayout.vue';
-import { Printer } from '@lucide/vue';
+import { Download, FileText, Printer } from '@lucide/vue';
 
 const props = defineProps({
   buckets: Array,
@@ -18,6 +18,16 @@ const deptId = ref(props.selectedDepartmentId || '');
 
 const filterDept = () => {
   router.get('/reports', deptId.value ? { department_id: deptId.value } : {});
+};
+
+const exportPdf = () => {
+  const url = '/reports/export-pdf' + (deptId.value ? `?department_id=${deptId.value}` : '');
+  window.open(url, '_blank');
+};
+
+const exportCsv = () => {
+  const url = '/reports/export-csv' + (deptId.value ? `?department_id=${deptId.value}` : '');
+  window.open(url, '_blank');
 };
 
 const printReport = () => {
@@ -55,16 +65,24 @@ const getRate = (allocated, realized, reserved) => {
         <p class="text-xs text-slate-500">Laporan realisasi anggaran komprehensif tingkat unit & akun</p>
       </div>
 
-      <div class="flex items-center gap-3">
+      <div class="flex flex-wrap items-center gap-3">
         <select v-model="deptId" @change="filterDept" class="px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-semibold text-slate-900">
           <option value="">Semua Jurusan / Unit</option>
           <option v-for="dept in departments" :key="dept.id" :value="dept.id">
             {{ dept.code }} - {{ dept.name }}
           </option>
         </select>
-        <button @click="printReport" class="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-lg text-xs font-semibold flex items-center gap-2 transition">
+        <button @click="exportPdf" class="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-xs font-semibold flex items-center gap-2 transition shadow-sm">
+          <FileText class="w-4 h-4" />
+          Ekspor PDF
+        </button>
+        <button @click="exportCsv" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold flex items-center gap-2 transition shadow-sm">
+          <Download class="w-4 h-4" />
+          Ekspor Excel / CSV
+        </button>
+        <button @click="printReport" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold flex items-center gap-2 transition border border-slate-300">
           <Printer class="w-4 h-4" />
-          Cetak / Export PDF
+          Cetak
         </button>
       </div>
     </div>
@@ -106,7 +124,7 @@ const getRate = (allocated, realized, reserved) => {
           <tbody class="divide-y divide-slate-100 text-slate-900">
             <tr v-for="bucket in buckets" :key="bucket.id" class="hover:bg-slate-50/80 transition">
               <td class="py-4 px-6">
-                <span class="font-mono font-bold text-sky-700 block whitespace-nowrap">{{ bucket.account_code }}</span>
+                <span class="font-sans font-bold text-sky-700 block whitespace-nowrap">{{ bucket.account_code }}</span>
                 <span class="font-medium text-slate-900">{{ bucket.account_name }}</span>
               </td>
               <td class="py-4 px-6 font-semibold text-slate-900 whitespace-nowrap">{{ bucket.department?.code }}</td>

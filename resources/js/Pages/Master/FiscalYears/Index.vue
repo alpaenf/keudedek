@@ -106,10 +106,10 @@ const getStatusBadge = (st) => {
           </thead>
           <tbody class="divide-y divide-slate-100 text-slate-900">
             <tr v-for="fy in fiscalYears.data" :key="fy.id" class="hover:bg-slate-50/80 transition">
-              <td class="py-4 px-6 font-mono font-black text-base text-slate-900 whitespace-nowrap">
+              <td class="py-4 px-6 font-sans font-black text-base text-slate-900 whitespace-nowrap">
                 {{ fy.year }}
               </td>
-              <td class="py-4 px-6 font-mono text-slate-600">
+              <td class="py-4 px-6 font-sans text-slate-600">
                 {{ new Date(fy.start_date).toLocaleDateString('id-ID', { dateStyle: 'medium' }) }} &mdash; {{ new Date(fy.end_date).toLocaleDateString('id-ID', { dateStyle: 'medium' }) }}
               </td>
               <td class="py-4 px-6 text-center whitespace-nowrap">
@@ -117,8 +117,8 @@ const getStatusBadge = (st) => {
                   {{ fy.status }}
                 </span>
               </td>
-              <td class="py-4 px-6 text-center font-mono font-semibold text-slate-700">{{ fy.budget_buckets_count }} Pos</td>
-              <td class="py-4 px-6 text-center font-mono font-semibold text-slate-700">{{ fy.submissions_count }} Pengajuan</td>
+              <td class="py-4 px-6 text-center font-sans font-semibold text-slate-700">{{ fy.budget_buckets_count }} Pos</td>
+              <td class="py-4 px-6 text-center font-sans font-semibold text-slate-700">{{ fy.submissions_count }} Pengajuan</td>
               <td class="py-4 px-6 text-center whitespace-nowrap">
                 <div class="flex items-center justify-center gap-2">
                   <button 
@@ -189,7 +189,7 @@ const getStatusBadge = (st) => {
               type="text" 
               required 
               placeholder="Contoh: 2026" 
-              class="w-full px-3.5 py-2 border border-slate-300 rounded-xl text-xs font-mono font-bold text-slate-900 focus:ring-2 focus:ring-sky-500" 
+              class="w-full px-3.5 py-2 border border-slate-300 rounded-xl text-xs font-sans font-bold text-slate-900 focus:ring-2 focus:ring-sky-500" 
             />
             <div v-if="form.errors.year" class="text-rose-600 text-[11px] mt-1 font-medium">{{ form.errors.year }}</div>
           </div>

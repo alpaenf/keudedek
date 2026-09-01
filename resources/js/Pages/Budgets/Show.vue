@@ -72,7 +72,7 @@ const getBadgeClass = (st) => {
       <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm lg:col-span-2">
         <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
           <div>
-            <span class="px-2.5 py-1 bg-sky-100 text-sky-800 rounded font-mono text-xs font-bold">{{ budgetBucket?.account_code }}</span>
+            <span class="px-2.5 py-1 bg-sky-100 text-sky-800 rounded font-sans text-xs font-bold">{{ budgetBucket?.account_code }}</span>
             <h3 class="text-xl font-bold text-slate-900 mt-2">{{ budgetBucket?.account_name }}</h3>
             <p class="text-xs text-slate-500 mt-1">
               {{ budgetBucket?.department?.name ?? 'Fakultas Teknik' }} ({{ budgetBucket?.department?.code ?? 'FT' }}) &bull; Sumber Dana: {{ budgetBucket?.funding_source?.name ?? budgetBucket?.fundingSource?.name ?? 'BOPTN' }}
@@ -117,7 +117,7 @@ const getBadgeClass = (st) => {
               @input="onRevisedInput" 
               required 
               placeholder="Contoh: 850.000.000" 
-              class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-bold text-slate-900 font-mono focus:ring-2 focus:ring-sky-500"
+              class="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-bold text-slate-900 font-sans focus:ring-2 focus:ring-sky-500"
             >
             <div v-if="form.revised_amount" class="mt-1 text-[11px] font-semibold text-sky-700 bg-sky-50 px-2.5 py-1 rounded-md border border-sky-200 flex items-center justify-between">
               <span>{{ getTerbilang(form.revised_amount) }}</span>
@@ -162,7 +162,7 @@ const getBadgeClass = (st) => {
           </thead>
           <tbody class="divide-y divide-slate-100 text-slate-900">
             <tr v-for="sub in budgetBucket?.submissions" :key="sub.id" class="hover:bg-slate-50/80 transition">
-              <td class="py-3.5 px-6 font-mono font-bold text-sky-700 whitespace-nowrap">{{ sub.submission_number }}</td>
+              <td class="py-3.5 px-6 font-sans font-bold text-sky-700 whitespace-nowrap">{{ sub.submission_number }}</td>
               <td class="py-3.5 px-6 font-medium text-slate-900">{{ sub.title }}</td>
               <td class="py-3.5 px-6 font-medium text-slate-700 whitespace-nowrap">{{ sub.creator?.name ?? 'PTK Unit' }}</td>
               <td class="py-3.5 px-6 text-right font-bold text-slate-900 whitespace-nowrap">{{ formatRupiah(sub.amount) }}</td>
@@ -204,7 +204,7 @@ const getBadgeClass = (st) => {
           </thead>
           <tbody class="divide-y divide-slate-100 text-slate-900">
             <tr v-for="rev in budgetBucket?.revisions" :key="rev.id" class="hover:bg-slate-50/80 transition">
-              <td class="py-3.5 px-6 font-mono font-bold text-sky-700 whitespace-nowrap">{{ rev.revision_number }}</td>
+              <td class="py-3.5 px-6 font-sans font-bold text-sky-700 whitespace-nowrap">{{ rev.revision_number }}</td>
               <td class="py-3.5 px-6 text-right whitespace-nowrap">{{ formatRupiah(rev.previous_amount) }}</td>
               <td class="py-3.5 px-6 text-right font-bold whitespace-nowrap">{{ formatRupiah(rev.revised_amount) }}</td>
               <td :class="['py-3.5 px-6 text-right font-bold whitespace-nowrap', rev.difference < 0 ? 'text-rose-600' : 'text-sky-700']">

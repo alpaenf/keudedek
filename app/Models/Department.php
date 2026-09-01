@@ -46,4 +46,9 @@ class Department extends Model
     {
         return $this->hasMany(Submission::class);
     }
+
+    public function earlyWarnings(): HasMany
+    {
+        return $this->hasMany(EarlyWarning::class);
+    }
 }

@@ -19,6 +19,8 @@ class EarlyWarning extends Model
         'threshold_value',
         'message',
         'status',
+        'lifecycle_state',
+        'rule_config_id',
         'acknowledged_by',
     ];
 
@@ -35,6 +37,11 @@ class EarlyWarning extends Model
     public function budgetBucket(): BelongsTo
     {
         return $this->belongsTo(BudgetBucket::class);
+    }
+
+    public function ruleConfig(): BelongsTo
+    {
+        return $this->belongsTo(RuleConfig::class);
     }
 
     public function acknowledger(): BelongsTo

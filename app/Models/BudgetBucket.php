@@ -17,6 +17,8 @@ class BudgetBucket extends Model
         'funding_source_id',
         'account_code',
         'account_name',
+        'budget_bucket_name',
+        'description',
         'initial_budget',
         'allocated_budget',
         'reserved_budget',

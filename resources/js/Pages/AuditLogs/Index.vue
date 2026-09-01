@@ -150,7 +150,7 @@ const getActionBadgeClass = (action) => {
           <tbody class="divide-y divide-slate-100 text-slate-900">
             <tr v-for="log in logs.data" :key="log.id" class="hover:bg-slate-50/80 transition">
               <!-- Timestamp -->
-              <td class="py-4 px-6 text-slate-600 font-mono text-[11px] whitespace-nowrap">
+              <td class="py-4 px-6 text-slate-600 font-sans text-[11px] whitespace-nowrap">
                 {{ new Date(log.created_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) }}
               </td>
 
@@ -169,19 +169,19 @@ const getActionBadgeClass = (action) => {
 
               <!-- Action Badge -->
               <td class="py-4 px-6 whitespace-nowrap">
-                <span :class="['px-2.5 py-1 rounded-md text-[10px] font-mono font-extrabold border inline-block', getActionBadgeClass(log.action)]">
+                <span :class="['px-2.5 py-1 rounded-md text-[10px] font-sans font-extrabold border inline-block', getActionBadgeClass(log.action)]">
                   {{ log.action }}
                 </span>
               </td>
 
               <!-- Target Model -->
-              <td class="py-4 px-6 font-mono text-slate-700 whitespace-nowrap">
+              <td class="py-4 px-6 font-sans text-slate-700 whitespace-nowrap">
                 <span class="font-semibold text-slate-900">{{ log.model_type ? log.model_type.split('\\').pop() : '-' }}</span>
                 <span class="text-slate-400 ml-1">#{{ log.model_id }}</span>
               </td>
 
               <!-- IP Address -->
-              <td class="py-4 px-6 font-mono text-slate-500 text-[11px] whitespace-nowrap">
+              <td class="py-4 px-6 font-sans text-slate-500 text-[11px] whitespace-nowrap">
                 {{ log.ip_address ?? '127.0.0.1' }}
               </td>
 

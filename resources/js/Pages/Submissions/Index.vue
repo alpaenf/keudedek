@@ -74,10 +74,10 @@ const getBadgeClass = (st) => {
           </thead>
           <tbody class="divide-y divide-slate-100 text-slate-900">
             <tr v-for="sub in submissions.data" :key="sub.id" class="hover:bg-slate-50/80 transition">
-              <td class="py-4 px-6 font-mono font-bold text-sky-700 whitespace-nowrap">{{ sub.submission_number }}</td>
+              <td class="py-4 px-6 font-sans font-bold text-sky-700 whitespace-nowrap">{{ sub.submission_number }}</td>
               <td class="py-4 px-6 font-medium text-slate-900">{{ sub.title }}</td>
               <td class="py-4 px-6 font-semibold text-slate-900 whitespace-nowrap">{{ sub.department?.code }}</td>
-              <td class="py-4 px-6 font-mono text-slate-700 whitespace-nowrap">{{ sub.budget_bucket?.account_code }}</td>
+              <td class="py-4 px-6 font-sans text-slate-700 whitespace-nowrap">{{ sub.budget_bucket?.account_code }}</td>
               <td class="py-4 px-6 text-right font-bold text-slate-900 whitespace-nowrap">{{ formatRupiah(sub.amount) }}</td>
               <td class="py-4 px-6 text-center whitespace-nowrap">
                 <span :class="['px-2.5 py-1 rounded-full text-[10px] font-extrabold border inline-block', getBadgeClass(sub.status)]">{{ sub.status }}</span>

@@ -128,7 +128,7 @@ const submitForm = () => {
                 type="text" 
                 required 
                 placeholder="Contoh: 521111 / 521211" 
-                class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-mono font-bold text-slate-900 focus:bg-white focus:ring-2 focus:ring-sky-500"
+                class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-sans font-bold text-slate-900 focus:bg-white focus:ring-2 focus:ring-sky-500"
               />
               <div v-if="form.errors.account_code" class="text-rose-600 text-[11px] mt-1 font-medium">{{ form.errors.account_code }}</div>
             </div>
@@ -156,7 +156,7 @@ const submitForm = () => {
               @input="onBudgetInput" 
               required 
               placeholder="Contoh: 850.000.000" 
-              class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-mono font-bold text-slate-900 focus:bg-white focus:ring-2 focus:ring-sky-500"
+              class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-sans font-bold text-slate-900 focus:bg-white focus:ring-2 focus:ring-sky-500"
             />
             <div v-if="form.initial_budget" class="mt-2 p-2.5 bg-sky-50 border border-sky-200 rounded-xl text-xs font-semibold text-sky-800 flex items-center justify-between">
               <span>{{ getTerbilang(form.initial_budget) }}</span>

@@ -114,12 +114,16 @@ class BudgetBucketController extends Controller
             'reason' => 'required|string|max:1000',
         ]);
 
-        $this->budgetService->applyRevision(
-            $budgetBucket,
-            (float) $request->revised_amount,
-            $request->reason,
-            auth()->id() ?? 1
-        );
+        try {
+            $this->budgetService->applyRevision(
+                $budgetBucket,
+                (float) $request->revised_amount,
+                $request->reason,
+                auth()->id() ?? 1
+            );
+        } catch (\InvalidArgumentException $e) {
+            return redirect()->back()->with('error', $e->getMessage());
+        }
 
         return redirect()->route('budgets.show', $budgetBucket)
             ->with('success', 'Revisi pagu anggaran berhasil diterapkan dan dicatat di audit log.');
