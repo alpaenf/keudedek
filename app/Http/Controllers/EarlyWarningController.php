@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BudgetBucket;
 use App\Models\EarlyWarning;
+use App\Models\FiscalYear;
 use App\Services\AuditLogService;
 use App\Services\RuleEngineService;
 use App\Services\ScopeService;
@@ -20,46 +22,117 @@ class EarlyWarningController extends Controller
     public function index(Request $request): Response
     {
         $user = $request->user();
-        $query = EarlyWarning::with(['department', 'budgetBucket', 'acknowledger']);
+
+        // Run EWS sweep on demand
+        $this->ruleEngineService->evaluateAllEws();
+
+        $query = EarlyWarning::with([
+            'department',
+            'budgetBucket.fiscalYear',
+            'budgetBucket.fundingSource',
+            'acknowledger',
+        ]);
 
         ScopeService::applyDepartmentScope($query, $user, $request->department_id);
 
-        if ($request->filled('severity')) {
-            $query->where('severity', $request->severity);
-        }
-
-        if ($request->filled('lifecycle_state')) {
-            $query->where('lifecycle_state', $request->lifecycle_state);
-        }
-
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('rule_code', 'like', "%{$search}%")
-                    ->orWhere('message', 'like', "%{$search}%");
+        // 1. TA Filter (Fiscal Year)
+        if ($request->filled('fiscal_year_id')) {
+            $fyId = $request->fiscal_year_id;
+            $query->whereHas('budgetBucket', function ($bq) use ($fyId) {
+                $bq->where('fiscal_year_id', $fyId);
             });
         }
 
-        $warnings = $query->orderByRaw("FIELD(severity, 'CRITICAL', 'HIGH', 'WARNING', 'INFO')")
-            ->latest()
+        // 2. Akun Filter (Account Code)
+        if ($request->filled('account_code')) {
+            $accCode = $request->account_code;
+            $query->whereHas('budgetBucket', function ($bq) use ($accCode) {
+                $bq->where('account_code', $accCode);
+            });
+        }
+
+        // 3. Rule Filter (EWS-001, EWS-002, EWS-003, EWS-004, EWS-005)
+        if ($request->filled('rule_code')) {
+            $query->where('rule_code', $request->rule_code);
+        }
+
+        // 4. Severity Filter (INFO, WARNING, HIGH, CRITICAL)
+        if ($request->filled('severity')) {
+            $query->where('severity', strtoupper($request->severity));
+        }
+
+        // 5. State Filter (OPEN, ACKNOWLEDGED, RESOLVED)
+        if ($request->filled('lifecycle_state')) {
+            $query->where('lifecycle_state', strtoupper($request->lifecycle_state));
+        }
+
+        // 6. Date Range Filter
+        if ($request->filled('start_date')) {
+            $query->whereDate('created_at', '>=', $request->start_date);
+        }
+        if ($request->filled('end_date')) {
+            $query->whereDate('created_at', '<=', $request->end_date);
+        }
+
+        // 7. Search Filter
+        if ($request->filled('search')) {
+            $search = trim($request->search);
+            $query->where(function ($q) use ($search) {
+                $q->where('rule_code', 'like', "%{$search}%")
+                    ->orWhere('message', 'like', "%{$search}%")
+                    ->orWhereHas('budgetBucket', function ($bq) use ($search) {
+                        $bq->where('account_code', 'like', "%{$search}%")
+                            ->orWhere('account_name', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('department', function ($dq) use ($search) {
+                        $dq->where('code', 'like', "%{$search}%")
+                            ->orWhere('name', 'like', "%{$search}%");
+                    });
+            });
+        }
+
+        $warnings = $query->orderByRaw("FIELD(lifecycle_state, 'OPEN', 'ACKNOWLEDGED', 'RESOLVED')")
+            ->orderByRaw("FIELD(severity, 'CRITICAL', 'HIGH', 'WARNING', 'INFO')")
+            ->latest('updated_at')
             ->paginate(15)
             ->withQueryString();
 
         $departments = ScopeService::getSelectableDepartments($user);
+        $fiscalYears = FiscalYear::orderBy('year', 'desc')->get();
+        $accounts = BudgetBucket::select('account_code', 'account_name')->distinct()->orderBy('account_code')->get();
 
-        // Warning statistics
+        // Metric Statistics
+        $statQuery = EarlyWarning::query();
+        ScopeService::applyDepartmentScope($statQuery, $user, $request->department_id);
+
         $stats = [
-            'total_open' => EarlyWarning::whereIn('lifecycle_state', ['OPEN', 'ACKNOWLEDGED'])->count(),
-            'critical_count' => EarlyWarning::where('severity', 'CRITICAL')->whereIn('lifecycle_state', ['OPEN', 'ACKNOWLEDGED'])->count(),
-            'high_count' => EarlyWarning::where('severity', 'HIGH')->whereIn('lifecycle_state', ['OPEN', 'ACKNOWLEDGED'])->count(),
-            'warning_count' => EarlyWarning::where('severity', 'WARNING')->whereIn('lifecycle_state', ['OPEN', 'ACKNOWLEDGED'])->count(),
+            'total_open' => (clone $statQuery)->where('lifecycle_state', 'OPEN')->count(),
+            'total_acknowledged' => (clone $statQuery)->where('lifecycle_state', 'ACKNOWLEDGED')->count(),
+            'total_resolved' => (clone $statQuery)->where('lifecycle_state', 'RESOLVED')->count(),
+            'critical_count' => (clone $statQuery)->where('severity', 'CRITICAL')->whereIn('lifecycle_state', ['OPEN', 'ACKNOWLEDGED'])->count(),
+            'high_count' => (clone $statQuery)->where('severity', 'HIGH')->whereIn('lifecycle_state', ['OPEN', 'ACKNOWLEDGED'])->count(),
+            'warning_count' => (clone $statQuery)->where('severity', 'WARNING')->whereIn('lifecycle_state', ['OPEN', 'ACKNOWLEDGED'])->count(),
+            'info_count' => (clone $statQuery)->where('severity', 'INFO')->whereIn('lifecycle_state', ['OPEN', 'ACKNOWLEDGED'])->count(),
         ];
 
         return Inertia::render('Warnings/Index', [
             'warnings' => $warnings,
             'departments' => $departments,
+            'fiscalYears' => $fiscalYears,
+            'accounts' => $accounts,
             'stats' => $stats,
-            'filters' => $request->only(['severity', 'lifecycle_state', 'department_id', 'search']),
+            'filters' => $request->only([
+                'fiscal_year_id',
+                'department_id',
+                'account_code',
+                'rule_code',
+                'severity',
+                'lifecycle_state',
+                'start_date',
+                'end_date',
+                'search',
+            ]),
+            'userRole' => $user?->role === 'WD' ? 'WAKIL_DEKAN' : ($user?->role ?? 'GUEST'),
         ]);
     }
 
