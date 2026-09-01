@@ -13,8 +13,11 @@ class BudgetBucket extends Model
 
     protected $fillable = [
         'fiscal_year_id',
+        'budget_version_id',
         'department_id',
         'funding_source_id',
+        'subcomponent_full_code',
+        'subcomponent_name',
         'account_code',
         'account_name',
         'budget_bucket_name',
@@ -37,6 +40,11 @@ class BudgetBucket extends Model
     public function fiscalYear(): BelongsTo
     {
         return $this->belongsTo(FiscalYear::class);
+    }
+
+    public function budgetVersion(): BelongsTo
+    {
+        return $this->belongsTo(BudgetVersion::class);
     }
 
     public function department(): BelongsTo
