@@ -34,34 +34,123 @@ class SubmissionController extends Controller
     public function index(Request $request): Response
     {
         $user = $request->user();
-        $query = Submission::with(['department', 'studyProgram', 'budgetBucket', 'creator', 'transactionType']);
+        $query = Submission::with([
+            'department',
+            'studyProgram',
+            'budgetBucket.fundingSource',
+            'budgetBucket.fiscalYear',
+            'creator',
+            'transactionType',
+        ]);
 
-        ScopeService::applyDepartmentScope($query, $user, $request->department_id);
-
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
+        // Role-based scoping:
+        // - PTK: Scope to own department & own submissions
+        // - Kajur: Scope to own department (monitoring read-only)
+        // - Kaprodi: Scope strictly to own study_program_id
+        // - PTU/Bendahara/Kabag/WD/Dekan/Admin: Faculty-wide with selectable filters
+        if ($user && $user->hasRole('KAPRODI')) {
+            $query->where('study_program_id', $user->study_program_id);
+        } elseif ($user && $user->hasRole(['PTK', 'KAJUR'])) {
+            ScopeService::applyDepartmentScope($query, $user, $user->department_id);
+        } else {
+            ScopeService::applyDepartmentScope($query, $user, $request->department_id);
         }
 
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('submission_number', 'like', "%{$search}%")
-                    ->orWhere('evidence_number', 'like', "%{$search}%")
-                    ->orWhere('title', 'like', "%{$search}%")
-                    ->orWhere('reference_no', 'like', "%{$search}%");
+        // Multi-dimensional Filtering
+        // 1. TA (Fiscal Year)
+        if ($request->filled('fiscal_year_id')) {
+            $query->where('fiscal_year_id', $request->fiscal_year_id);
+        }
+
+        // 2. Sumber Dana
+        if ($request->filled('funding_source_id')) {
+            $fsId = $request->funding_source_id;
+            $query->whereHas('budgetBucket', function ($q) use ($fsId) {
+                $q->where('funding_source_id', $fsId);
             });
         }
 
-        $submissions = $query->latest()->paginate(15)->withQueryString();
+        // 3. Prodi
+        if ($request->filled('study_program_id')) {
+            $query->where('study_program_id', $request->study_program_id);
+        }
+
+        // 4. Status
+        if ($request->filled('status')) {
+            $status = $request->status;
+            if ($status === 'PROCESSING') {
+                $query->whereIn('status', ['PROCESSING', 'SUBMITTED', 'UNDER_REVIEW', 'APPROVED', 'RESERVED']);
+            } elseif ($status === 'RETURNED') {
+                $query->whereIn('status', ['RETURNED', 'REVISION_REQUIRED']);
+            } elseif ($status === 'FINAL') {
+                $query->whereIn('status', ['FINAL', 'COMPLETED']);
+            } elseif ($status === 'CANCELLED') {
+                $query->whereIn('status', ['CANCELLED', 'REJECTED']);
+            } else {
+                $query->where('status', $status);
+            }
+        }
+
+        // 5. Akun (Kode Akun)
+        if ($request->filled('account_code')) {
+            $accCode = $request->account_code;
+            $query->whereHas('budgetBucket', function ($q) use ($accCode) {
+                $q->where('account_code', $accCode);
+            });
+        }
+
+        // 6. Periode (Date Range)
+        if ($request->filled('start_date')) {
+            $query->whereDate('transaction_date', '>=', $request->start_date);
+        }
+        if ($request->filled('end_date')) {
+            $query->whereDate('transaction_date', '<=', $request->end_date);
+        }
+
+        // Search across: Nomor Bukti, Uraian, Kode Akun
+        if ($request->filled('search')) {
+            $search = trim($request->search);
+            $query->where(function ($q) use ($search) {
+                $q->where('evidence_number', 'like', "%{$search}%")
+                    ->orWhere('submission_number', 'like', "%{$search}%")
+                    ->orWhere('title', 'like', "%{$search}%")
+                    ->orWhere('notes', 'like', "%{$search}%")
+                    ->orWhereHas('budgetBucket', function ($bq) use ($search) {
+                        $bq->where('account_code', 'like', "%{$search}%")
+                            ->orWhere('account_name', 'like', "%{$search}%");
+                    });
+            });
+        }
+
+        $submissions = $query->latest('transaction_date')->latest('id')->paginate(15)->withQueryString();
+        $fiscalYears = FiscalYear::orderBy('year', 'desc')->get();
+        $fundingSources = FundingSource::all();
         $departments = ScopeService::getSelectableDepartments($user);
-        $studyPrograms = ScopeService::getSelectableStudyPrograms($user);
+        $studyPrograms = ScopeService::getSelectableStudyPrograms($user, $request->department_id ?: $user?->department_id);
+        $accounts = BudgetBucket::select('account_code', 'account_name')->distinct()->orderBy('account_code')->get();
 
         return Inertia::render('Submissions/Index', [
             'submissions' => $submissions,
+            'fiscalYears' => $fiscalYears,
+            'fundingSources' => $fundingSources,
             'departments' => $departments,
             'studyPrograms' => $studyPrograms,
+            'accounts' => $accounts,
             'canCreate' => ScopeService::canCreateTransaction($user),
-            'filters' => $request->only(['status', 'department_id', 'search']),
+            'userRole' => $user?->role === 'WD' ? 'WAKIL_DEKAN' : ($user?->role ?? 'GUEST'),
+            'userDepartmentId' => $user?->department_id,
+            'userStudyProgramId' => $user?->study_program_id,
+            'filters' => $request->only([
+                'fiscal_year_id',
+                'funding_source_id',
+                'department_id',
+                'study_program_id',
+                'status',
+                'account_code',
+                'start_date',
+                'end_date',
+                'search',
+            ]),
         ]);
     }
 
