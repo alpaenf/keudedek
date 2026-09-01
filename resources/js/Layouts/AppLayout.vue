@@ -24,7 +24,8 @@ import {
   Sliders,
   ChevronDown,
   PlusCircle,
-  Settings
+  Settings,
+  GitCompare
 } from 'lucide-vue-next';
 
 defineProps({
@@ -42,9 +43,9 @@ const role = computed(() => {
 });
 
 const isMobileMenuOpen = ref(false);
-const isNotificationOpen = ref(false);
-
-const canApproveFinancial = computed(() => page.props.can_approve_financial);
+const canCreateTransaction = computed(() => page.props.auth?.user?.can_create_transaction ?? true);
+const canImportTransaction = computed(() => page.props.auth?.user?.can_import_transaction ?? false);
+const canApproveFinancial = computed(() => page.props.auth?.user?.can_approve_financial);
 const isAdmin = computed(() => role.value === 'ADMIN');
 
 const logout = () => {
@@ -87,20 +88,59 @@ const logout = () => {
       <!-- Nested Navigation Links -->
       <nav class="flex-1 px-4 py-5 space-y-5 overflow-y-auto custom-scrollbar text-xs">
         
-        <!-- SECTION 1: DASHBOARD -->
+        <!-- SECTION 1: WORKSPACE -->
         <div>
-          <div class="px-3 pb-1.5 text-[10px] font-bold tracking-wider text-slate-400 uppercase">DASHBOARD</div>
-          <Link 
-            href="/dashboard" 
-            @click="isMobileMenuOpen = false"
-            :class="[
-              'flex items-center gap-3 px-3 py-2 rounded-xl font-semibold transition group',
-              $page.url.startsWith('/dashboard') || $page.url === '/' ? 'bg-sky-600 text-white shadow-md shadow-sky-600/20' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-            ]"
-          >
-            <LayoutDashboard :class="['w-4 h-4', ($page.url.startsWith('/dashboard') || $page.url === '/') ? 'text-white' : 'text-slate-400 group-hover:text-slate-600']" />
-            <span>Overview Finansial</span>
-          </Link>
+          <div class="px-3 pb-1.5 text-[10px] font-bold tracking-wider text-slate-400 uppercase">WORKSPACE</div>
+          <div class="space-y-0.5">
+            <Link 
+              href="/dashboard" 
+              @click="isMobileMenuOpen = false"
+              :class="[
+                'flex items-center gap-3 px-3 py-2 rounded-xl font-semibold transition group',
+                $page.url.startsWith('/dashboard') || $page.url === '/' ? 'bg-sky-600 text-white shadow-md shadow-sky-600/20' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+              ]"
+            >
+              <LayoutDashboard :class="['w-4 h-4', ($page.url.startsWith('/dashboard') || $page.url === '/') ? 'text-white' : 'text-slate-400 group-hover:text-slate-600']" />
+              <span>Dashboard Overview</span>
+            </Link>
+
+            <Link 
+              href="/submissions" 
+              @click="isMobileMenuOpen = false"
+              :class="[
+                'flex items-center gap-3 px-3 py-2 rounded-xl font-semibold transition group',
+                $page.url === '/submissions' ? 'bg-sky-600 text-white shadow-md shadow-sky-600/20' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+              ]"
+            >
+              <FileText :class="['w-4 h-4', $page.url === '/submissions' ? 'text-white' : 'text-slate-400 group-hover:text-slate-600']" />
+              <span>Transaksi Anggaran</span>
+            </Link>
+
+            <Link 
+              v-if="canCreateTransaction"
+              href="/submissions/create" 
+              @click="isMobileMenuOpen = false"
+              :class="[
+                'flex items-center gap-3 px-3 py-2 rounded-xl font-semibold transition group',
+                $page.url.startsWith('/submissions/create') ? 'bg-sky-600 text-white shadow-md shadow-sky-600/20' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+              ]"
+            >
+              <PlusCircle :class="['w-4 h-4', $page.url.startsWith('/submissions/create') ? 'text-white' : 'text-slate-400 group-hover:text-slate-600']" />
+              <span>+ Catat Transaksi</span>
+            </Link>
+
+            <Link 
+              href="/warnings" 
+              @click="isMobileMenuOpen = false"
+              :class="[
+                'flex items-center gap-3 px-3 py-2 rounded-xl font-semibold transition group',
+                $page.url.startsWith('/warnings') ? 'bg-sky-600 text-white shadow-md shadow-sky-600/20' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+              ]"
+            >
+              <AlertTriangle :class="['w-4 h-4', $page.url.startsWith('/warnings') ? 'text-white' : 'text-amber-500 group-hover:text-amber-600']" />
+              <span>Early Warning (EWS)</span>
+            </Link>
+          </div>
         </div>
 
         <!-- SECTION 2: ANGGARAN -->
@@ -121,6 +161,19 @@ const logout = () => {
 
             <Link 
               v-if="['ADMIN', 'KABAG', 'WAKIL_DEKAN', 'WD', 'DEKAN'].includes(role)"
+              href="/budget-versions" 
+              @click="isMobileMenuOpen = false"
+              :class="[
+                'flex items-center gap-3 px-3 py-2 rounded-xl font-semibold transition group',
+                $page.url.startsWith('/budget-versions') ? 'bg-sky-600 text-white shadow-md shadow-sky-600/20' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+              ]"
+            >
+              <GitCompare :class="['w-4 h-4', $page.url.startsWith('/budget-versions') ? 'text-white' : 'text-slate-400 group-hover:text-slate-600']" />
+              <span>Versi &amp; Revisi Pagu</span>
+            </Link>
+
+            <Link 
+              v-if="['ADMIN', 'KABAG', 'WAKIL_DEKAN', 'WD', 'DEKAN'].includes(role)"
               href="/budgets-import" 
               @click="isMobileMenuOpen = false"
               :class="[
@@ -129,40 +182,11 @@ const logout = () => {
               ]"
             >
               <FileSpreadsheet :class="['w-4 h-4', $page.url.startsWith('/budgets-import') ? 'text-white' : 'text-slate-400 group-hover:text-slate-600']" />
-              <span>Import RKAT / Pagu</span>
-            </Link>
-          </div>
-        </div>
-
-        <!-- SECTION 3: PENGAJUAN -->
-        <div>
-          <div class="px-3 pb-1.5 text-[10px] font-bold tracking-wider text-slate-400 uppercase">PENGAJUAN</div>
-          <div class="space-y-0.5">
-            <Link 
-              href="/submissions" 
-              @click="isMobileMenuOpen = false"
-              :class="[
-                'flex items-center gap-3 px-3 py-2 rounded-xl font-semibold transition group',
-                $page.url === '/submissions' ? 'bg-sky-600 text-white shadow-md shadow-sky-600/20' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-              ]"
-            >
-              <FileText :class="['w-4 h-4', $page.url === '/submissions' ? 'text-white' : 'text-slate-400 group-hover:text-slate-600']" />
-              <span>Daftar Pengajuan</span>
+              <span>Import Pagu Anggaran</span>
             </Link>
 
             <Link 
-              href="/submissions/create" 
-              @click="isMobileMenuOpen = false"
-              :class="[
-                'flex items-center gap-3 px-3 py-2 rounded-xl font-semibold transition group',
-                $page.url.startsWith('/submissions/create') ? 'bg-sky-600 text-white shadow-md shadow-sky-600/20' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-              ]"
-            >
-              <PlusCircle :class="['w-4 h-4', $page.url.startsWith('/submissions/create') ? 'text-white' : 'text-slate-400 group-hover:text-slate-600']" />
-              <span>Buat Pengajuan (Wizard)</span>
-            </Link>
-
-            <Link 
+              v-if="canImportTransaction"
               href="/submissions-import" 
               @click="isMobileMenuOpen = false"
               :class="[
@@ -171,27 +195,14 @@ const logout = () => {
               ]"
             >
               <FileSpreadsheet :class="['w-4 h-4', $page.url.startsWith('/submissions-import') ? 'text-white' : 'text-slate-400 group-hover:text-slate-600']" />
-              <span>Import Pengajuan (CSV)</span>
-            </Link>
-
-            <Link 
-              v-if="isAdmin"
-              href="/admin/submission-templates" 
-              @click="isMobileMenuOpen = false"
-              :class="[
-                'flex items-center gap-3 px-3 py-2 rounded-xl font-semibold transition group',
-                $page.url.startsWith('/admin/submission-templates') ? 'bg-sky-600 text-white shadow-md shadow-sky-600/20' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-              ]"
-            >
-              <Sliders :class="['w-4 h-4', $page.url.startsWith('/admin/submission-templates') ? 'text-white' : 'text-slate-400 group-hover:text-slate-600']" />
-              <span>Format Pengajuan</span>
+              <span>Import Transaksi (Batch)</span>
             </Link>
           </div>
         </div>
 
-        <!-- SECTION 4: VERIFIKASI & OTORISASI (For Approvers) -->
+        <!-- SECTION 3: VERIFIKASI / WORKBENCH (For PTU, Bendahara, Approvers) -->
         <div v-if="canApproveFinancial">
-          <div class="px-3 pb-1.5 text-[10px] font-bold tracking-wider text-slate-400 uppercase">VERIFIKASI &amp; OTORISASI</div>
+          <div class="px-3 pb-1.5 text-[10px] font-bold tracking-wider text-slate-400 uppercase">WORKBENCH PEMERIKSAAN</div>
           <div class="space-y-0.5">
             <Link 
               href="/approvals" 
@@ -202,46 +213,32 @@ const logout = () => {
               ]"
             >
               <FileCheck :class="['w-4 h-4', $page.url.startsWith('/approvals') ? 'text-white' : 'text-emerald-600 group-hover:text-emerald-700']" />
-              <span>Antrean Persetujuan</span>
+              <span>Pemeriksaan Transaksi &amp; SPJ</span>
             </Link>
           </div>
         </div>
 
-        <!-- SECTION 5: EARLY WARNING -->
-        <div>
-          <div class="px-3 pb-1.5 text-[10px] font-bold tracking-wider text-slate-400 uppercase">EARLY WARNING</div>
-          <Link 
-            href="/warnings" 
-            @click="isMobileMenuOpen = false"
-            :class="[
-              'flex items-center gap-3 px-3 py-2 rounded-xl font-semibold transition group',
-              $page.url.startsWith('/warnings') ? 'bg-sky-600 text-white shadow-md shadow-sky-600/20' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-            ]"
-          >
-            <AlertTriangle :class="['w-4 h-4', $page.url.startsWith('/warnings') ? 'text-white' : 'text-amber-500 group-hover:text-amber-600']" />
-            <span>Peringatan Dini (EWS)</span>
-          </Link>
-        </div>
-
-        <!-- SECTION 6: LAPORAN -->
+        <!-- SECTION 4: LAPORAN -->
         <div>
           <div class="px-3 pb-1.5 text-[10px] font-bold tracking-wider text-slate-400 uppercase">LAPORAN</div>
-          <Link 
-            href="/reports" 
-            @click="isMobileMenuOpen = false"
-            :class="[
-              'flex items-center gap-3 px-3 py-2 rounded-xl font-semibold transition group',
-              $page.url.startsWith('/reports') ? 'bg-sky-600 text-white shadow-md shadow-sky-600/20' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-            ]"
-          >
-            <BarChart3 :class="['w-4 h-4', $page.url.startsWith('/reports') ? 'text-white' : 'text-slate-400 group-hover:text-slate-600']" />
-            <span>Laporan Realisasi LRA</span>
-          </Link>
+          <div class="space-y-0.5">
+            <Link 
+              href="/reports" 
+              @click="isMobileMenuOpen = false"
+              :class="[
+                'flex items-center gap-3 px-3 py-2 rounded-xl font-semibold transition group',
+                $page.url.startsWith('/reports') ? 'bg-sky-600 text-white shadow-md shadow-sky-600/20' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+              ]"
+            >
+              <BarChart3 :class="['w-4 h-4', $page.url.startsWith('/reports') ? 'text-white' : 'text-slate-400 group-hover:text-slate-600']" />
+              <span>Laporan Realisasi (LRA)</span>
+            </Link>
+          </div>
         </div>
 
-        <!-- SECTION 7: PENGATURAN SISTEM (Admin Only) -->
+        <!-- SECTION 5: PENGATURAN & AUDIT (Admin only) -->
         <div v-if="isAdmin">
-          <div class="px-3 pb-1.5 text-[10px] font-bold tracking-wider text-slate-400 uppercase">PENGATURAN SISTEM</div>
+          <div class="px-3 pb-1.5 text-[10px] font-bold tracking-wider text-slate-400 uppercase">ADMINISTRASI</div>
           <div class="space-y-0.5">
             <Link 
               href="/master/departments" 
@@ -264,7 +261,7 @@ const logout = () => {
               ]"
             >
               <Calendar :class="['w-4 h-4', $page.url.startsWith('/master/fiscal-years') ? 'text-white' : 'text-slate-400 group-hover:text-slate-600']" />
-              <span>Tahun Anggaran</span>
+              <span>Tahun &amp; Versi Pagu</span>
             </Link>
 
             <Link 
@@ -298,9 +295,16 @@ const logout = () => {
       <div v-if="user" class="p-4 border-t border-slate-100 bg-slate-50/70 flex items-center justify-between shrink-0">
         <div class="overflow-hidden">
           <p class="text-xs font-bold text-slate-900 truncate">{{ user.name }}</p>
-          <div class="flex items-center gap-1.5 mt-0.5">
-            <span class="px-1.5 py-0.2 bg-sky-100 text-sky-800 border border-sky-200 rounded text-[10px] font-extrabold uppercase">{{ role }}</span>
-            <span class="text-[11px] text-slate-500 truncate">{{ user.department?.code ?? 'FT' }}</span>
+          <div class="flex flex-wrap items-center gap-1 mt-0.5">
+            <template v-if="user.roles && user.roles.length > 0">
+              <span v-for="r in user.roles" :key="r" class="px-1.5 py-0.5 bg-sky-100 text-sky-800 border border-sky-200 rounded text-[9px] font-black uppercase">
+                {{ r }}
+              </span>
+            </template>
+            <span v-else class="px-1.5 py-0.5 bg-sky-100 text-sky-800 border border-sky-200 rounded text-[9px] font-black uppercase">{{ role }}</span>
+            <span class="text-[10px] text-slate-500 truncate ml-0.5">
+              {{ user.study_program ? user.study_program.code : (user.department?.code ?? 'FT') }}
+            </span>
           </div>
         </div>
         <button @click="logout" title="Logout" class="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition">
@@ -330,9 +334,16 @@ const logout = () => {
           <div>
             <div class="flex items-center gap-2">
               <h2 class="text-lg sm:text-xl font-bold text-slate-900 truncate">{{ title || 'Dashboard' }}</h2>
-              <span v-if="user" class="hidden sm:inline-block px-2 py-0.5 bg-slate-100 border border-slate-200 text-slate-700 text-[10px] font-bold rounded-md uppercase">
-                {{ role }}
-              </span>
+              <div v-if="user" class="hidden sm:flex items-center gap-1">
+                <template v-if="user.roles && user.roles.length > 0">
+                  <span v-for="r in user.roles" :key="r" class="px-2 py-0.5 bg-slate-100 border border-slate-200 text-slate-700 text-[10px] font-bold rounded-md uppercase">
+                    {{ r }}
+                  </span>
+                </template>
+                <span v-else class="px-2 py-0.5 bg-slate-100 border border-slate-200 text-slate-700 text-[10px] font-bold rounded-md uppercase">
+                  {{ role }}
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -341,7 +352,7 @@ const logout = () => {
           <!-- Notification Bell -->
           <div class="relative">
             <Link 
-              href="/warnings"
+              href="/warnings" 
               class="p-2 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 relative inline-flex transition"
               title="Notifikasi & Peringatan Dini"
             >

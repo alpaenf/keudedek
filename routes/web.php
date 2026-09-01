@@ -6,6 +6,7 @@ use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BudgetBucketController;
 use App\Http\Controllers\BudgetImportController;
+use App\Http\Controllers\BudgetVersionController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EarlyWarningController;
 use App\Http\Controllers\LandingController;
@@ -44,7 +45,8 @@ Route::prefix('master')->name('master.')->group(function () {
     Route::post('fiscal-years/{fiscalYear}/set-active', [FiscalYearController::class, 'setActive'])->name('fiscal-years.set-active');
 });
 
-// Budget Management
+// Budget Management & Quick Search API
+Route::get('/api/budgets/search', [BudgetBucketController::class, 'search'])->name('api.budgets.search');
 Route::get('/budgets-import', [BudgetImportController::class, 'index'])->name('budgets.import.index');
 Route::post('/budgets-import', [BudgetImportController::class, 'upload'])->name('budgets.import.upload');
 Route::get('/budgets-import/template', [BudgetImportController::class, 'downloadTemplate'])->name('budgets.import.template');
@@ -54,12 +56,19 @@ Route::post('/budgets-import/{importHistory}/commit', [BudgetImportController::c
 Route::resource('budgets', BudgetBucketController::class)->only(['index', 'create', 'store', 'show', 'destroy']);
 Route::post('budgets/{budgetBucket}/revise', [BudgetBucketController::class, 'revise'])->name('budgets.revise');
 
-// Submissions
+// Budget Version & Revision Management (Page P16)
+Route::get('/budget-versions', [BudgetVersionController::class, 'index'])->name('budget-versions.index');
+Route::get('/budget-versions/compare', [BudgetVersionController::class, 'compare'])->name('budget-versions.compare');
+Route::post('/budget-versions/{budgetVersion}/activate', [BudgetVersionController::class, 'activate'])->name('budget-versions.activate');
+Route::post('/budget-versions/{budgetVersion}/archive', [BudgetVersionController::class, 'archive'])->name('budget-versions.archive');
+Route::post('/budget-versions', [BudgetVersionController::class, 'store'])->name('budget-versions.store');
+
+// Transactions / Submissions
 Route::resource('submissions', SubmissionController::class)->only(['index', 'create', 'store', 'show']);
 Route::get('submissions/{submission}/print', [SubmissionController::class, 'printDocument'])->name('submissions.print');
 Route::get('submissions/documents/{document}/download', [SubmissionController::class, 'downloadDocument'])->name('submissions.documents.download');
 
-// Bulk Import Submissions
+// Bulk Import Transactions
 Route::get('/submissions-import', [SubmissionImportController::class, 'index'])->name('submissions.import.index');
 Route::post('/submissions-import', [SubmissionImportController::class, 'upload'])->name('submissions.import.upload');
 Route::get('/submissions-import/template', [SubmissionImportController::class, 'downloadTemplate'])->name('submissions.import.template');

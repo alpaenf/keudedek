@@ -13,9 +13,12 @@ class Submission extends Model
 
     protected $fillable = [
         'submission_number',
+        'evidence_number',
+        'transaction_date',
         'reference_no',
         'title',
         'department_id',
+        'study_program_id',
         'fiscal_year_id',
         'transaction_type_id',
         'submission_template_id',
@@ -28,15 +31,27 @@ class Submission extends Model
         'notes',
         'attachment_path',
         'electronic_signoff_hash',
+        'background_narrative',
+        'objective_narrative',
+        'target_output',
+        'performance_indicator_code',
+        'performance_indicator_name',
+        'subcomponent_full_code',
     ];
 
     protected $casts = [
         'amount' => 'decimal:2',
+        'transaction_date' => 'date',
     ];
 
     public function department(): BelongsTo
     {
         return $this->belongsTo(Department::class);
+    }
+
+    public function studyProgram(): BelongsTo
+    {
+        return $this->belongsTo(StudyProgram::class);
     }
 
     public function fiscalYear(): BelongsTo

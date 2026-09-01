@@ -10,9 +10,9 @@ use Tests\TestCase;
 
 class SikaraEnterpriseTest extends TestCase
 {
-    public function test_7_roles_can_render_their_respective_dashboard(): void
+    public function test_all_official_roles_can_render_their_respective_dashboard(): void
     {
-        $roles = ['PTK', 'KAJUR', 'PTU', 'KABAG', 'WAKIL_DEKAN', 'DEKAN', 'ADMIN'];
+        $roles = ['PTK', 'KAJUR', 'KAPRODI', 'PTU', 'BENDAHARA', 'KABAG', 'WAKIL_DEKAN', 'DEKAN', 'ADMIN'];
 
         foreach ($roles as $role) {
             $user = User::where('role', $role)->first();
@@ -46,15 +46,11 @@ class SikaraEnterpriseTest extends TestCase
         $response->assertInertia(fn ($page) => $page->where('selectedDepartmentId', $ptkUser->department_id));
     }
 
-    public function test_submission_creation_and_workflow_electronic_signoff(): void
+    public function test_quick_entry_transaction_creation_and_rbc001_protection(): void
     {
         $ptkUser = User::where('role', 'PTK')->first();
-        $kajurUser = User::where('role', 'KAJUR')
-            ->where('department_id', $ptkUser?->department_id)
-            ->first();
-
-        if (! $ptkUser || ! $kajurUser) {
-            $this->markTestSkipped('PTK or KAJUR user missing');
+        if (! $ptkUser) {
+            $this->markTestSkipped('PTK user missing');
         }
 
         $bucket = BudgetBucket::where('department_id', $ptkUser->department_id)->first();
@@ -62,43 +58,40 @@ class SikaraEnterpriseTest extends TestCase
             $this->markTestSkipped('Budget bucket missing for department');
         }
 
-        // 1. Create Submission via wizard payload
+        // 1. RBC-001 Overbudget Protection Test
+        $excessiveAmount = $bucket->available_balance + 999999999;
+        $overbudgetResponse = $this->actingAs($ptkUser)->post('/submissions', [
+            'department_id' => $ptkUser->department_id,
+            'budget_bucket_id' => $bucket->id,
+            'evidence_number' => 'BKT-OVER-001',
+            'transaction_date' => '2026-08-25',
+            'title' => 'Pengadaan Melebihi Saldo Tersedia',
+            'amount' => $excessiveAmount,
+            'submit_action' => 'PROCESSING',
+        ]);
+        $overbudgetResponse->assertSessionHasErrors(['amount']);
+
+        // 2. Valid Transaction Creation Test (Minimal Input)
+        $validAmount = 2500000;
         $postData = [
             'department_id' => $ptkUser->department_id,
             'budget_bucket_id' => $bucket->id,
+            'evidence_number' => 'BKT-TEST-001',
+            'transaction_date' => '2026-08-25',
             'title' => 'Pengadaan Lisensi Software CAD untuk Laboratorium Teknik',
-            'amount' => 5000000,
+            'amount' => $validAmount,
             'reference_no' => 'UN23.FT.IF/KU/TEST/'.rand(100, 999),
             'beneficiary_name' => 'PT CAD Indonesia',
             'notes' => 'Keperluan praktikum mahasiswa',
-            'submit_action' => 'SUBMITTED',
-            'items' => [
-                [
-                    'item_name' => 'Lisensi 1 Tahun CAD Edukasi',
-                    'quantity' => 1,
-                    'unit_price' => 5000000,
-                    'total_price' => 5000000,
-                ],
-            ],
+            'submit_action' => 'PROCESSING',
         ];
 
         $createResponse = $this->actingAs($ptkUser)->post('/submissions', $postData);
         $createResponse->assertRedirect();
 
-        $submission = Submission::where('title', 'Pengadaan Lisensi Software CAD untuk Laboratorium Teknik')->latest()->first();
+        $submission = Submission::where('evidence_number', 'BKT-TEST-001')->latest()->first();
         $this->assertNotNull($submission);
-        $this->assertEquals('SUBMITTED', $submission->status);
-
-        // 2. KAJUR Approval Decision & Sign-off
-        $approvalResponse = $this->actingAs($kajurUser)->post("/approvals/{$submission->id}/decide", [
-            'decision' => 'APPROVED',
-            'comment' => 'Disetujui untuk diteruskan ke verifikasi fakultas.',
-        ]);
-
-        $approvalResponse->assertRedirect();
-
-        $submission->refresh();
-        $this->assertNotNull($submission->electronic_signoff_hash);
-        $this->assertTrue(in_array($submission->status, ['APPROVED', 'UNDER_REVIEW', 'RESERVED']));
+        $this->assertEquals('PROCESSING', $submission->status);
+        $this->assertEquals($validAmount, (float) $submission->amount);
     }
 }
