@@ -85,6 +85,7 @@ Route::post('/budget-versions', [BudgetVersionController::class, 'store'])->name
 
 // Transactions / Submissions
 Route::resource('submissions', SubmissionController::class)->only(['index', 'create', 'store', 'show']);
+Route::post('submissions/{submission}/resubmit', [SubmissionController::class, 'resubmit'])->name('submissions.resubmit');
 Route::get('submissions/{submission}/print', [SubmissionController::class, 'printDocument'])->name('submissions.print');
 Route::get('submissions/{submission}/export-pdf', [SubmissionController::class, 'exportPdf'])->name('submissions.export-pdf');
 Route::get('submissions/{submission}/export-docx', [SubmissionController::class, 'exportDocx'])->name('submissions.export-docx');

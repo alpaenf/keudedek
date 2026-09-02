@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\BudgetBucket;
 use App\Models\Submission;
 use App\Models\SubmissionStatusHistory;
 use App\Services\AuditLogService;
+use App\Services\BudgetControlService;
 use App\Services\BudgetService;
 use App\Services\ScopeService;
 use Carbon\Carbon;
@@ -253,80 +253,52 @@ class ApprovalController extends Controller
         // ACTION 2: RETURN (Kembalikan ke PTK untuk Perbaikan)
         // ==================================================
         if (in_array($action, ['RETURN', 'RETURNED'])) {
-            DB::transaction(function () use ($submission, $user, $request) {
-                $sub = Submission::where('id', $submission->id)->lockForUpdate()->first();
-                $bucket = BudgetBucket::where('id', $sub->budget_bucket_id)->lockForUpdate()->first();
-                $oldStatus = $sub->status;
-
-                // Release reserved budget if previously reserved
-                if ($bucket && in_array($oldStatus, ['PROCESSING', 'RESERVED', 'APPROVED', 'UNDER_REVIEW'])) {
-                    $this->budgetService->releaseReservation($bucket, (float) $sub->amount);
-                }
-
-                $sub->status = 'RETURNED';
-                $sub->notes = $request->comment;
-                $sub->save();
-
-                SubmissionStatusHistory::create([
-                    'submission_id' => $sub->id,
-                    'from_status' => $oldStatus,
-                    'to_status' => 'RETURNED',
-                    'actor_id' => $user->id,
-                    'role' => $user->role,
-                    'notes' => "Pengembalian berkas: {$request->comment}",
-                ]);
-
-                AuditLogService::log(
-                    'RETURN_SUBMISSION',
-                    Submission::class,
-                    $sub->id,
-                    ['status' => $oldStatus],
-                    ['status' => 'RETURNED', 'reason' => $request->comment]
+            try {
+                BudgetControlService::transitionStatus(
+                    submission: $submission,
+                    targetStatus: 'RETURNED',
+                    actor: $user,
+                    notes: "Pengembalian berkas: {$request->comment}"
                 );
-            });
+            } catch (\InvalidArgumentException $e) {
+                return redirect()->back()->with('error', $e->getMessage());
+            }
 
             return redirect()->back()->with('success', "Transaksi {$submission->evidence_number} telah dikembalikan ke PTK untuk perbaikan.");
         }
 
         // ==================================================
-        // ACTION 3: FINALIZE (Backend Transactional Realization)
+        // ACTION 3: REJECT (Tolak Transaksi)
+        // ==================================================
+        if (in_array($action, ['REJECT', 'REJECTED'])) {
+            try {
+                BudgetControlService::transitionStatus(
+                    submission: $submission,
+                    targetStatus: 'REJECTED',
+                    actor: $user,
+                    notes: "Penolakan berkas: {$request->comment}"
+                );
+            } catch (\InvalidArgumentException $e) {
+                return redirect()->back()->with('error', $e->getMessage());
+            }
+
+            return redirect()->back()->with('success', "Transaksi {$submission->evidence_number} telah ditolak.");
+        }
+
+        // ==================================================
+        // ACTION 4: FINALIZE (Backend Transactional Realization)
         // ==================================================
         if (in_array($action, ['FINALIZE', 'APPROVED'])) {
-            DB::transaction(function () use ($submission, $user, $request) {
-                $sub = Submission::where('id', $submission->id)->lockForUpdate()->first();
-                $bucket = BudgetBucket::where('id', $sub->budget_bucket_id)->lockForUpdate()->first();
-                $oldStatus = $sub->status;
-
-                if (! $bucket) {
-                    $bucket = BudgetBucket::where('department_id', $sub->department_id)->first();
-                }
-
-                if ($bucket) {
-                    // Finalize realization: Move amount from reserved to realized, update available balance
-                    $this->budgetService->finalizeRealization($bucket, (float) $sub->amount);
-                }
-
-                $sub->status = 'FINAL';
-                $sub->notes = $request->comment ?: ($sub->notes ?: 'Transaksi selesai & realisasi definitif telah dibukukan.');
-                $sub->save();
-
-                SubmissionStatusHistory::create([
-                    'submission_id' => $sub->id,
-                    'from_status' => $oldStatus,
-                    'to_status' => 'FINAL',
-                    'actor_id' => $user->id,
-                    'role' => $user->role,
-                    'notes' => $request->comment ?: 'Finalisasi pencairan anggaran & realisasi belanja definitif oleh Penguji Tagihan Unit BLU / Bendahara.',
-                ]);
-
-                AuditLogService::log(
-                    'FINALIZE_TRANSACTION',
-                    Submission::class,
-                    $sub->id,
-                    ['status' => $oldStatus],
-                    ['status' => 'FINAL', 'amount' => $sub->amount, 'actor' => $user->name]
+            try {
+                BudgetControlService::transitionStatus(
+                    submission: $submission,
+                    targetStatus: 'FINAL',
+                    actor: $user,
+                    notes: $request->comment ?: 'Finalisasi pencairan anggaran & realisasi belanja definitif oleh Penguji Tagihan Unit BLU / Bendahara.'
                 );
-            });
+            } catch (\InvalidArgumentException $e) {
+                return redirect()->back()->with('error', $e->getMessage());
+            }
 
             return redirect()->back()->with('success', "Transaksi {$submission->evidence_number} berhasil difinalisasi & realisasi anggaran definitif telah dibukukan.");
         }

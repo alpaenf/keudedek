@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\BudgetBucket;
-use App\Models\BudgetLine;
 use App\Models\BudgetVersion;
 use App\Models\Department;
 use App\Models\DocumentType;
@@ -11,11 +10,10 @@ use App\Models\FiscalYear;
 use App\Models\FundingSource;
 use App\Models\Submission;
 use App\Models\SubmissionDocument;
-use App\Models\SubmissionItem;
-use App\Models\SubmissionStatusHistory;
 use App\Models\TransactionType;
 use App\Services\AuditLogService;
 use App\Services\BudgetCalculationService;
+use App\Services\BudgetControlService;
 use App\Services\ScopeService;
 use App\Services\SubmissionService;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -240,139 +238,48 @@ class SubmissionController extends Controller
         $submissionNumber = 'TRX/'.date('Y/m').'/'.str_pad(rand(1, 999), 3, '0', STR_PAD_LEFT);
         $status = in_array($request->submit_action, ['PROCESSING', 'SUBMITTED']) ? 'PROCESSING' : $request->submit_action;
 
-        // Atomic DB Transaction with Pessimistic Locking (RBC-001 / Concurrency Safe)
+        // Atomic DB Transaction with Pessimistic Locking (RBC Rules 001 - 008)
         try {
-            $submission = DB::transaction(function () use ($request, $user, $departmentId, $fiscalYear, $submissionNumber, $status) {
-                // Verify that the chosen BudgetLine belongs to the authorized department
-                $line = BudgetLine::with(['budgetBucket', 'account', 'subcomponent'])
-                    ->where('id', $request->budget_line_id)
-                    ->firstOrFail();
+            $submission = BudgetControlService::recordTransaction([
+                'budget_line_id' => $request->budget_line_id,
+                'budget_bucket_id' => $request->budget_bucket_id,
+                'evidence_number' => $request->evidence_number,
+                'transaction_date' => $request->transaction_date,
+                'reference_no' => $request->reference_no,
+                'title' => $request->title,
+                'department_id' => $departmentId,
+                'study_program_id' => $request->study_program_id ?? $user?->study_program_id,
+                'transaction_type_id' => $request->transaction_type_id,
+                'amount' => $request->amount,
+                'beneficiary_name' => $request->beneficiary_name,
+                'notes' => $request->notes,
+                'submit_action' => $request->submit_action,
+            ], $user);
 
-                if ($user && $user->hasRole(['PTK', 'KAJUR', 'KAPRODI']) && (int) $line->department_id !== (int) $departmentId) {
-                    throw new \InvalidArgumentException('Akses Ditolak: Baris anggaran yang dipilih berada di luar unit kerja Anda.');
-                }
-
-                // Resolve control bucket via BudgetCalculationService
-                $bucket = $line->budgetBucket ?: BudgetCalculationService::resolveControlBucket($line);
-
-                if (! $bucket) {
-                    $bucket = BudgetBucket::where('id', $request->budget_bucket_id)->first();
-                }
-
-                if ($bucket) {
-                    $bucket = BudgetBucket::where('id', $bucket->id)->lockForUpdate()->firstOrFail();
-
-                    // RBC-001: Overbudget Protection Rule Check
-                    if ($status !== 'DRAFT' && $request->amount > $bucket->available_balance) {
-                        $shortfall = $request->amount - $bucket->available_balance;
-                        throw new \InvalidArgumentException(
-                            'Nominal transaksi (Rp '.number_format($request->amount, 0, ',', '.').') melebihi sisa saldo tersedia pada Control Bucket (Rp '.number_format($bucket->available_balance, 0, ',', '.').'). Defisit: Rp '.number_format($shortfall, 0, ',', '.').'. Transaksi diblokir oleh proteksi overbudget.'
-                        );
+            // Handle multi-file attachments safely
+            if ($request->hasFile('documents')) {
+                $blockedExtensions = ['php', 'exe', 'bat', 'cmd', 'sh', 'bin', 'js', 'vbs'];
+                foreach ($request->file('documents') as $docTypeId => $file) {
+                    $ext = strtolower($file->getClientOriginalExtension());
+                    if (in_array($ext, $blockedExtensions)) {
+                        continue;
                     }
-                }
 
-                $defaultTransactionTypeId = TransactionType::where('is_active', true)->first()?->id ?? TransactionType::first()?->id;
+                    $storedPath = $file->store('submission_docs', 'local');
 
-                $sub = Submission::create([
-                    'submission_number' => $submissionNumber,
-                    'evidence_number' => $request->evidence_number,
-                    'transaction_date' => $request->transaction_date,
-                    'reference_no' => $request->reference_no,
-                    'title' => $request->title,
-                    'department_id' => $departmentId,
-                    'study_program_id' => $request->study_program_id ?? $user?->study_program_id,
-                    'fiscal_year_id' => $fiscalYear->id,
-                    'transaction_type_id' => $request->transaction_type_id ?? $defaultTransactionTypeId,
-                    'budget_bucket_id' => $bucket?->id,
-                    'budget_line_id' => $line->id,
-                    'amount' => $request->amount,
-                    'beneficiary_name' => $request->beneficiary_name,
-                    'status' => $status,
-                    'created_by' => $user?->id,
-                    'notes' => $request->notes,
-                    'subcomponent_full_code' => $line->subcomponent?->full_code ?? $bucket?->subcomponent_full_code,
-                ]);
-
-                // Update Balances atomically based on Status
-                if ($bucket) {
-                    if ($status === 'PROCESSING') {
-                        $bucket->decrement('available_balance', $request->amount);
-                        $bucket->increment('reserved_budget', $request->amount);
-                    } elseif ($status === 'FINAL') {
-                        $bucket->decrement('available_balance', $request->amount);
-                        $bucket->increment('realized_budget', $request->amount);
-                    }
-                }
-
-                // If items provided, save them
-                if ($request->has('items') && is_array($request->items)) {
-                    foreach ($request->items as $item) {
-                        if (! empty($item['item_name'])) {
-                            SubmissionItem::create([
-                                'submission_id' => $sub->id,
-                                'item_name' => $item['item_name'],
-                                'quantity' => $item['quantity'] ?? 1,
-                                'unit_price' => $item['unit_price'] ?? $request->amount,
-                                'total_price' => ($item['quantity'] ?? 1) * ($item['unit_price'] ?? $request->amount),
-                            ]);
-                        }
-                    }
-                } else {
-                    // Create default 1-line item matching transaction title
-                    SubmissionItem::create([
-                        'submission_id' => $sub->id,
-                        'item_name' => $request->title,
-                        'quantity' => 1,
-                        'unit_price' => $request->amount,
-                        'total_price' => $request->amount,
+                    SubmissionDocument::create([
+                        'submission_id' => $submission->id,
+                        'document_type_id' => is_numeric($docTypeId) ? (int) $docTypeId : null,
+                        'original_filename' => $file->getClientOriginalName(),
+                        'stored_filename' => $storedPath,
+                        'mime_type' => $file->getClientMimeType() ?? 'application/octet-stream',
+                        'extension' => $ext,
+                        'file_size' => $file->getSize(),
+                        'checksum_sha256' => hash_file('sha256', $file->getRealPath()),
+                        'uploaded_by' => $user?->id ?? 1,
                     ]);
                 }
-
-                // Handle multi-file attachments safely
-                if ($request->hasFile('documents')) {
-                    $blockedExtensions = ['php', 'exe', 'bat', 'cmd', 'sh', 'bin', 'js', 'vbs'];
-                    foreach ($request->file('documents') as $docTypeId => $file) {
-                        $ext = strtolower($file->getClientOriginalExtension());
-                        if (in_array($ext, $blockedExtensions)) {
-                            continue;
-                        }
-
-                        $storedPath = $file->store('submission_docs', 'local');
-
-                        SubmissionDocument::create([
-                            'submission_id' => $sub->id,
-                            'document_type_id' => is_numeric($docTypeId) ? (int) $docTypeId : null,
-                            'original_filename' => $file->getClientOriginalName(),
-                            'stored_filename' => $storedPath,
-                            'mime_type' => $file->getClientMimeType() ?? 'application/octet-stream',
-                            'extension' => $ext,
-                            'file_size' => $file->getSize(),
-                            'checksum_sha256' => hash_file('sha256', $file->getRealPath()),
-                            'uploaded_by' => $user?->id ?? 1,
-                        ]);
-                    }
-                }
-
-                // Status history
-                SubmissionStatusHistory::create([
-                    'submission_id' => $sub->id,
-                    'from_status' => null,
-                    'to_status' => $status,
-                    'actor_id' => $user?->id ?? 1,
-                    'role' => $user?->role ?? 'PTK',
-                    'notes' => $status === 'DRAFT' ? 'Draft transaksi dicatat.' : 'Transaksi dicatat dan masuk ke tahap Dalam Proses.',
-                ]);
-
-                AuditLogService::log(
-                    'CREATE_TRANSACTION',
-                    Submission::class,
-                    $sub->id,
-                    null,
-                    ['submission_number' => $sub->submission_number, 'amount' => $sub->amount, 'status' => $status]
-                );
-
-                return $sub;
-            });
+            }
         } catch (\InvalidArgumentException $e) {
             return redirect()->back()->withInput()->withErrors([
                 'amount' => $e->getMessage(),
@@ -613,5 +520,49 @@ Verifikator PTU / Bendahara<br/><br/><br/><br/>
             'Content-Type' => 'application/msword; charset=UTF-8',
             'Content-Disposition' => "attachment; filename=\"{$filename}\"",
         ]);
+    }
+
+    /**
+     * Resubmit a RETURNED or DRAFT submission with revised amount / details.
+     */
+    public function resubmit(Request $request, Submission $submission): RedirectResponse
+    {
+        $user = $request->user();
+
+        if (! ScopeService::canCreateTransaction($user)) {
+            abort(403, 'Akses Ditolak.');
+        }
+
+        if ($user->hasRole(['PTK', 'KAJUR', 'KAPRODI']) && (int) $user->department_id !== (int) $submission->department_id) {
+            abort(403, 'Akses Ditolak: Di luar lingkup unit Anda.');
+        }
+
+        $request->validate([
+            'amount' => 'required|numeric|min:1000',
+            'title' => 'nullable|string|max:255',
+            'notes' => 'nullable|string',
+        ]);
+
+        try {
+            if ($request->filled('title')) {
+                $submission->title = $request->title;
+                $submission->save();
+            }
+
+            BudgetControlService::transitionStatus(
+                submission: $submission,
+                targetStatus: 'PROCESSING',
+                actor: $user,
+                notes: $request->notes ?: 'Pengajuan ulang setelah perbaikan berkas.',
+                newAmount: (float) $request->amount
+            );
+        } catch (\InvalidArgumentException $e) {
+            return redirect()->back()->withInput()->withErrors([
+                'amount' => $e->getMessage(),
+            ]);
+        }
+
+        return redirect()->route('submissions.show', $submission)
+            ->with('success', "Transaksi {$submission->evidence_number} berhasil diajukan ulang ke pemeriksaan PTU.");
     }
 }
