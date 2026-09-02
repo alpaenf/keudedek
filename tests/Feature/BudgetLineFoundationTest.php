@@ -18,6 +18,7 @@ use App\Models\FiscalYear;
 use App\Models\FundingSource;
 use App\Models\Submission;
 use App\Models\User;
+use App\Services\BudgetCalculationService;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -282,5 +283,176 @@ class BudgetLineFoundationTest extends TestCase
 
         $this->assertEquals($line->id, $submission->budgetLine->id);
         $this->assertEquals(1, $line->submissions()->count());
+    }
+
+    public function test_mapping_many_budget_lines_to_one_control_bucket(): void
+    {
+        // Line 1: Snack Rapat
+        $line1 = BudgetLine::create([
+            'budget_version_id' => $this->version->id,
+            'department_id' => $this->department->id,
+            'funding_source_id' => $this->fundingSource->id,
+            'rba_sequence_no' => '001',
+            'budget_subcomponent_id' => $this->subcomponent->id,
+            'budget_account_id' => $this->account->id,
+            'description' => 'Snack Rapat Jurusan',
+            'volume' => 20.00,
+            'unit_price' => 25000.00,
+            'budget_amount' => 500000.00,
+        ]);
+
+        // Line 2: Makan Siang Rapat
+        $line2 = BudgetLine::create([
+            'budget_version_id' => $this->version->id,
+            'department_id' => $this->department->id,
+            'funding_source_id' => $this->fundingSource->id,
+            'rba_sequence_no' => '002',
+            'budget_subcomponent_id' => $this->subcomponent->id,
+            'budget_account_id' => $this->account->id,
+            'description' => 'Makan Siang Rapat Kerja',
+            'volume' => 20.00,
+            'unit_price' => 50000.00,
+            'budget_amount' => 1000000.00,
+        ]);
+
+        // Bulk mapping via BudgetCalculationService
+        $linked = BudgetCalculationService::mapLinesToBuckets($this->version->id);
+        $this->assertEquals(2, $linked);
+
+        $line1->refresh();
+        $line2->refresh();
+
+        // Both lines should resolve to the same control bucket
+        $this->assertEquals($this->bucket->id, $line1->budget_bucket_id);
+        $this->assertEquals($this->bucket->id, $line2->budget_bucket_id);
+        $this->assertEquals(2, $this->bucket->budgetLines()->count());
+    }
+
+    public function test_financial_snapshot_and_aggregation(): void
+    {
+        $user = User::factory()->create([
+            'role' => 'PTK',
+            'department_id' => $this->department->id,
+        ]);
+
+        $line = BudgetLine::create([
+            'budget_version_id' => $this->version->id,
+            'department_id' => $this->department->id,
+            'funding_source_id' => $this->fundingSource->id,
+            'budget_bucket_id' => $this->bucket->id,
+            'rba_sequence_no' => '005',
+            'budget_subcomponent_id' => $this->subcomponent->id,
+            'budget_account_id' => $this->account->id,
+            'description' => 'Pembelian ATK Kantor Jurusan',
+            'volume' => 1.00,
+            'unit_price' => 5000000.00,
+            'budget_amount' => 5000000.00,
+        ]);
+
+        // 1 Transaction DIAJUKAN (amount 1,000,000)
+        Submission::create([
+            'submission_number' => 'SUB-DIAJUKAN-01',
+            'evidence_number' => 'KW-D01',
+            'title' => 'Pengajuan Kuitansi Kertas HVS',
+            'department_id' => $this->department->id,
+            'fiscal_year_id' => $this->fiscalYear->id,
+            'budget_bucket_id' => $this->bucket->id,
+            'budget_line_id' => $line->id,
+            'amount' => 1000000.00,
+            'status' => 'SUBMITTED',
+            'created_by' => $user->id,
+        ]);
+
+        // 1 Transaction SELESAI (amount 1,500,000)
+        Submission::create([
+            'submission_number' => 'SUB-SELESAI-01',
+            'evidence_number' => 'KW-S01',
+            'title' => 'Pembelian Tinta Printer Lunas',
+            'department_id' => $this->department->id,
+            'fiscal_year_id' => $this->fiscalYear->id,
+            'budget_bucket_id' => $this->bucket->id,
+            'budget_line_id' => $line->id,
+            'amount' => 1500000.00,
+            'status' => 'FINAL',
+            'created_by' => $user->id,
+        ]);
+
+        // Update bucket reserved and realized to simulate bucket state
+        $this->bucket->reserved_budget = 1000000.00;
+        $this->bucket->realized_budget = 1500000.00;
+        $this->bucket->recalculateAvailableBalance();
+
+        $snapshot = BudgetCalculationService::getLineFinancialSnapshot($line);
+
+        // Assert Line metrics
+        $this->assertEquals(5000000.00, $snapshot['line_budget']);
+        $this->assertEquals(1000000.00, $snapshot['line_diajukan']);
+        $this->assertEquals(1500000.00, $snapshot['line_realisasi']);
+        $this->assertEquals(2500000.00, $snapshot['line_saldo']); // 5M - 1M - 1.5M = 2.5M
+
+        // Assert Bucket control metrics
+        $this->assertEquals($this->bucket->id, $snapshot['bucket_id']);
+        $this->assertEquals(50000000.00, $snapshot['bucket_allocated']);
+        $this->assertEquals(1000000.00, $snapshot['bucket_reserved']);
+        $this->assertEquals(1500000.00, $snapshot['bucket_realized']);
+        $this->assertEquals(47500000.00, $snapshot['bucket_available']); // 50M - 1M - 1.5M = 47.5M
+    }
+
+    public function test_api_search_budget_lines_enforces_user_scope(): void
+    {
+        // Dept 1 Line
+        BudgetLine::create([
+            'budget_version_id' => $this->version->id,
+            'department_id' => $this->department->id,
+            'rba_sequence_no' => '001',
+            'budget_subcomponent_id' => $this->subcomponent->id,
+            'budget_account_id' => $this->account->id,
+            'description' => 'Konsumsi Jurusan Informatika',
+            'volume' => 1.00,
+            'unit_price' => 500000.00,
+            'budget_amount' => 500000.00,
+            'status' => 'ACTIVE',
+        ]);
+
+        // Dept 2 (Elektro) Line
+        $deptElektro = Department::create([
+            'code' => 'JTE',
+            'name' => 'Jurusan Teknik Elektro',
+            'type' => 'DEPARTMENT',
+            'is_active' => true,
+        ]);
+
+        BudgetLine::create([
+            'budget_version_id' => $this->version->id,
+            'department_id' => $deptElektro->id,
+            'rba_sequence_no' => '001',
+            'budget_subcomponent_id' => $this->subcomponent->id,
+            'budget_account_id' => $this->account->id,
+            'description' => 'Konsumsi Jurusan Elektro',
+            'volume' => 1.00,
+            'unit_price' => 600000.00,
+            'budget_amount' => 600000.00,
+            'status' => 'ACTIVE',
+        ]);
+
+        // User PTK Informatika
+        $userPtkInformatika = User::factory()->create([
+            'role' => 'PTK',
+            'department_id' => $this->department->id,
+        ]);
+
+        $response = $this->actingAs($userPtkInformatika)->getJson('/api/budget-lines/search?q=Konsumsi');
+
+        $response->assertStatus(200);
+        $response->assertJsonPath('status', 'success');
+        $response->assertJsonCount(1, 'data');
+        $response->assertJsonPath('data.0.department.code', 'JTIF');
+        $response->assertJsonPath('data.0.description', 'Konsumsi Jurusan Informatika');
+
+        // Admin can search across departments or filter specific
+        $adminUser = User::factory()->create(['role' => 'ADMIN']);
+        $responseAdmin = $this->actingAs($adminUser)->getJson('/api/budget-lines/search?q=Konsumsi');
+        $responseAdmin->assertStatus(200);
+        $responseAdmin->assertJsonCount(2, 'data');
     }
 }

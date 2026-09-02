@@ -66,6 +66,7 @@ Route::prefix('master')->name('master.')->group(function () {
 
 // Budget Management & Quick Search API
 Route::get('/api/budgets/search', [BudgetBucketController::class, 'search'])->name('api.budgets.search');
+Route::get('/api/budget-lines/search', [BudgetBucketController::class, 'searchBudgetLines'])->name('api.budget-lines.search');
 Route::get('/budgets-import', [BudgetImportController::class, 'index'])->name('budgets.import.index');
 Route::post('/budgets-import', [BudgetImportController::class, 'upload'])->name('budgets.import.upload');
 Route::get('/budgets-import/template', [BudgetImportController::class, 'downloadTemplate'])->name('budgets.import.template');

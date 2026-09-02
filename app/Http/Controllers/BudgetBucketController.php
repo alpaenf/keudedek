@@ -15,6 +15,7 @@ use App\Models\Department;
 use App\Models\FiscalYear;
 use App\Models\FundingSource;
 use App\Services\AuditLogService;
+use App\Services\BudgetCalculationService;
 use App\Services\BudgetService;
 use App\Services\ScopeService;
 use Illuminate\Http\JsonResponse;
@@ -284,6 +285,32 @@ class BudgetBucketController extends Controller
         return response()->json([
             'status' => 'success',
             'data' => $buckets,
+        ]);
+    }
+
+    /**
+     * Dedicated API endpoint to search Budget Lines with hierarchy, scope, and financial snapshot.
+     */
+    public function searchBudgetLines(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $search = $request->query('q', $request->query('search'));
+        $departmentId = $request->filled('department_id') ? (int) $request->department_id : null;
+        $budgetVersionId = $request->filled('budget_version_id') ? (int) $request->budget_version_id : null;
+        $limit = min(50, max(1, (int) $request->query('limit', 25)));
+
+        $lines = BudgetCalculationService::searchBudgetLines(
+            user: $user,
+            search: $search,
+            departmentId: $departmentId,
+            budgetVersionId: $budgetVersionId,
+            limit: $limit
+        );
+
+        return response()->json([
+            'status' => 'success',
+            'count' => count($lines),
+            'data' => $lines,
         ]);
     }
 
