@@ -72,6 +72,11 @@ class BudgetBucket extends Model
         return $this->hasMany(EarlyWarning::class);
     }
 
+    public function budgetLines(): HasMany
+    {
+        return $this->hasMany(BudgetLine::class);
+    }
+
     public function recalculateAvailableBalance(): void
     {
         $this->available_balance = $this->allocated_budget - $this->reserved_budget - $this->realized_budget;

@@ -82,14 +82,23 @@ class User extends Authenticatable
 
     // Role Constants for SIKARA
     public const ROLE_PTK = 'PTK';
+
     public const ROLE_KAJUR = 'KAJUR';
+
     public const ROLE_KAPRODI = 'KAPRODI';
+
     public const ROLE_PTU = 'PTU';                 // Penguji Tagihan Unit BLU
+
     public const ROLE_BENDAHARA = 'BENDAHARA';     // Bendahara Pengeluaran Pembantu
+
     public const ROLE_KABAG = 'KABAG';
+
     public const ROLE_WAKIL_DEKAN = 'WAKIL_DEKAN';
+
     public const ROLE_WD = 'WD';
+
     public const ROLE_DEKAN = 'DEKAN';
+
     public const ROLE_ADMIN = 'ADMIN';
 
     public function isPtk(): bool

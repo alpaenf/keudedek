@@ -23,6 +23,7 @@ class Submission extends Model
         'transaction_type_id',
         'submission_template_id',
         'budget_bucket_id',
+        'budget_line_id',
         'amount',
         'beneficiary_name',
         'status',
@@ -72,6 +73,11 @@ class Submission extends Model
     public function budgetBucket(): BelongsTo
     {
         return $this->belongsTo(BudgetBucket::class);
+    }
+
+    public function budgetLine(): BelongsTo
+    {
+        return $this->belongsTo(BudgetLine::class);
     }
 
     public function currentWorkflowStep(): BelongsTo

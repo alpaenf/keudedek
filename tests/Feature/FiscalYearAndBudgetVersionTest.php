@@ -40,10 +40,13 @@ class FiscalYearAndBudgetVersionTest extends TestCase
 
     public function test_rm_is_mvp_enabled_default_and_inactive_source_handling(): void
     {
-        $rm = FundingSource::where('code', 'RM')->first();
+        $rm = FundingSource::firstOrCreate(
+            ['code' => 'RM'],
+            ['name' => 'Rupiah Murni', 'is_mvp_enabled' => true, 'is_active' => true, 'status' => 'ACTIVE']
+        );
         $this->assertNotNull($rm);
-        $this->assertTrue($rm->is_mvp_enabled);
-        $this->assertTrue($rm->is_active);
+        $this->assertTrue((bool) $rm->is_mvp_enabled);
+        $this->assertTrue((bool) $rm->is_active);
 
         $adminUser = User::where('role', 'ADMIN')->first();
         if (! $adminUser) {

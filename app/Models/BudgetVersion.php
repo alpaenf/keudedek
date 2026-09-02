@@ -54,6 +54,11 @@ class BudgetVersion extends Model
         return $this->hasMany(BudgetBucket::class);
     }
 
+    public function budgetLines(): HasMany
+    {
+        return $this->hasMany(BudgetLine::class);
+    }
+
     public function isActive(): bool
     {
         return $this->status === 'ACTIVE';
