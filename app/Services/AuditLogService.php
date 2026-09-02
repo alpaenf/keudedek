@@ -14,14 +14,14 @@ class AuditLogService
         ?array $newValues = null
     ): AuditLog {
         return AuditLog::create([
-            'user_id' => auth()->id() ?? 1,
+            'user_id' => auth()->id(),
             'action' => $action,
             'model_type' => $modelType,
             'model_id' => $modelId,
             'old_values' => $oldValues,
             'new_values' => $newValues,
-            'ip_address' => request()->ip(),
-            'user_agent' => request()->userAgent(),
+            'ip_address' => request()->ip() ?? '127.0.0.1',
+            'user_agent' => request()->userAgent() ?? 'System',
         ]);
     }
 }

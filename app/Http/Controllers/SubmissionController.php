@@ -18,6 +18,7 @@ use App\Models\TransactionType;
 use App\Services\AuditLogService;
 use App\Services\ScopeService;
 use App\Services\SubmissionService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -280,6 +281,8 @@ class SubmissionController extends Controller
                     );
                 }
 
+                $defaultTransactionTypeId = TransactionType::where('is_active', true)->first()?->id ?? TransactionType::first()?->id;
+
                 $sub = Submission::create([
                     'submission_number' => $submissionNumber,
                     'evidence_number' => $request->evidence_number,
@@ -289,12 +292,12 @@ class SubmissionController extends Controller
                     'department_id' => $departmentId,
                     'study_program_id' => $request->study_program_id ?? $user?->study_program_id,
                     'fiscal_year_id' => $fiscalYear->id,
-                    'transaction_type_id' => $request->transaction_type_id ?? 1,
+                    'transaction_type_id' => $request->transaction_type_id ?? $defaultTransactionTypeId,
                     'budget_bucket_id' => $request->budget_bucket_id,
                     'amount' => $request->amount,
                     'beneficiary_name' => $request->beneficiary_name,
                     'status' => $status,
-                    'created_by' => $user?->id ?? 1,
+                    'created_by' => $user?->id,
                     'notes' => $request->notes,
                     'subcomponent_full_code' => $bucket->subcomponent_full_code,
                 ]);
@@ -442,10 +445,180 @@ class SubmissionController extends Controller
 
         $signoffApproval = $submission->approvals()->latest()->first();
 
+        // Audit Log Recording
+        AuditLogService::log(
+            'PRINT_TRANSACTION',
+            Submission::class,
+            $submission->id,
+            null,
+            [
+                'evidence_number' => $submission->evidence_number ?: $submission->submission_number,
+                'amount' => $submission->amount,
+                'actor' => $user?->name,
+                'role' => $user?->role,
+            ]
+        );
+
         return Inertia::render('Submissions/Print', [
             'submission' => $submission,
             'signoffUser' => $signoffApproval?->user,
             'signoffDate' => $signoffApproval ? date('d F Y', strtotime($signoffApproval->created_at)) : null,
+        ]);
+    }
+
+    public function exportPdf(Submission $submission)
+    {
+        $user = auth()->user();
+        if (! ScopeService::canAccessDepartment($user, $submission->department_id)) {
+            abort(403, 'Akses Ditolak: Anda tidak berwenang mengunduh dokumen unit lain.');
+        }
+
+        $submission->load([
+            'department',
+            'studyProgram',
+            'budgetBucket.fundingSource',
+            'budgetBucket.budgetVersion',
+            'creator',
+            'items',
+            'documents.documentType',
+            'approvals.user',
+            'transactionType',
+        ]);
+
+        // Audit Log Recording
+        AuditLogService::log(
+            'EXPORT_SUBMISSION_PDF',
+            Submission::class,
+            $submission->id,
+            null,
+            [
+                'evidence_number' => $submission->evidence_number ?: $submission->submission_number,
+                'amount' => $submission->amount,
+                'actor' => $user?->name,
+            ]
+        );
+
+        $pdf = Pdf::loadView('exports.submission-pdf', [
+            'submission' => $submission,
+            'signoffApproval' => $submission->approvals()->latest()->first(),
+        ])->setPaper('a4', 'portrait');
+
+        $evidenceNo = preg_replace('/[^A-Za-z0-9_\-]/', '_', $submission->evidence_number ?: $submission->submission_number);
+        $filename = "SPJ_{$evidenceNo}_".date('Ymd_His').'.pdf';
+
+        return $pdf->download($filename);
+    }
+
+    public function exportDocx(Submission $submission)
+    {
+        $user = auth()->user();
+        if (! ScopeService::canAccessDepartment($user, $submission->department_id)) {
+            abort(403, 'Akses Ditolak: Anda tidak berwenang mengunduh dokumen unit lain.');
+        }
+
+        $submission->load([
+            'department',
+            'studyProgram',
+            'budgetBucket.fundingSource',
+            'budgetBucket.budgetVersion',
+            'creator',
+            'items',
+        ]);
+
+        // Audit Log Recording
+        AuditLogService::log(
+            'EXPORT_SUBMISSION_DOCX',
+            Submission::class,
+            $submission->id,
+            null,
+            [
+                'evidence_number' => $submission->evidence_number ?: $submission->submission_number,
+                'amount' => $submission->amount,
+                'actor' => $user?->name,
+            ]
+        );
+
+        $evidenceNo = preg_replace('/[^A-Za-z0-9_\-]/', '_', $submission->evidence_number ?: $submission->submission_number);
+        $filename = "SPJ_{$evidenceNo}_Editable_".date('Ymd_His').'.doc';
+
+        $itemsHtml = '';
+        foreach ($submission->items as $idx => $item) {
+            $no = $idx + 1;
+            $qty = $item->quantity;
+            $unitPrice = 'Rp '.number_format($item->unit_price, 0, ',', '.');
+            $totalPrice = 'Rp '.number_format($item->total_price, 0, ',', '.');
+            $itemsHtml .= "<tr><td align='center'>{$no}</td><td>{$item->item_name}</td><td align='center'>{$qty}</td><td align='right'>{$unitPrice}</td><td align='right'>{$totalPrice}</td></tr>";
+        }
+
+        $totalFormatted = 'Rp '.number_format($submission->amount, 0, ',', '.');
+        $deptName = $submission->department?->name ?? 'Fakultas Teknik';
+        $accountStr = "[{$submission->budgetBucket?->account_code}] {$submission->budgetBucket?->account_name}";
+
+        $docContent = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+<head><title>Surat Usulan SPJ Belanja</title>
+<style>
+body { font-family: 'Times New Roman', serif; font-size: 12pt; }
+table { border-collapse: collapse; width: 100%; }
+th, td { border: 1px solid black; padding: 6px; }
+.no-border th, .no-border td { border: none; }
+.header-title { text-align: center; font-weight: bold; }
+</style>
+</head>
+<body>
+<div class='header-title'>
+<h3>KEMENTERIAN PENDIDIKAN TINGGI, SAINS, DAN TEKNOLOGI</h3>
+<h2>UNIVERSITAS JENDERAL SOEDIRMAN - FAKULTAS TEKNIK</h2>
+<p>Jl. Mayjen HR. Boenyamin No. 708 Purwokerto 53122 | Web: ft.unsoed.ac.id</p>
+<hr size='3' color='black' />
+</div>
+
+<h3 align='center'><u>SURAT USULAN & BUKTI BELANJA ANGGARAN</u><br/><small>Nomor: {$submission->evidence_number}</small></h3>
+
+<table class='no-border' style='margin-bottom: 20px;'>
+<tr><td width='25%'><b>Unit / Jurusan</b></td><td>: {$deptName}</td></tr>
+<tr><td><b>Mata Anggaran (Pos)</b></td><td>: {$accountStr}</td></tr>
+<tr><td><b>Nama Kegiatan</b></td><td>: {$submission->title}</td></tr>
+<tr><td><b>Penerima Pembayaran</b></td><td>: {$submission->beneficiary_name}</td></tr>
+<tr><td><b>Total Nilai Belanja</b></td><td>: <b>{$totalFormatted}</b></td></tr>
+</table>
+
+<h4>Rincian Komponen Belanja:</h4>
+<table>
+<thead>
+<tr bgcolor='#f2f2f2'>
+<th>No</th><th>Uraian Spesifikasi Item</th><th>Qty</th><th>Harga Satuan</th><th>Total Harga</th>
+</tr>
+</thead>
+<tbody>
+{$itemsHtml}
+</tbody>
+<tfoot>
+<tr bgcolor='#f2f2f2'><th colspan='4' align='right'>Total Usulan:</th><th align='right'>{$totalFormatted}</th></tr>
+</tfoot>
+</table>
+
+<br/><br/>
+<table class='no-border'>
+<tr>
+<td width='50%' align='center'>
+Mengetahui / Mengajukan,<br/>
+Pengelola Transaksi (PTK)<br/><br/><br/><br/>
+( <u>{$submission->creator?->name}</u> )
+</td>
+<td width='50%' align='center'>
+Purwokerto, ".date('d F Y').'<br/>
+Verifikator PTU / Bendahara<br/><br/><br/><br/>
+( ____________________ )
+</td>
+</tr>
+</table>
+
+</body>
+</html>';
+
+        return response($docContent, 200, [
+            'Content-Type' => 'application/msword; charset=UTF-8',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
         ]);
     }
 }

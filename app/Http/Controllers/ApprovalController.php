@@ -19,7 +19,6 @@ use Inertia\Response;
 class ApprovalController extends Controller
 {
     public function __construct(
-        protected WorkflowService $workflowService,
         protected BudgetService $budgetService
     ) {}
 
@@ -227,7 +226,7 @@ class ApprovalController extends Controller
                 $oldStatus = $sub->status;
 
                 $sub->status = 'PROCESSING';
-                $sub->notes = $request->comment ?: ($sub->notes ?: 'Telah diverifikasi dan diperiksa kelengkapan fisik SPJ oleh PTU / Bendahara.');
+                $sub->notes = $request->comment ?: ($sub->notes ?: 'Telah diverifikasi kelengkapan bukti transaksi oleh PTU (Penguji Tagihan Unit BLU).');
                 $sub->save();
 
                 SubmissionStatusHistory::create([
@@ -236,7 +235,7 @@ class ApprovalController extends Controller
                     'to_status' => 'PROCESSING',
                     'actor_id' => $user->id,
                     'role' => $user->role,
-                    'notes' => $request->comment ?: 'Verifikasi berkas & kepatuhan SPJ dinyatakan lolos oleh PTU / Bendahara.',
+                    'notes' => $request->comment ?: 'Verifikasi berkas & kepatuhan SPJ dinyatakan lolos oleh PTU (Penguji Tagihan Unit BLU).',
                 ]);
 
                 AuditLogService::log(
@@ -318,7 +317,7 @@ class ApprovalController extends Controller
                     'to_status' => 'FINAL',
                     'actor_id' => $user->id,
                     'role' => $user->role,
-                    'notes' => $request->comment ?: 'Finalisasi pencairan anggaran & realisasi belanja definitif oleh PTU / Bendahara.',
+                    'notes' => $request->comment ?: 'Finalisasi pencairan anggaran & realisasi belanja definitif oleh Penguji Tagihan Unit BLU / Bendahara.',
                 ]);
 
                 AuditLogService::log(

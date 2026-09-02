@@ -65,18 +65,18 @@ const rolesDetail = [
     scope: 'Terisolasi khusus untuk unit jurusan yang ditugaskan (department_id).'
   },
   {
-    key: 'PTU / Bendahara',
-    title: 'PTU & Bendahara Pengeluaran Pembantu',
-    badge: 'Level Verifikasi & Kas',
+    key: 'PTU',
+    title: 'PTU (Penguji Tagihan Unit BLU)',
+    badge: 'Verifikasi Tagihan',
     badgeColor: 'bg-blue-100 text-blue-800 border-blue-300',
-    description: 'Pemeriksa kelengkapan berkas SPJ transaksi dan pengelola kas belanja operasional fakultas.',
+    description: 'Penguji kelengkapan dokumen tagihan transaksi belanja dan pengawasan batas pagu anggaran fakultas.',
     responsibilities: [
-      'Memeriksa kelengkapan bukti administrasi dan dokumen SPJ transaksi.',
-      'Memantau antrean transaksi berjalan (Workbench Verifikasi).',
-      'Memfinalisasi transaksi menjadi realisasi belanja lunas.',
-      'Mengembalikan berkas transaksi yang belum memenuhi syarat administrasi.'
+      'Memeriksa kebenaran bukti administrasi dan dokumen tagihan transaksi belanja.',
+      'Memantau antrean transaksi berjalan (Workbench Pemeriksaan).',
+      'Memverifikasi pemenuhan syarat tagihan untuk diteruskan ke realisasi belanja.',
+      'Mengembalikan berkas transaksi yang belum memenuhi syarat administrasi ke PTK.'
     ],
-    scope: 'Akses pemeriksaan dan finalisasi transaksi seluruh unit Fakultas Teknik.'
+    scope: 'Akses pemeriksaan transaksi seluruh unit Fakultas Teknik.'
   },
   {
     key: 'Kajur / Kaprodi',

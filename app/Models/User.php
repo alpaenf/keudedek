@@ -80,29 +80,41 @@ class User extends Authenticatable
         }
     }
 
+    // Role Constants for SIKARA
+    public const ROLE_PTK = 'PTK';
+    public const ROLE_KAJUR = 'KAJUR';
+    public const ROLE_KAPRODI = 'KAPRODI';
+    public const ROLE_PTU = 'PTU';                 // Penguji Tagihan Unit BLU
+    public const ROLE_BENDAHARA = 'BENDAHARA';     // Bendahara Pengeluaran Pembantu
+    public const ROLE_KABAG = 'KABAG';
+    public const ROLE_WAKIL_DEKAN = 'WAKIL_DEKAN';
+    public const ROLE_WD = 'WD';
+    public const ROLE_DEKAN = 'DEKAN';
+    public const ROLE_ADMIN = 'ADMIN';
+
     public function isPtk(): bool
     {
-        return $this->hasRole('PTK');
+        return $this->hasRole(self::ROLE_PTK);
     }
 
     public function isKajur(): bool
     {
-        return $this->hasRole('KAJUR');
+        return $this->hasRole(self::ROLE_KAJUR);
     }
 
     public function isKaprodi(): bool
     {
-        return $this->hasRole('KAPRODI');
+        return $this->hasRole(self::ROLE_KAPRODI);
     }
 
     public function isPtu(): bool
     {
-        return $this->hasRole('PTU');
+        return $this->hasRole(self::ROLE_PTU);
     }
 
     public function isBendahara(): bool
     {
-        return $this->hasRole(['BENDAHARA', 'PTU']);
+        return $this->hasRole(self::ROLE_BENDAHARA);
     }
 
     public function isKabag(): bool

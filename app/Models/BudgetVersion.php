@@ -19,6 +19,8 @@ class BudgetVersion extends Model
         'status',
         'effective_at',
         'source_reference',
+        'import_history_id',
+        'source_filename',
         'notes',
         'created_by',
     ];
@@ -35,6 +37,11 @@ class BudgetVersion extends Model
     public function fundingSource(): BelongsTo
     {
         return $this->belongsTo(FundingSource::class);
+    }
+
+    public function importHistory(): BelongsTo
+    {
+        return $this->belongsTo(ImportHistory::class, 'import_history_id');
     }
 
     public function creator(): BelongsTo

@@ -82,7 +82,10 @@ const submitDecision = () => {
 };
 
 const canApprove = computed(() => {
-  return page.props.auth?.user?.can_approve_financial;
+  // Hanya role pemeriksa tagihan / verifikator (PTU & Bendahara) yang memiliki aksi keputusan.
+  // Pimpinan (Kajur, Kabag, WD, Dekan) bersifat monitoring / read-only.
+  const userRole = page.props.auth?.user?.role;
+  return ['PTU', 'BENDAHARA'].includes(userRole);
 });
 
 const printDocument = () => {
@@ -108,14 +111,38 @@ const printDocument = () => {
           </div>
         </div>
 
-        <div class="flex flex-wrap items-center gap-2.5">
+        <div class="flex flex-wrap items-center gap-2">
+          <!-- 1. Print / Cetak Resmi -->
           <a 
             :href="`/submissions/${submission.id}/print`"
             target="_blank"
-            class="px-4 py-2.5 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm"
+            class="px-3.5 py-2 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm"
+            title="Buka Lembar Cetak Dokumen Resmi"
           >
             <Printer class="w-4 h-4 text-slate-500" />
-            Cetak Dokumen Resmi Berkop
+            <span>Cetak SPJ</span>
+          </a>
+
+          <!-- 2. Unduh PDF Resmi -->
+          <a 
+            :href="`/submissions/${submission.id}/export-pdf`"
+            target="_blank"
+            class="px-3.5 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm shadow-rose-600/20"
+            title="Unduh Berkas Resmi Format PDF"
+          >
+            <FileText class="w-4 h-4" />
+            <span>Unduh PDF</span>
+          </a>
+
+          <!-- 3. Unduh DOCX Editable -->
+          <a 
+            :href="`/submissions/${submission.id}/export-docx`"
+            target="_blank"
+            class="px-3.5 py-2 bg-sky-700 hover:bg-sky-600 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm shadow-sky-700/20"
+            title="Unduh Berkas Format Editable Microsoft Word (.doc)"
+          >
+            <FileText class="w-4 h-4" />
+            <span>Unduh DOCX</span>
           </a>
 
           <!-- Approver Action Buttons -->

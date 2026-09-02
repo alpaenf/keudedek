@@ -14,10 +14,24 @@ class FundingSource extends Model
         'code',
         'name',
         'description',
+        'is_mvp_enabled',
+        'is_active',
+        'status',
+        'external_system',
+    ];
+
+    protected $casts = [
+        'is_mvp_enabled' => 'boolean',
+        'is_active' => 'boolean',
     ];
 
     public function budgetBuckets(): HasMany
     {
         return $this->hasMany(BudgetBucket::class);
+    }
+
+    public function budgetVersions(): HasMany
+    {
+        return $this->hasMany(BudgetVersion::class);
     }
 }

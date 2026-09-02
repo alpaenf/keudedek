@@ -10,6 +10,7 @@ use App\Http\Controllers\BudgetVersionController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EarlyWarningController;
 use App\Http\Controllers\LandingController;
+use App\Http\Controllers\Master\BudgetStructureController;
 use App\Http\Controllers\Master\DepartmentController;
 use App\Http\Controllers\Master\FiscalYearController;
 use App\Http\Controllers\Master\FundingSourceController;
@@ -34,15 +35,33 @@ Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard
 // User Management (Admin Module)
 Route::resource('users', UserController::class);
 
-// Master Data Management (Admin Module)
+// Master Data Management (Admin Module - Master Organisasi)
 Route::prefix('master')->name('master.')->group(function () {
     Route::resource('departments', DepartmentController::class)->except(['create', 'show', 'edit']);
     Route::post('departments/{department}/toggle-active', [DepartmentController::class, 'toggleActive'])->name('departments.toggle-active');
 
-    Route::resource('funding-sources', FundingSourceController::class)->except(['create', 'show', 'edit']);
+    // Program Studi Actions
+    Route::post('study-programs', [DepartmentController::class, 'storeStudyProgram'])->name('study-programs.store');
+    Route::put('study-programs/{studyProgram}', [DepartmentController::class, 'updateStudyProgram'])->name('study-programs.update');
+    Route::delete('study-programs/{studyProgram}', [DepartmentController::class, 'destroyStudyProgram'])->name('study-programs.destroy');
+    Route::post('study-programs/{studyProgram}/toggle-active', [DepartmentController::class, 'toggleActiveStudyProgram'])->name('study-programs.toggle-active');
 
+    // Funding Sources Actions
+    Route::resource('funding-sources', FundingSourceController::class)->except(['create', 'show', 'edit']);
+    Route::post('funding-sources/{fundingSource}/toggle-active', [FiscalYearController::class, 'toggleFundingSourceActive'])->name('funding-sources.toggle-active');
+
+    // Fiscal Years & Budget Versions (Tahun & Versi Pagu)
     Route::resource('fiscal-years', FiscalYearController::class)->except(['create', 'show', 'edit']);
     Route::post('fiscal-years/{fiscalYear}/set-active', [FiscalYearController::class, 'setActive'])->name('fiscal-years.set-active');
+    Route::post('budget-versions', [FiscalYearController::class, 'storeBudgetVersion'])->name('budget-versions.store');
+    Route::put('budget-versions/{budgetVersion}', [FiscalYearController::class, 'updateBudgetVersion'])->name('budget-versions.update');
+    Route::post('budget-versions/{budgetVersion}/set-active', [FiscalYearController::class, 'setActiveBudgetVersion'])->name('budget-versions.set-active');
+    Route::delete('budget-versions/{budgetVersion}', [FiscalYearController::class, 'destroyBudgetVersion'])->name('budget-versions.destroy');
+
+    // Master Struktur Anggaran (Program, Kegiatan, KRO, RO, Komponen, Subkomponen, Akun, Subakun)
+    Route::get('budget-structure', [BudgetStructureController::class, 'index'])->name('budget-structure.index');
+    Route::put('budget-structure/{type}/{id}', [BudgetStructureController::class, 'update'])->name('budget-structure.update');
+    Route::post('budget-structure/{type}/{id}/toggle-status', [BudgetStructureController::class, 'toggleStatus'])->name('budget-structure.toggle-status');
 });
 
 // Budget Management & Quick Search API
@@ -66,6 +85,8 @@ Route::post('/budget-versions', [BudgetVersionController::class, 'store'])->name
 // Transactions / Submissions
 Route::resource('submissions', SubmissionController::class)->only(['index', 'create', 'store', 'show']);
 Route::get('submissions/{submission}/print', [SubmissionController::class, 'printDocument'])->name('submissions.print');
+Route::get('submissions/{submission}/export-pdf', [SubmissionController::class, 'exportPdf'])->name('submissions.export-pdf');
+Route::get('submissions/{submission}/export-docx', [SubmissionController::class, 'exportDocx'])->name('submissions.export-docx');
 Route::get('submissions/documents/{document}/download', [SubmissionController::class, 'downloadDocument'])->name('submissions.documents.download');
 
 // Bulk Import Transactions
@@ -81,6 +102,7 @@ Route::post('/approvals/{submission}/decide', [ApprovalController::class, 'decid
 
 // Early Warning System
 Route::get('/warnings', [EarlyWarningController::class, 'index'])->name('warnings.index');
+Route::get('/warnings/{earlyWarning}', [EarlyWarningController::class, 'show'])->name('warnings.show');
 Route::post('/warnings/{earlyWarning}/acknowledge', [EarlyWarningController::class, 'acknowledge'])->name('warnings.acknowledge');
 Route::post('/warnings/{earlyWarning}/resolve', [EarlyWarningController::class, 'resolve'])->name('warnings.resolve');
 Route::post('/warnings/reevaluate', [EarlyWarningController::class, 'reevaluate'])->name('warnings.reevaluate');
@@ -89,10 +111,12 @@ Route::post('/warnings/reevaluate', [EarlyWarningController::class, 'reevaluate'
 Route::get('/admin/submission-templates', [SubmissionTemplateController::class, 'index'])->name('admin.submission-templates.index');
 Route::post('/admin/submission-templates', [SubmissionTemplateController::class, 'store'])->name('admin.submission-templates.store');
 
-// Reports
+// Reports (Page P24 & P25)
 Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
 Route::get('/reports/export-pdf', [ReportController::class, 'exportPdf'])->name('reports.export-pdf');
+Route::get('/reports/export-xlsx', [ReportController::class, 'exportXlsx'])->name('reports.export-xlsx');
 Route::get('/reports/export-csv', [ReportController::class, 'exportCsv'])->name('reports.export-csv');
+Route::get('/reports/export-docx', [ReportController::class, 'exportDocx'])->name('reports.export-docx');
 
 // Audit Log
 Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');

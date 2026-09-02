@@ -415,6 +415,16 @@ const getRuleTitle = (code) => {
                 <!-- 7. Action Buttons -->
                 <td class="py-3.5 px-3.5 text-center whitespace-nowrap">
                   <div class="flex items-center justify-center gap-1.5">
+                    <!-- View Detail Button (Page P23) -->
+                    <Link 
+                      :href="`/warnings/${w.id}`"
+                      class="px-2.5 py-1 bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 rounded-lg text-[11px] font-bold transition inline-flex items-center gap-1 shadow-xs"
+                      title="Lihat Rincian Peringatan &amp; Kalkulasi"
+                    >
+                      <Eye class="w-3 h-3" />
+                      <span>Detail</span>
+                    </Link>
+
                     <!-- Acknowledge Button -->
                     <button 
                       v-if="w.lifecycle_state === 'OPEN'"
@@ -423,7 +433,7 @@ const getRuleTitle = (code) => {
                       title="Tandai telah direspon dan dipelajari"
                     >
                       <Check class="w-3 h-3" />
-                      <span>Respon (Acknowledge)</span>
+                      <span>Respon</span>
                     </button>
 
                     <!-- Resolve Button -->

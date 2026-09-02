@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class BudgetProgram extends Model
 {
@@ -12,5 +13,13 @@ class BudgetProgram extends Model
         'full_code',
         'name',
         'data_status',
+        'source_type',
+        'status',
     ];
+
+    public function activities(): HasMany
+    {
+        return $this->hasMany(BudgetActivity::class, 'parent_program_code', 'code')
+            ->where('fiscal_year', $this->fiscal_year);
+    }
 }

@@ -14,12 +14,17 @@ class StudyProgram extends Model
     protected $fillable = [
         'department_id',
         'code',
+        'official_code',
         'name',
         'is_active',
+        'status',
+        'source_type',
+        'effective_year',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
+        'effective_year' => 'integer',
     ];
 
     public function department(): BelongsTo

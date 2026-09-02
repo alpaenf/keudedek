@@ -8,6 +8,7 @@ use App\Models\FiscalYear;
 use App\Services\AuditLogService;
 use App\Services\RuleEngineService;
 use App\Services\ScopeService;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -133,6 +134,116 @@ class EarlyWarningController extends Controller
                 'search',
             ]),
             'userRole' => $user?->role === 'WD' ? 'WAKIL_DEKAN' : ($user?->role ?? 'GUEST'),
+        ]);
+    }
+
+    public function show(EarlyWarning $earlyWarning): Response
+    {
+        $earlyWarning->load([
+            'department',
+            'budgetBucket.fiscalYear',
+            'budgetBucket.fundingSource',
+            'budgetBucket.budgetVersion',
+            'acknowledger',
+        ]);
+
+        $bucket = $earlyWarning->budgetBucket;
+        $dept = $earlyWarning->department;
+        $deptName = $dept?->name ?? 'Fakultas Teknik';
+
+        $ruleNames = [
+            'EWS-001' => 'Saldo Kritis',
+            'EWS-002' => 'High Utilization',
+            'EWS-003' => 'Transaksi Terlalu Lama Dalam Proses',
+            'EWS-004' => 'Revision Conflict',
+            'EWS-005' => 'Unmapped Data Staging',
+        ];
+
+        $ruleName = $ruleNames[$earlyWarning->rule_code] ?? 'Early Warning Indicator';
+
+        // 7-Segment Budget Context
+        $budgetContext = [
+            'ta' => $bucket?->fiscalYear?->year ?? 2026,
+            'sumber_dana' => $bucket?->fundingSource?->code ?? 'RM',
+            'revision' => $bucket?->budgetVersion?->revision_no ?? 'Rev 02',
+            'jurusan_code' => $dept?->code ?? 'FT',
+            'jurusan_name' => $deptName,
+            'program_code' => 'WA',
+            'program_name' => 'Program Dukungan Manajemen',
+            'activity_code' => '4257',
+            'activity_name' => 'Dukungan Manajemen & Pelaksanaan Tugas Teknis Ditjen Dikti',
+            'kro_code' => '7734.EBA',
+            'kro_name' => 'Layanan Dukungan Manajemen Internal',
+            'ro_code' => '994',
+            'ro_name' => 'Layanan Perkantoran',
+            'component_code' => '001',
+            'component_name' => 'Operasional & Pemeliharaan Kantor',
+            'subcomponent_code' => $bucket?->subcomponent_code ?? 'AA',
+            'subcomponent_name' => $bucket?->subcomponent_name ?? "Operasional & Praktikum {$deptName}",
+            'account_code' => $bucket?->account_code ?? '-',
+            'account_name' => $bucket?->account_name ?? 'Belanja Operasional',
+            'subaccount_code' => ($bucket?->account_code ?? '521211').'.001',
+            'subaccount_name' => 'Alokasi Operasional Standar Unit',
+        ];
+
+        // Calculation Metrics & Ratios
+        $allocated = (float) ($bucket?->allocated_budget ?? 0);
+        $available = (float) ($bucket?->available_balance ?? 0);
+        $reserved = (float) ($bucket?->reserved_budget ?? 0);
+        $realized = (float) ($bucket?->realized_budget ?? 0);
+
+        $availableRatio = $allocated > 0 ? round(($available / $allocated) * 100, 2) : 0;
+        $utilizationRatio = $allocated > 0 ? round((($realized + $reserved) / $allocated) * 100, 2) : 0;
+
+        $thresholdMap = [
+            'EWS-001' => 'Available Balance Ratio <= 10.00% atau Saldo <= Rp 0',
+            'EWS-002' => 'Utilization Ratio (Realized + Reserved) >= 85.00%',
+            'EWS-003' => 'Pending Examination Duration > 3 Hari Kerja',
+            'EWS-004' => 'Pagu Revisi Baru < Total Belanja Berjalan',
+            'EWS-005' => 'Unmapped Field Count > 0 pada Import Staging',
+        ];
+
+        $calculation = [
+            'allocated_budget' => $allocated,
+            'available_balance' => $available,
+            'reserved_budget' => $reserved,
+            'realized_budget' => $realized,
+            'available_ratio' => $availableRatio,
+            'utilization_ratio' => $utilizationRatio,
+            'threshold' => $thresholdMap[$earlyWarning->rule_code] ?? 'Standard Threshold',
+            'reason' => "{$earlyWarning->rule_code} triggered: {$earlyWarning->message}",
+        ];
+
+        // History Timeline
+        $history = [
+            'opened' => [
+                'timestamp' => $earlyWarning->created_at,
+                'human' => $earlyWarning->created_at->diffForHumans(),
+                'actor' => 'System Evaluator Engine (RBC/EWS)',
+                'notes' => 'Peringatan terdeteksi secara otomatis oleh pemindaian sistem.',
+            ],
+            'acknowledged' => $earlyWarning->acknowledged_at ? [
+                'timestamp' => $earlyWarning->acknowledged_at,
+                'human' => Carbon::parse($earlyWarning->acknowledged_at)->diffForHumans(),
+                'actor' => $earlyWarning->acknowledger?->name ?? 'Verifikator',
+                'notes' => 'Peringatan telah dipelajari dan sedang dalam penanganan unit terkait.',
+            ] : null,
+            'resolved' => $earlyWarning->lifecycle_state === 'RESOLVED' ? [
+                'timestamp' => $earlyWarning->updated_at,
+                'human' => $earlyWarning->updated_at->diffForHumans(),
+                'actor' => 'Pejabat Otorisator',
+                'notes' => 'Kondisi risiko telah diselesaikan atau pagu telah disesuaikan.',
+            ] : null,
+        ];
+
+        return Inertia::render('Warnings/Show', [
+            'warning' => $earlyWarning,
+            'ruleName' => $ruleName,
+            'budgetContext' => $budgetContext,
+            'calculation' => $calculation,
+            'history' => $history,
+            'relatedBudgetUrl' => $bucket ? "/budgets/{$bucket->id}" : '/budgets',
+            'relatedTransactionUrl' => $bucket ? "/submissions?account_code={$bucket->account_code}" : '/submissions',
         ]);
     }
 

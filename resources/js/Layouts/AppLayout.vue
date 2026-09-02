@@ -25,7 +25,8 @@ import {
   ChevronDown,
   PlusCircle,
   Settings,
-  GitCompare
+  GitCompare,
+  Layers
 } from 'lucide-vue-next';
 
 defineProps({
@@ -88,10 +89,11 @@ const logout = () => {
       <!-- Nested Navigation Links -->
       <nav class="flex-1 px-4 py-5 space-y-5 overflow-y-auto custom-scrollbar text-xs">
         
-        <!-- SECTION 1: WORKSPACE -->
+        <!-- SECTION 1: WORKSPACE & TRANSAKSI -->
         <div>
           <div class="px-3 pb-1.5 text-[10px] font-bold tracking-wider text-slate-400 uppercase">WORKSPACE</div>
           <div class="space-y-0.5">
+            <!-- 1. Dashboard (Semua Role) -->
             <Link 
               href="/dashboard" 
               @click="isMobileMenuOpen = false"
@@ -101,23 +103,26 @@ const logout = () => {
               ]"
             >
               <LayoutDashboard :class="['w-4 h-4', ($page.url.startsWith('/dashboard') || $page.url === '/') ? 'text-white' : 'text-slate-400 group-hover:text-slate-600']" />
-              <span>Dashboard Overview</span>
+              <span>Dashboard</span>
             </Link>
 
+            <!-- 2. Pemeriksaan Transaksi & SPJ (Khusus PTU) -->
             <Link 
-              href="/submissions" 
+              v-if="['PTU', 'BENDAHARA'].includes(role)"
+              href="/approvals" 
               @click="isMobileMenuOpen = false"
               :class="[
                 'flex items-center gap-3 px-3 py-2 rounded-xl font-semibold transition group',
-                $page.url === '/submissions' ? 'bg-sky-600 text-white shadow-md shadow-sky-600/20' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                $page.url.startsWith('/approvals') ? 'bg-sky-600 text-white shadow-md shadow-sky-600/20' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
               ]"
             >
-              <FileText :class="['w-4 h-4', $page.url === '/submissions' ? 'text-white' : 'text-slate-400 group-hover:text-slate-600']" />
-              <span>Transaksi Anggaran</span>
+              <FileCheck :class="['w-4 h-4', $page.url.startsWith('/approvals') ? 'text-white' : 'text-emerald-600 group-hover:text-emerald-700']" />
+              <span>Pemeriksaan Transaksi</span>
             </Link>
 
+            <!-- 3. Catat Transaksi (Khusus PTK) -->
             <Link 
-              v-if="canCreateTransaction"
+              v-if="role === 'PTK'"
               href="/submissions/create" 
               @click="isMobileMenuOpen = false"
               :class="[
@@ -126,10 +131,26 @@ const logout = () => {
               ]"
             >
               <PlusCircle :class="['w-4 h-4', $page.url.startsWith('/submissions/create') ? 'text-white' : 'text-slate-400 group-hover:text-slate-600']" />
-              <span>+ Catat Transaksi</span>
+              <span>Catat Transaksi</span>
             </Link>
 
+            <!-- 4. Daftar Transaksi (PTK, KAJUR, KAPRODI, PTU, KABAG) -->
             <Link 
+              v-if="['PTK', 'KAJUR', 'KAPRODI', 'PTU', 'KABAG'].includes(role)"
+              href="/submissions" 
+              @click="isMobileMenuOpen = false"
+              :class="[
+                'flex items-center gap-3 px-3 py-2 rounded-xl font-semibold transition group',
+                $page.url === '/submissions' ? 'bg-sky-600 text-white shadow-md shadow-sky-600/20' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+              ]"
+            >
+              <FileText :class="['w-4 h-4', $page.url === '/submissions' ? 'text-white' : 'text-slate-400 group-hover:text-slate-600']" />
+              <span>{{ role === 'KAJUR' ? 'Transaksi Jurusan' : role === 'KAPRODI' ? 'Transaksi Terkait Prodi' : 'Transaksi' }}</span>
+            </Link>
+
+            <!-- 5. Warning / EWS (KAJUR, PTU, KABAG, WD) -->
+            <Link 
+              v-if="['KAJUR', 'PTU', 'KABAG', 'WAKIL_DEKAN', 'WD'].includes(role)"
               href="/warnings" 
               @click="isMobileMenuOpen = false"
               :class="[
@@ -138,13 +159,13 @@ const logout = () => {
               ]"
             >
               <AlertTriangle :class="['w-4 h-4', $page.url.startsWith('/warnings') ? 'text-white' : 'text-amber-500 group-hover:text-amber-600']" />
-              <span>Early Warning (EWS)</span>
+              <span>Warning</span>
             </Link>
           </div>
         </div>
 
-        <!-- SECTION 2: ANGGARAN -->
-        <div>
+        <!-- SECTION 2: ANGGARAN & MONITORING (KAJUR, KABAG, WD, DEKAN) -->
+        <div v-if="['KAJUR', 'KABAG', 'WAKIL_DEKAN', 'WD', 'DEKAN'].includes(role)">
           <div class="px-3 pb-1.5 text-[10px] font-bold tracking-wider text-slate-400 uppercase">ANGGARAN</div>
           <div class="space-y-0.5">
             <Link 
@@ -156,11 +177,11 @@ const logout = () => {
               ]"
             >
               <Wallet :class="['w-4 h-4', $page.url === '/budgets' ? 'text-white' : 'text-slate-400 group-hover:text-slate-600']" />
-              <span>Pagu &amp; Realisasi</span>
+              <span>{{ role === 'KAJUR' ? 'Anggaran Jurusan' : ['WAKIL_DEKAN', 'WD', 'DEKAN'].includes(role) ? 'Monitoring' : 'Anggaran' }}</span>
             </Link>
 
             <Link 
-              v-if="['ADMIN', 'KABAG', 'WAKIL_DEKAN', 'WD', 'DEKAN'].includes(role)"
+              v-if="['KABAG', 'WAKIL_DEKAN', 'WD', 'DEKAN'].includes(role)"
               href="/budget-versions" 
               @click="isMobileMenuOpen = false"
               :class="[
@@ -171,9 +192,32 @@ const logout = () => {
               <GitCompare :class="['w-4 h-4', $page.url.startsWith('/budget-versions') ? 'text-white' : 'text-slate-400 group-hover:text-slate-600']" />
               <span>Versi &amp; Revisi Pagu</span>
             </Link>
+          </div>
+        </div>
 
+        <!-- SECTION 3: LAPORAN (PTK, KAJUR, KAPRODI, KABAG, WD, DEKAN) -->
+        <div v-if="['PTK', 'KAJUR', 'KAPRODI', 'KABAG', 'WAKIL_DEKAN', 'WD', 'DEKAN'].includes(role)">
+          <div class="px-3 pb-1.5 text-[10px] font-bold tracking-wider text-slate-400 uppercase">LAPORAN</div>
+          <div class="space-y-0.5">
             <Link 
-              v-if="['ADMIN', 'KABAG', 'WAKIL_DEKAN', 'WD', 'DEKAN'].includes(role)"
+              href="/reports" 
+              @click="isMobileMenuOpen = false"
+              :class="[
+                'flex items-center gap-3 px-3 py-2 rounded-xl font-semibold transition group',
+                $page.url.startsWith('/reports') ? 'bg-sky-600 text-white shadow-md shadow-sky-600/20' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+              ]"
+            >
+              <BarChart3 :class="['w-4 h-4', $page.url.startsWith('/reports') ? 'text-white' : 'text-slate-400 group-hover:text-slate-600']" />
+              <span>Laporan</span>
+            </Link>
+          </div>
+        </div>
+
+        <!-- SECTION 4: ADMINISTRASI & MASTER DATA (Admin Only) -->
+        <div v-if="isAdmin">
+          <div class="px-3 pb-1.5 text-[10px] font-bold tracking-wider text-slate-400 uppercase">ADMINISTRASI</div>
+          <div class="space-y-0.5">
+            <Link 
               href="/budgets-import" 
               @click="isMobileMenuOpen = false"
               :class="[
@@ -186,61 +230,6 @@ const logout = () => {
             </Link>
 
             <Link 
-              v-if="canImportTransaction"
-              href="/submissions-import" 
-              @click="isMobileMenuOpen = false"
-              :class="[
-                'flex items-center gap-3 px-3 py-2 rounded-xl font-semibold transition group',
-                $page.url.startsWith('/submissions-import') ? 'bg-sky-600 text-white shadow-md shadow-sky-600/20' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-              ]"
-            >
-              <FileSpreadsheet :class="['w-4 h-4', $page.url.startsWith('/submissions-import') ? 'text-white' : 'text-slate-400 group-hover:text-slate-600']" />
-              <span>Import Transaksi (Batch)</span>
-            </Link>
-          </div>
-        </div>
-
-        <!-- SECTION 3: VERIFIKASI / WORKBENCH (For PTU, Bendahara, Approvers) -->
-        <div v-if="canApproveFinancial">
-          <div class="px-3 pb-1.5 text-[10px] font-bold tracking-wider text-slate-400 uppercase">WORKBENCH PEMERIKSAAN</div>
-          <div class="space-y-0.5">
-            <Link 
-              href="/approvals" 
-              @click="isMobileMenuOpen = false"
-              :class="[
-                'flex items-center gap-3 px-3 py-2 rounded-xl font-semibold transition group',
-                $page.url.startsWith('/approvals') ? 'bg-sky-600 text-white shadow-md shadow-sky-600/20' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-              ]"
-            >
-              <FileCheck :class="['w-4 h-4', $page.url.startsWith('/approvals') ? 'text-white' : 'text-emerald-600 group-hover:text-emerald-700']" />
-              <span>Pemeriksaan Transaksi &amp; SPJ</span>
-            </Link>
-          </div>
-        </div>
-
-        <!-- SECTION 4: LAPORAN -->
-        <div>
-          <div class="px-3 pb-1.5 text-[10px] font-bold tracking-wider text-slate-400 uppercase">LAPORAN</div>
-          <div class="space-y-0.5">
-            <Link 
-              href="/reports" 
-              @click="isMobileMenuOpen = false"
-              :class="[
-                'flex items-center gap-3 px-3 py-2 rounded-xl font-semibold transition group',
-                $page.url.startsWith('/reports') ? 'bg-sky-600 text-white shadow-md shadow-sky-600/20' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-              ]"
-            >
-              <BarChart3 :class="['w-4 h-4', $page.url.startsWith('/reports') ? 'text-white' : 'text-slate-400 group-hover:text-slate-600']" />
-              <span>Laporan Realisasi (LRA)</span>
-            </Link>
-          </div>
-        </div>
-
-        <!-- SECTION 5: PENGATURAN & AUDIT (Admin only) -->
-        <div v-if="isAdmin">
-          <div class="px-3 pb-1.5 text-[10px] font-bold tracking-wider text-slate-400 uppercase">ADMINISTRASI</div>
-          <div class="space-y-0.5">
-            <Link 
               href="/master/departments" 
               @click="isMobileMenuOpen = false"
               :class="[
@@ -249,7 +238,7 @@ const logout = () => {
               ]"
             >
               <Building2 :class="['w-4 h-4', $page.url.startsWith('/master/departments') ? 'text-white' : 'text-slate-400 group-hover:text-slate-600']" />
-              <span>Data Unit &amp; Jurusan</span>
+              <span>Master Organisasi</span>
             </Link>
 
             <Link 
@@ -262,6 +251,18 @@ const logout = () => {
             >
               <Calendar :class="['w-4 h-4', $page.url.startsWith('/master/fiscal-years') ? 'text-white' : 'text-slate-400 group-hover:text-slate-600']" />
               <span>Tahun &amp; Versi Pagu</span>
+            </Link>
+
+            <Link 
+              href="/master/budget-structure" 
+              @click="isMobileMenuOpen = false"
+              :class="[
+                'flex items-center gap-3 px-3 py-2 rounded-xl font-semibold transition group',
+                $page.url.startsWith('/master/budget-structure') ? 'bg-sky-600 text-white shadow-md shadow-sky-600/20' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+              ]"
+            >
+              <Layers :class="['w-4 h-4', $page.url.startsWith('/master/budget-structure') ? 'text-white' : 'text-slate-400 group-hover:text-slate-600']" />
+              <span>Master Struktur Anggaran</span>
             </Link>
 
             <Link 

@@ -138,13 +138,13 @@ const getStatusBadge = (st) => {
             <span class="px-2.5 py-0.5 bg-indigo-100 text-indigo-800 text-[10px] font-black rounded-lg uppercase tracking-wider">
               Workbench Verifikasi
             </span>
-            <span class="text-xs text-slate-400 font-semibold">&bull; PTU / Bendahara Pengeluaran Pembantu</span>
+            <span class="text-xs text-slate-500 font-semibold">&bull; PTU (Penguji Tagihan Unit BLU)</span>
           </div>
           <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight mt-1">
-            Antrean Pemeriksaan Transaksi &amp; SPJ (Page P21)
+            Pemeriksaan Transaksi &amp; SPJ
           </h1>
           <p class="text-xs text-slate-500 mt-0.5">
-            Verifikasi fisik bukti kuitansi, kepatuhan pagu anggaran, pengembalian revisi, dan finalisasi realisasi definitif.
+            Pemeriksaan tagihan kuitansi, kepatuhan batas pagu, pengembalian revisi ke PTK, dan pencatatan realisasi definitif.
           </p>
         </div>
 
@@ -603,7 +603,7 @@ const getStatusBadge = (st) => {
                 <span>Cetak Lembar SPJ</span>
               </a>
 
-              <div class="flex items-center gap-2">
+              <div v-if="['PTU', 'BENDAHARA'].includes(userRole)" class="flex items-center gap-2">
                 <!-- Action: Return -->
                 <button 
                   v-if="['PROCESSING', 'UNDER_REVIEW', 'SUBMITTED'].includes(activeSubmission.status)"

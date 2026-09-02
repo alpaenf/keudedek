@@ -585,7 +585,7 @@ const formatRupiah = (val) => {
         <!-- ================================================== -->
         <div class="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/80 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div class="text-xs text-slate-500">
-            <span class="font-bold text-slate-700">Protokol Simpan:</span> Transaksi akan masuk antrean pemeriksaan PTU/Bendahara dan memotong saldo (reserved) secara aman.
+            <span class="font-bold text-slate-700">Protokol Simpan:</span> Transaksi akan masuk antrean pemeriksaan PTU (Penguji Tagihan Unit BLU) dan memotong saldo (reserved) secara aman.
           </div>
 
           <div class="flex items-center gap-3">

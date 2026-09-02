@@ -11,6 +11,14 @@ use App\Models\WorkflowDefinition;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
+/**
+ * LEGACY / DEFERRED MODULE — NOT USED IN MVP.
+ * 
+ * Sistem SIKARA MVP tidak menggunakan rantai approval panjang berbelit
+ * (WorkflowDefinition / WorkflowStep). Alur verifikasi langsung ditangani
+ * oleh PTU (Penguji Tagihan Unit BLU) via ApprovalController.
+ * File ini dipertahankan sebagai dead/deferred module agar tidak merusak relasi historis.
+ */
 class WorkflowService
 {
     public function __construct(

@@ -60,8 +60,11 @@ const currentRole = computed(() => {
 });
 
 const dashboardTitle = computed(() => {
-  if (currentRole.value === 'PTU' || currentRole.value === 'BENDAHARA') {
-    return 'Dashboard PTU / Bendahara';
+  if (currentRole.value === 'PTU') {
+    return 'Dashboard PTU (Penguji Tagihan Unit BLU)';
+  }
+  if (currentRole.value === 'BENDAHARA') {
+    return 'Dashboard Bendahara Pengeluaran Pembantu';
   }
   return `Dashboard ${currentRole.value}`;
 });
