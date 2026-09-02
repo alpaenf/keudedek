@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useForm, Link } from '@inertiajs/vue3';
 import AppLayout from '../../Layouts/AppLayout.vue';
 import { 
@@ -8,7 +8,6 @@ import {
   CheckCircle2, 
   Wallet, 
   FileText, 
-  UploadCloud, 
   ShieldCheck, 
   AlertTriangle, 
   Building2,
@@ -21,13 +20,15 @@ import {
   XCircle,
   Clock,
   Sparkles,
-  Paperclip
+  Paperclip,
+  Loader2,
+  ListOrdered
 } from 'lucide-vue-next';
 
 const props = defineProps({
   departments: Array,
   studyPrograms: Array,
-  buckets: Array,
+  initialBudgetLines: Array,
   transactionTypes: Array,
   documentTypes: Array,
   activeFiscalYear: [String, Number],
@@ -38,66 +39,82 @@ const props = defineProps({
   userRole: String,
 });
 
-const searchQuery = ref('');
-const isStructureExpanded = ref(true);
+// Autocomplete State
+const searchInput = ref('');
+const isSearching = ref(false);
+const searchResults = ref(props.initialBudgetLines || []);
+const isDropdownOpen = ref(false);
+const selectedBudgetLine = ref(props.initialBudgetLines?.[0] || null);
+const isHierarchyExpanded = ref(false);
 
 const today = new Date().toISOString().split('T')[0];
 
 const form = useForm({
-  budget_bucket_id: props.buckets?.[0]?.id ?? '',
+  budget_line_id: selectedBudgetLine.value?.id ?? '',
+  budget_bucket_id: selectedBudgetLine.value?.control_bucket?.id ?? '',
   evidence_number: '',
   transaction_date: today,
   title: '',
   amount: null,
-  department_id: props.userDepartmentId || (props.departments?.[0]?.id ?? ''),
+  department_id: props.userDepartmentId || '',
   study_program_id: props.userStudyProgramId || '',
   notes: '',
   submit_action: 'PROCESSING', // 'DRAFT' | 'PROCESSING'
   documents: {}, // document_type_id -> File
 });
 
-// Auto-fill evidence number prefix on mount
-onMounted(() => {
-  const currentDept = props.departments?.find(d => d.id === form.department_id);
-  const deptCode = currentDept ? currentDept.code : 'FT';
-  const monthStr = String(new Date().getMonth() + 1).padStart(2, '0');
-  const yearStr = new Date().getFullYear();
-  const randNo = String(Math.floor(Math.random() * 900) + 100);
-  form.evidence_number = `BKT/${deptCode}/${yearStr}/${monthStr}/${randNo}`;
-});
+// Search Debounce Logic
+let debounceTimeout = null;
+const performSearch = () => {
+  if (debounceTimeout) clearTimeout(debounceTimeout);
 
-// Filtered buckets based on quick search query across codes, names, activities, subcomponents
-const filteredBuckets = computed(() => {
-  if (!props.buckets) return [];
-  if (!searchQuery.value.trim()) return props.buckets;
+  debounceTimeout = setTimeout(async () => {
+    isSearching.value = true;
+    try {
+      const params = new URLSearchParams();
+      if (searchInput.value.trim()) {
+        params.append('q', searchInput.value.trim());
+      }
+      if (props.activeVersion?.id) {
+        params.append('budget_version_id', props.activeVersion.id);
+      }
+      if (props.userDepartmentId) {
+        params.append('department_id', props.userDepartmentId);
+      }
 
-  const q = searchQuery.value.toLowerCase();
-  return props.buckets.filter(b => 
-    b.account_code?.toLowerCase().includes(q) ||
-    b.account_name?.toLowerCase().includes(q) ||
-    b.activity_name?.toLowerCase().includes(q) ||
-    b.activity_code?.toLowerCase().includes(q) ||
-    b.kro_code?.toLowerCase().includes(q) ||
-    b.kro_name?.toLowerCase().includes(q) ||
-    b.ro_code?.toLowerCase().includes(q) ||
-    b.subcomponent_code?.toLowerCase().includes(q) ||
-    b.subcomponent_name?.toLowerCase().includes(q) ||
-    b.department_code?.toLowerCase().includes(q)
-  );
-});
-
-// Selected bucket object with full context
-const selectedBucket = computed(() => {
-  return props.buckets?.find(b => b.id === Number(form.budget_bucket_id));
-});
-
-const selectBucket = (bucketId) => {
-  form.budget_bucket_id = bucketId;
+      const res = await fetch(`/api/budget-lines/search?${params.toString()}`);
+      if (res.ok) {
+        const json = await res.json();
+        searchResults.value = json.data || [];
+        isDropdownOpen.value = true;
+      }
+    } catch (err) {
+      console.error('Error searching budget lines:', err);
+    } finally {
+      isSearching.value = false;
+    }
+  }, 250);
 };
 
-// Real-time Solvency & Budget Check
+// Select Budget Line from Autocomplete
+const selectBudgetLine = (line) => {
+  selectedBudgetLine.value = line;
+  form.budget_line_id = line.id;
+  form.budget_bucket_id = line.control_bucket?.id || '';
+  isDropdownOpen.value = false;
+  searchInput.value = `${line.rba_sequence_no} - ${line.description}`;
+};
+
+// Keyboard navigation
+const onInputFocus = () => {
+  if (searchResults.value.length > 0) {
+    isDropdownOpen.value = true;
+  }
+};
+
+// Real-time Solvency & Budget Check (Controlled by Control Bucket)
 const currentAvailableBalance = computed(() => {
-  return Number(selectedBucket.value?.available_balance) || 0;
+  return Number(selectedBudgetLine.value?.financial_snapshot?.saldo_tersedia) || 0;
 });
 
 const inputAmountNumber = computed(() => {
@@ -109,13 +126,13 @@ const projectedBalance = computed(() => {
 });
 
 const isSolvent = computed(() => {
-  if (!selectedBucket.value) return false;
+  if (!selectedBudgetLine.value) return false;
   if (inputAmountNumber.value <= 0) return true;
   return projectedBalance.value >= 0;
 });
 
 const isOverbudget = computed(() => {
-  if (!selectedBucket.value || inputAmountNumber.value <= 0) return false;
+  if (!selectedBudgetLine.value || inputAmountNumber.value <= 0) return false;
   return projectedBalance.value < 0;
 });
 
@@ -148,6 +165,21 @@ const formatRupiah = (val) => {
     maximumFractionDigits: 0,
   }).format(val || 0);
 };
+
+// Close dropdown on outside click
+onMounted(() => {
+  if (selectedBudgetLine.value) {
+    searchInput.value = `${selectedBudgetLine.value.rba_sequence_no} - ${selectedBudgetLine.value.description}`;
+  }
+  
+  const handleClickOutside = (e) => {
+    const el = document.getElementById('budget-line-autocomplete-wrapper');
+    if (el && !el.contains(e.target)) {
+      isDropdownOpen.value = false;
+    }
+  };
+  document.addEventListener('click', handleClickOutside);
+});
 </script>
 
 <template>
@@ -164,15 +196,15 @@ const formatRupiah = (val) => {
             Catat Transaksi Belanja PTK
           </h1>
           <p class="text-xs text-slate-500 mt-0.5">
-            Pencatatan realisasi dengan input minimum. Pilih pos anggaran aktif &bull; struktur kode otomatis terisi.
+            Pencatatan realisasi belanja pola ringkas &bull; Cari No RBA &bull; Struktur kode &amp; saldo otomatis tersinkronisasi.
           </p>
         </div>
 
-        <!-- Automatic Context Badge -->
+        <!-- Automatic Context Badge (Read-Only) -->
         <div class="flex items-center gap-2 bg-sky-50 border border-sky-200/80 px-4 py-2 rounded-2xl text-xs shadow-sm shrink-0">
           <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
           <span class="font-extrabold text-sky-950">
-            TA {{ activeFiscalYear }} &bull; {{ activeFundingSource?.code || 'RM' }} &bull; {{ activeVersion?.revision_no || 'Rev 02' }} &bull; {{ selectedBucket?.department_code || 'JTIF' }}
+            TA {{ activeFiscalYear }} &bull; {{ activeFundingSource?.code || 'RM' }} &bull; {{ activeVersion?.revision_no || 'Rev 00' }} &bull; {{ selectedBudgetLine?.department?.code || 'FT' }}
           </span>
         </div>
       </div>
@@ -180,223 +212,173 @@ const formatRupiah = (val) => {
       <form @submit.prevent="submitTransaction('PROCESSING')" class="space-y-6">
 
         <!-- ================================================== -->
-        <!-- STEP 1 — PILIH POS ANGGARAN                        -->
+        <!-- 1. AUTOCOMPLETE POS ANGGARAN / NO URUT RBA        -->
         <!-- ================================================== -->
-        <div class="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-4">
-          <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-            <div>
-              <h2 class="text-sm font-bold text-slate-900 flex items-center gap-2">
-                <span class="px-2 py-0.5 bg-sky-100 text-sky-800 text-[10px] font-black rounded-md">STEP 1</span>
-                <span>Pilih Pos Pagu Anggaran</span>
-              </h2>
-              <p class="text-xs text-slate-500 mt-0.5">Pilih pos belanja yang akan dipotong tanpa mengetik kode satu-satu.</p>
-            </div>
-            <span class="text-[11px] font-bold text-slate-400">{{ filteredBuckets.length }} Pos Tersedia</span>
+        <div id="budget-line-autocomplete-wrapper" class="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-4 relative">
+          <div class="border-b border-slate-100 pb-3">
+            <h2 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <span class="px-2 py-0.5 bg-sky-100 text-sky-800 text-[10px] font-black rounded-md">1</span>
+              <span>Pilih Pos Anggaran / Nomor Urut RBA</span>
+            </h2>
+            <p class="text-xs text-slate-500 mt-0.5">Ketik No Urut RBA, uraian belanja, atau kode akun untuk memilih.</p>
           </div>
 
-          <!-- Search Box -->
+          <!-- Autocomplete Input -->
           <div class="relative">
             <Search class="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
             <input 
-              v-model="searchQuery"
+              v-model="searchInput"
+              @input="performSearch"
+              @focus="onInputFocus"
               type="text" 
-              placeholder="Cari kode akun, nama akun, kegiatan, subkomponen, atau uraian..." 
-              class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-2xl text-xs text-slate-900 focus:bg-white focus:ring-2 focus:ring-sky-500 focus:outline-none transition shadow-sm"
+              placeholder="Ketik No Urut RBA (contoh: 001), uraian kegiatan, atau kode akun..." 
+              class="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-300 rounded-2xl text-xs text-slate-900 focus:bg-white focus:ring-2 focus:ring-sky-500 focus:outline-none transition shadow-sm font-medium"
             />
+            <Loader2 v-if="isSearching" class="w-4 h-4 text-sky-600 animate-spin absolute right-3.5 top-3" />
           </div>
+          <div v-if="form.errors.budget_line_id" class="text-rose-600 text-[11px] font-bold">{{ form.errors.budget_line_id }}</div>
 
-          <!-- Result Cards List -->
-          <div class="grid grid-cols-1 gap-3 max-h-72 overflow-y-auto pr-1">
-            <div 
-              v-for="b in filteredBuckets" 
-              :key="b.id"
-              @click="selectBucket(b.id)"
-              :class="[
-                'p-4 rounded-2xl border transition cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-4 text-xs',
-                form.budget_bucket_id === b.id 
-                  ? 'bg-sky-50/90 border-sky-500 shadow-sm ring-2 ring-sky-500/20' 
-                  : 'bg-slate-50/50 hover:bg-slate-100/80 border-slate-200'
-              ]"
-            >
-              <!-- Account & RKAKL Hierarchy Line -->
-              <div class="space-y-1.5 min-w-0">
-                <div class="flex items-center gap-2">
-                  <span class="font-black text-sky-950 font-sans text-xs bg-sky-100/80 px-2 py-0.5 rounded border border-sky-200">
-                    [{{ b.account_code }}]
-                  </span>
-                  <span class="font-bold text-slate-900 text-sm truncate">{{ b.account_name }}</span>
-                  <span class="px-2 py-0.5 bg-slate-200 text-slate-700 font-bold text-[10px] rounded uppercase">
-                    {{ b.department_code }}
-                  </span>
-                </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-0.5 text-[11px] text-slate-500">
-                  <div class="truncate">
-                    <strong class="text-slate-700">Kegiatan:</strong> {{ b.activity_code }} &mdash; {{ b.activity_name }}
-                  </div>
-                  <div class="truncate">
-                    <strong class="text-slate-700">KRO:</strong> {{ b.kro_code }}
-                  </div>
-                  <div class="truncate">
-                    <strong class="text-slate-700">RO:</strong> {{ b.ro_code }} &mdash; {{ b.ro_name }}
-                  </div>
-                  <div class="truncate">
-                    <strong class="text-slate-700">Subkomponen:</strong> {{ b.subcomponent_code }} &mdash; {{ b.subcomponent_name }}
-                  </div>
-                </div>
-              </div>
-
-              <!-- Financial Snapshot Cards & Select Button -->
-              <div class="flex items-center justify-between md:justify-end gap-3 sm:gap-4 shrink-0 border-t md:border-t-0 pt-2 md:pt-0 border-slate-200">
-                <div class="text-right">
-                  <span class="text-[9px] text-slate-400 uppercase font-bold block">Pagu</span>
-                  <span class="font-bold text-slate-700 font-sans text-[11px]">{{ formatRupiah(b.allocated_budget) }}</span>
-                </div>
-
-                <div class="text-right">
-                  <span class="text-[9px] text-amber-700 uppercase font-bold block">Dalam Proses</span>
-                  <span class="font-bold text-amber-950 font-sans text-[11px]">{{ formatRupiah(b.reserved_budget) }}</span>
-                </div>
-
-                <div class="text-right">
-                  <span class="text-[9px] text-sky-700 uppercase font-bold block">Realisasi</span>
-                  <span class="font-bold text-sky-950 font-sans text-[11px]">{{ formatRupiah(b.realized_budget) }}</span>
-                </div>
-
-                <div class="text-right">
-                  <span class="text-[9px] text-emerald-700 uppercase font-bold block">Saldo</span>
-                  <span class="font-black text-emerald-800 font-sans text-xs sm:text-sm">{{ formatRupiah(b.available_balance) }}</span>
-                </div>
-
-                <!-- Select CTA -->
-                <button 
-                  type="button" 
-                  @click.stop="selectBucket(b.id)"
-                  :class="[
-                    'px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 shadow-sm',
-                    form.budget_bucket_id === b.id 
-                      ? 'bg-sky-600 text-white' 
-                      : 'bg-white hover:bg-slate-200 text-slate-700 border border-slate-300'
-                  ]"
-                >
-                  <Check v-if="form.budget_bucket_id === b.id" class="w-3.5 h-3.5" />
-                  <span>{{ form.budget_bucket_id === b.id ? 'Terpilih' : 'Pilih' }}</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- ================================================== -->
-        <!-- STEP 2 — TAMPILKAN DETAIL KODE (Expandable Section)-->
-        <!-- ================================================== -->
-        <div v-if="selectedBucket" class="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden">
+          <!-- Dropdown Results -->
           <div 
-            @click="isStructureExpanded = !isStructureExpanded" 
-            class="p-5 sm:p-6 bg-slate-50/70 border-b border-slate-200 flex items-center justify-between cursor-pointer hover:bg-slate-100/70 transition"
+            v-if="isDropdownOpen && searchResults.length > 0" 
+            class="absolute left-6 right-6 top-[110px] z-30 bg-white rounded-2xl border border-slate-200 shadow-2xl max-h-64 overflow-y-auto divide-y divide-slate-100"
           >
-            <div>
-              <div class="flex items-center gap-2">
-                <span class="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-black rounded-md">STEP 2</span>
-                <h3 class="text-sm font-bold text-slate-900">Detail Struktur Anggaran (Master Data RKAKL DIPA)</h3>
+            <div 
+              v-for="line in searchResults" 
+              :key="line.id"
+              @click="selectBudgetLine(line)"
+              class="p-3 hover:bg-sky-50/70 cursor-pointer transition flex items-center justify-between gap-3 text-xs"
+            >
+              <div class="space-y-1 min-w-0">
+                <div class="flex items-center gap-2">
+                  <span class="font-black text-sky-950 bg-sky-100 px-2 py-0.5 rounded text-[11px]">
+                    No. {{ line.rba_sequence_no }}
+                  </span>
+                  <span class="font-bold text-slate-900 truncate">{{ line.description }}</span>
+                  <span class="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-bold uppercase">
+                    {{ line.department?.code }}
+                  </span>
+                </div>
+                <div class="text-[11px] text-slate-500 truncate">
+                  Akun: <strong>{{ line.hierarchy?.account?.code }}</strong> &bull; Subkomponen: {{ line.hierarchy?.subcomponent?.name || '-' }}
+                </div>
               </div>
-              <p class="text-xs text-slate-500 mt-0.5">Semua data berikut bersifat <strong class="text-slate-800">READ-ONLY</strong> dan diambil otomatis dari Master Data resmi.</p>
+
+              <div class="text-right shrink-0">
+                <span class="text-[9px] text-slate-400 block font-bold">Saldo Tersedia</span>
+                <span class="font-black text-emerald-800 font-sans text-xs">
+                  {{ formatRupiah(line.financial_snapshot?.saldo_tersedia) }}
+                </span>
+              </div>
             </div>
-            
-            <button type="button" class="p-2 text-slate-500 hover:text-slate-900">
-              <ChevronUp v-if="isStructureExpanded" class="w-5 h-5" />
-              <ChevronDown v-else class="w-5 h-5" />
-            </button>
           </div>
 
-          <div v-show="isStructureExpanded" class="p-6 space-y-4 text-xs">
-            <!-- Top Identity Badges -->
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-white p-4 rounded-2xl border border-slate-200/80">
-              <div>
-                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Tahun Anggaran (TA)</span>
-                <span class="font-black text-slate-900 text-sm">{{ selectedBucket.fiscal_year }}</span>
+          <!-- Empty state dropdown -->
+          <div 
+            v-if="isDropdownOpen && !isSearching && searchResults.length === 0" 
+            class="absolute left-6 right-6 top-[110px] z-30 bg-white rounded-2xl border border-slate-200 shadow-xl p-4 text-center text-xs text-slate-500"
+          >
+            Tidak ada baris anggaran RBA yang cocok dengan kata kunci.
+          </div>
+
+          <!-- ================================================== -->
+          <!-- 2. DETAIL OTOMATIS & METRIK FINANSIAL SNAPSHOT     -->
+          <!-- ================================================== -->
+          <div v-if="selectedBudgetLine" class="space-y-4 pt-2">
+            <!-- Snapshot Header Info -->
+            <div class="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 space-y-2">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center gap-2">
+                  <span class="px-2.5 py-1 bg-sky-600 text-white font-black rounded-lg text-xs tracking-wide">
+                    No. Urut RBA: {{ selectedBudgetLine.rba_sequence_no }}
+                  </span>
+                  <span class="text-xs font-bold text-slate-900 font-sans">
+                    [{{ selectedBudgetLine.hierarchy?.account?.code }}] {{ selectedBudgetLine.hierarchy?.account?.name }}
+                  </span>
+                </div>
+                <span class="text-[11px] font-bold text-slate-500">
+                  Subkomponen: {{ selectedBudgetLine.hierarchy?.subcomponent?.full_code || selectedBudgetLine.hierarchy?.subcomponent?.name }}
+                </span>
               </div>
-              <div>
-                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Sumber Dana</span>
-                <span class="font-black text-slate-900 text-sm">{{ selectedBucket.funding_source_code }} &mdash; Rupiah Murni</span>
+              <p class="text-xs text-slate-700 font-medium pt-1">
+                <strong>Uraian RBA:</strong> {{ selectedBudgetLine.description }}
+              </p>
+            </div>
+
+            <!-- 4-Card Unified Financial Snapshot -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+              <div class="p-3 bg-slate-50 rounded-2xl border border-slate-200">
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Pagu Pos (Bucket)</span>
+                <span class="font-black text-slate-900 font-sans text-sm mt-0.5 block">
+                  {{ formatRupiah(selectedBudgetLine.financial_snapshot?.pagu_bucket) }}
+                </span>
               </div>
-              <div>
-                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Versi Revisi</span>
-                <span class="font-black text-sky-800 text-sm">{{ selectedBucket.budget_version }}</span>
+
+              <div class="p-3 bg-slate-50 rounded-2xl border border-slate-200">
+                <span class="text-[10px] font-bold text-amber-700 uppercase tracking-wider block">Total DIAJUKAN</span>
+                <span class="font-black text-amber-950 font-sans text-sm mt-0.5 block">
+                  {{ formatRupiah(selectedBudgetLine.financial_snapshot?.diajukan_bucket) }}
+                </span>
               </div>
-              <div>
-                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Jurusan Pengelola</span>
-                <span class="font-black text-slate-900 text-sm">{{ selectedBucket.department_code }} &mdash; {{ selectedBucket.department_name }}</span>
+
+              <div class="p-3 bg-slate-50 rounded-2xl border border-slate-200">
+                <span class="text-[10px] font-bold text-sky-700 uppercase tracking-wider block">Realisasi SELESAI</span>
+                <span class="font-black text-sky-950 font-sans text-sm mt-0.5 block">
+                  {{ formatRupiah(selectedBudgetLine.financial_snapshot?.realisasi_bucket) }}
+                </span>
+              </div>
+
+              <div class="p-3 bg-emerald-50/70 rounded-2xl border border-emerald-200">
+                <span class="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block">Saldo Tersedia</span>
+                <span class="font-black text-emerald-950 font-sans text-sm mt-0.5 block">
+                  {{ formatRupiah(selectedBudgetLine.financial_snapshot?.saldo_tersedia) }}
+                </span>
               </div>
             </div>
 
-            <!-- 7 Segments Structure List (Read-Only) -->
-            <div class="space-y-2 border border-slate-200/80 rounded-2xl p-4 bg-slate-50/50">
-              <div class="flex flex-col sm:flex-row sm:items-center justify-between py-1 border-b border-slate-200/60">
-                <span class="text-slate-500 font-medium">Program:</span>
-                <span class="font-bold text-slate-900 font-sans">{{ selectedBucket.program_code }} &mdash; {{ selectedBucket.program_name }}</span>
-              </div>
-              <div class="flex flex-col sm:flex-row sm:items-center justify-between py-1 border-b border-slate-200/60">
-                <span class="text-slate-500 font-medium">Kegiatan:</span>
-                <span class="font-bold text-slate-900 font-sans">{{ selectedBucket.activity_code }} &mdash; {{ selectedBucket.activity_name }}</span>
-              </div>
-              <div class="flex flex-col sm:flex-row sm:items-center justify-between py-1 border-b border-slate-200/60">
-                <span class="text-slate-500 font-medium">KRO (Klasifikasi Rincian Output):</span>
-                <span class="font-bold text-slate-900 font-sans">{{ selectedBucket.kro_code }} &mdash; {{ selectedBucket.kro_name }}</span>
-              </div>
-              <div class="flex flex-col sm:flex-row sm:items-center justify-between py-1 border-b border-slate-200/60">
-                <span class="text-slate-500 font-medium">RO (Rincian Output):</span>
-                <span class="font-bold text-slate-900 font-sans">{{ selectedBucket.ro_code }} &mdash; {{ selectedBucket.ro_name }}</span>
-              </div>
-              <div class="flex flex-col sm:flex-row sm:items-center justify-between py-1 border-b border-slate-200/60">
-                <span class="text-slate-500 font-medium">Komponen:</span>
-                <span class="font-bold text-slate-900 font-sans">{{ selectedBucket.component_code }} &mdash; {{ selectedBucket.component_name }}</span>
-              </div>
-              <div class="flex flex-col sm:flex-row sm:items-center justify-between py-1 border-b border-slate-200/60">
-                <span class="text-slate-500 font-medium">Subkomponen:</span>
-                <span class="font-bold text-slate-900 font-sans">{{ selectedBucket.subcomponent_code }} &mdash; {{ selectedBucket.subcomponent_name }}</span>
-              </div>
-              <div class="flex flex-col sm:flex-row sm:items-center justify-between py-1 border-b border-slate-200/60">
-                <span class="text-sky-800 font-bold">Akun Belanja:</span>
-                <span class="font-black text-sky-950 font-sans text-xs bg-sky-100/80 px-2 py-0.5 rounded">{{ selectedBucket.account_code }} &mdash; {{ selectedBucket.account_name }}</span>
-              </div>
-              <div class="flex flex-col sm:flex-row sm:items-center justify-between py-1">
-                <span class="text-slate-500 font-medium">Subakun:</span>
-                <span class="font-bold text-slate-700 font-sans">{{ selectedBucket.subaccount_code }} &mdash; {{ selectedBucket.subaccount_name }}</span>
+            <!-- Accordion Read-Only Hierarchy (Optional Expand) -->
+            <div class="border border-slate-200/80 rounded-2xl overflow-hidden text-xs">
+              <button 
+                type="button" 
+                @click="isHierarchyExpanded = !isHierarchyExpanded"
+                class="w-full px-4 py-2.5 bg-slate-50 hover:bg-slate-100 flex items-center justify-between text-slate-600 font-bold transition"
+              >
+                <div class="flex items-center gap-2">
+                  <Layers class="w-4 h-4 text-sky-600" />
+                  <span>Lihat Hierarki Nomenklatur Lengkap APBN (Read-Only)</span>
+                </div>
+                <ChevronUp v-if="isHierarchyExpanded" class="w-4 h-4" />
+                <ChevronDown v-else class="w-4 h-4" />
+              </button>
+
+              <div v-show="isHierarchyExpanded" class="p-4 bg-white space-y-1.5 border-t border-slate-100 text-[11px] text-slate-600">
+                <div><strong>Program:</strong> {{ selectedBudgetLine.hierarchy?.program?.code }} &mdash; {{ selectedBudgetLine.hierarchy?.program?.name }}</div>
+                <div><strong>Kegiatan:</strong> {{ selectedBudgetLine.hierarchy?.activity?.code }} &mdash; {{ selectedBudgetLine.hierarchy?.activity?.name }}</div>
+                <div><strong>KRO:</strong> {{ selectedBudgetLine.hierarchy?.kro?.code }} &mdash; {{ selectedBudgetLine.hierarchy?.kro?.name }}</div>
+                <div><strong>RO:</strong> {{ selectedBudgetLine.hierarchy?.ro?.code }} &mdash; {{ selectedBudgetLine.hierarchy?.ro?.name }}</div>
+                <div><strong>Komponen:</strong> {{ selectedBudgetLine.hierarchy?.component?.code }} &mdash; {{ selectedBudgetLine.hierarchy?.component?.name }}</div>
+                <div><strong>Subkomponen:</strong> {{ selectedBudgetLine.hierarchy?.subcomponent?.full_code }} &mdash; {{ selectedBudgetLine.hierarchy?.subcomponent?.name }}</div>
+                <div><strong>Akun:</strong> {{ selectedBudgetLine.hierarchy?.account?.code }} &mdash; {{ selectedBudgetLine.hierarchy?.account?.name }}</div>
               </div>
             </div>
+
           </div>
         </div>
 
         <!-- ================================================== -->
-        <!-- STEP 3 — INPUT PTK (MINIMUM INPUT)                 -->
+        <!-- 3. FIELD MANUAL UTAMA & OPSIONAL                   -->
         <!-- ================================================== -->
         <div class="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-4">
           <div class="border-b border-slate-100 pb-3">
             <h2 class="text-sm font-bold text-slate-900 flex items-center gap-2">
-              <span class="px-2 py-0.5 bg-sky-100 text-sky-800 text-[10px] font-black rounded-md">STEP 3</span>
-              <span>Input Rincian Transaksi PTK (Minimum Input)</span>
+              <span class="px-2 py-0.5 bg-sky-100 text-sky-800 text-[10px] font-black rounded-md">2</span>
+              <span>Input Rincian Transaksi Belanja</span>
             </h2>
-            <p class="text-xs text-slate-500 mt-0.5">Isi rincian transaksi riil belanja kuitansi / SPJ.</p>
+            <p class="text-xs text-slate-500 mt-0.5">Isi rincian transaksi riil sesuai bukti kuitansi / FRA.</p>
           </div>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-            <!-- 1. Nomor Bukti * -->
-            <div>
-              <label class="block font-bold text-slate-700 mb-1.5">
-                Nomor Bukti / Kuitansi <span class="text-rose-600">*</span>
-              </label>
-              <input 
-                v-model="form.evidence_number" 
-                type="text" 
-                required 
-                placeholder="Contoh: BKT/IF/2026/08/001"
-                class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-900 font-sans focus:bg-white focus:ring-2 focus:ring-sky-500 focus:outline-none transition shadow-sm"
-              />
-              <div v-if="form.errors.evidence_number" class="text-rose-600 text-[11px] mt-1">{{ form.errors.evidence_number }}</div>
-            </div>
-
-            <!-- 2. Tanggal Transaksi * -->
+            <!-- 1. Tanggal Transaksi * -->
             <div>
               <label class="block font-bold text-slate-700 mb-1.5">
                 Tanggal Transaksi <span class="text-rose-600">*</span>
@@ -410,16 +392,31 @@ const formatRupiah = (val) => {
               <div v-if="form.errors.transaction_date" class="text-rose-600 text-[11px] mt-1">{{ form.errors.transaction_date }}</div>
             </div>
 
-            <!-- 3. Uraian Transaksi * (Full width) -->
+            <!-- 2. Nomor Bukti / No FRA * (Manual input - no auto generate) -->
+            <div>
+              <label class="block font-bold text-slate-700 mb-1.5">
+                No. FRA / Nomor Bukti Kuitansi <span class="text-rose-600">*</span>
+              </label>
+              <input 
+                v-model="form.evidence_number" 
+                type="text" 
+                required 
+                placeholder="Masukkan nomor bukti fisik kuitansi..."
+                class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-900 font-sans focus:bg-white focus:ring-2 focus:ring-sky-500 focus:outline-none transition shadow-sm"
+              />
+              <div v-if="form.errors.evidence_number" class="text-rose-600 text-[11px] mt-1">{{ form.errors.evidence_number }}</div>
+            </div>
+
+            <!-- 3. Uraian Aktual * (Full width) -->
             <div class="sm:col-span-2">
               <label class="block font-bold text-slate-700 mb-1.5">
-                Uraian Belanja / Keterangan Transaksi <span class="text-rose-600">*</span>
+                Uraian Aktual Belanja <span class="text-rose-600">*</span>
               </label>
               <input 
                 v-model="form.title" 
                 type="text" 
                 required 
-                placeholder="Contoh: Belanja bahan praktikum algoritma pemrograman semester genap"
+                placeholder="Tuliskan uraian belanja riil yang dilakukan..."
                 class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-900 focus:bg-white focus:ring-2 focus:ring-sky-500 focus:outline-none transition shadow-sm"
               />
               <div v-if="form.errors.title" class="text-rose-600 text-[11px] mt-1">{{ form.errors.title }}</div>
@@ -436,7 +433,7 @@ const formatRupiah = (val) => {
                 required 
                 min="1000" 
                 step="500" 
-                placeholder="Contoh: 15000000"
+                placeholder="0"
                 class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-black text-slate-900 font-sans focus:bg-white focus:ring-2 focus:ring-sky-500 focus:outline-none transition shadow-sm text-base"
               />
               <span class="text-[11px] font-bold text-sky-700 mt-1 block">
@@ -445,7 +442,7 @@ const formatRupiah = (val) => {
               <div v-if="form.errors.amount" class="text-rose-600 text-[11px] mt-1">{{ form.errors.amount }}</div>
             </div>
 
-            <!-- 5. Program Studi (Optional) -->
+            <!-- 5. Program Studi (Opsional) -->
             <div>
               <label class="block font-semibold text-slate-700 mb-1.5">
                 Program Studi Terkait <span class="text-slate-400 font-normal">(Opsional)</span>
@@ -454,17 +451,14 @@ const formatRupiah = (val) => {
                 v-model="form.study_program_id" 
                 class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-900 focus:bg-white focus:ring-2 focus:ring-sky-500 focus:outline-none transition shadow-sm"
               >
-                <option value="">-- Tidak Terikat Prodi Khusus (Level Jurusan) --</option>
+                <option value="">-- Tidak Terikat Prodi (Tingkat Jurusan) --</option>
                 <option v-for="sp in studyPrograms" :key="sp.id" :value="sp.id">
                   {{ sp.name }}
                 </option>
               </select>
-              <span class="text-[10px] text-slate-400 mt-1 block">
-                Kosongkan jika belanja operasional tingkat jurusan secara umum.
-              </span>
             </div>
 
-            <!-- 6. Catatan Tambahan (Optional) -->
+            <!-- 6. Catatan Tambahan (Opsional) -->
             <div class="sm:col-span-2">
               <label class="block font-semibold text-slate-700 mb-1.5">
                 Catatan Tambahan <span class="text-slate-400 font-normal">(Opsional)</span>
@@ -472,15 +466,15 @@ const formatRupiah = (val) => {
               <textarea 
                 v-model="form.notes" 
                 rows="2" 
-                placeholder="Catatan pendukung untuk pemeriksa PTU / Bendahara..."
+                placeholder="Catatan pelengkap untuk verifikator PTU..."
                 class="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-900 focus:bg-white focus:ring-2 focus:ring-sky-500 focus:outline-none transition shadow-sm"
               ></textarea>
             </div>
 
-            <!-- 7. Lampiran Berkas (Optional) -->
+            <!-- 7. Lampiran Berkas (Opsional) -->
             <div class="sm:col-span-2">
               <label class="block font-semibold text-slate-700 mb-1.5">
-                Lampiran Berkas / Kuitansi / SPJ <span class="text-slate-400 font-normal">(Opsional)</span>
+                Lampiran Berkas / Bukti Kuitansi <span class="text-slate-400 font-normal">(Opsional)</span>
               </label>
               <div class="flex items-center gap-3">
                 <label class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold cursor-pointer transition flex items-center gap-1.5 border border-slate-300">
@@ -497,95 +491,53 @@ const formatRupiah = (val) => {
         </div>
 
         <!-- ================================================== -->
-        <!-- STEP 4 — BUDGET CHECK & REAL-TIME SOLVENCY         -->
+        <!-- 4. REAL-TIME SOLVENCY CHECK BANNER                 -->
         <!-- ================================================== -->
-        <div class="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-4">
-          <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-            <h2 class="text-sm font-bold text-slate-900 flex items-center gap-2">
-              <span class="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-black rounded-md">STEP 4</span>
-              <span>Budget Check &amp; Simulasi Saldo Real-Time</span>
-            </h2>
-            <span class="text-xs text-slate-400 font-semibold">Aturan RBC-001</span>
-          </div>
-
-          <!-- Financial Snapshot 4-Col Grid -->
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-            <div class="p-3 bg-slate-50 rounded-2xl border border-slate-200">
-              <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Pagu Aktif</span>
-              <span class="font-black text-slate-900 font-sans text-sm mt-0.5 block">
-                {{ formatRupiah(selectedBucket?.allocated_budget) }}
-              </span>
+        <div 
+          v-if="selectedBudgetLine"
+          :class="[
+            'p-4 rounded-3xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs transition shadow-sm',
+            isOverbudget 
+              ? 'bg-rose-50 border-rose-300 text-rose-950 ring-2 ring-rose-500/20' 
+              : 'bg-emerald-50 border-emerald-300 text-emerald-950'
+          ]"
+        >
+          <div class="flex items-center gap-3">
+            <div :class="['p-2 rounded-xl text-white font-bold', isOverbudget ? 'bg-rose-600' : 'bg-emerald-600']">
+              <XCircle v-if="isOverbudget" class="w-5 h-5" />
+              <CheckCircle2 v-else class="w-5 h-5" />
             </div>
-
-            <div class="p-3 bg-slate-50 rounded-2xl border border-slate-200">
-              <span class="text-[10px] font-bold text-amber-700 uppercase tracking-wider block">Dalam Proses</span>
-              <span class="font-black text-amber-950 font-sans text-sm mt-0.5 block">
-                {{ formatRupiah(selectedBucket?.reserved_budget) }}
-              </span>
-            </div>
-
-            <div class="p-3 bg-slate-50 rounded-2xl border border-slate-200">
-              <span class="text-[10px] font-bold text-sky-700 uppercase tracking-wider block">Realisasi</span>
-              <span class="font-black text-sky-950 font-sans text-sm mt-0.5 block">
-                {{ formatRupiah(selectedBucket?.realized_budget) }}
-              </span>
-            </div>
-
-            <div class="p-3 bg-emerald-50/60 rounded-2xl border border-emerald-200">
-              <span class="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block">Saldo Saat Ini</span>
-              <span class="font-black text-emerald-950 font-sans text-sm mt-0.5 block">
-                {{ formatRupiah(currentAvailableBalance) }}
-              </span>
+            <div>
+              <div class="font-black text-sm">
+                {{ isOverbudget ? '✕ Melebihi Saldo Tersedia (Overbudget)' : '✓ Saldo Tersedia Mencukupi' }}
+              </div>
+              <div class="text-[11px] mt-0.5" :class="isOverbudget ? 'text-rose-800' : 'text-emerald-800'">
+                <span v-if="isOverbudget">
+                  Nominal transaksi melebihi sisa pagu Control Bucket. Defisit: <strong class="font-bold">{{ formatRupiah(shortfallAmount) }}</strong>.
+                </span>
+                <span v-else>
+                  Pos anggaran memiliki saldo yang cukup untuk diproses ke verifikasi.
+                </span>
+              </div>
             </div>
           </div>
 
-          <!-- Real-Time Solvency Banner -->
-          <div 
-            :class="[
-              'p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs transition',
-              isOverbudget 
-                ? 'bg-rose-50 border-rose-300 text-rose-950 ring-2 ring-rose-500/20' 
-                : 'bg-emerald-50 border-emerald-300 text-emerald-950'
-            ]"
-          >
-            <div class="flex items-center gap-3">
-              <div :class="['p-2 rounded-xl text-white font-bold', isOverbudget ? 'bg-rose-600' : 'bg-emerald-600']">
-                <XCircle v-if="isOverbudget" class="w-5 h-5" />
-                <CheckCircle2 v-else class="w-5 h-5" />
-              </div>
-              <div>
-                <div class="font-black text-sm">
-                  {{ isOverbudget ? '✕ Anggaran tidak mencukupi (Overbudget)' : '✓ Anggaran mencukupi' }}
-                </div>
-                <div class="text-[11px] mt-0.5" :class="isOverbudget ? 'text-rose-800' : 'text-emerald-800'">
-                  <span v-if="isOverbudget">
-                    Nominal transaksi melebihi saldo tersedia. Defisit kekurangan: <strong class="font-bold">{{ formatRupiah(shortfallAmount) }}</strong>. Transaksi tidak dapat diproses.
-                  </span>
-                  <span v-else>
-                    Pos anggaran memiliki saldo yang cukup untuk memproses transaksi ini.
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Projected Balance Result -->
-            <div class="text-right shrink-0">
-              <span class="text-[10px] uppercase font-bold tracking-wider block" :class="isOverbudget ? 'text-rose-700' : 'text-emerald-700'">
-                Projected Sisa Saldo
-              </span>
-              <span :class="['font-black font-sans text-base block', isOverbudget ? 'text-rose-900 underline' : 'text-emerald-950']">
-                {{ formatRupiah(projectedBalance) }}
-              </span>
-            </div>
+          <div class="text-right shrink-0">
+            <span class="text-[10px] uppercase font-bold tracking-wider block" :class="isOverbudget ? 'text-rose-700' : 'text-emerald-700'">
+              Projected Sisa Saldo
+            </span>
+            <span :class="['font-black font-sans text-base block', isOverbudget ? 'text-rose-900 underline' : 'text-emerald-950']">
+              {{ formatRupiah(projectedBalance) }}
+            </span>
           </div>
         </div>
 
         <!-- ================================================== -->
-        <!-- STEP 5 — SAVE (ACTION BUTTONS)                     -->
+        <!-- 5. ACTION BUTTONS (DRAFT / AJUKAN)                 -->
         <!-- ================================================== -->
         <div class="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/80 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div class="text-xs text-slate-500">
-            <span class="font-bold text-slate-700">Protokol Simpan:</span> Transaksi akan masuk antrean pemeriksaan PTU (Penguji Tagihan Unit BLU) dan memotong saldo (reserved) secara aman.
+            <span class="font-bold text-slate-700">Protokol:</span> Transaksi yang diajukan akan masuk antrean pemeriksaan PTU (Penguji Tagihan Unit BLU).
           </div>
 
           <div class="flex items-center gap-3">
@@ -599,20 +551,20 @@ const formatRupiah = (val) => {
               Simpan Draft
             </button>
 
-            <!-- CTA: Simpan & Proses (Blocked if Overbudget) -->
+            <!-- CTA: Ajukan -->
             <button 
               type="button" 
               @click="submitTransaction('PROCESSING')" 
-              :disabled="form.processing || isOverbudget || !form.amount || form.amount <= 0 || !form.title"
+              :disabled="form.processing || isOverbudget || !form.amount || form.amount <= 0 || !form.title || !form.evidence_number || !form.budget_line_id"
               :class="[
                 'px-6 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2 transition shadow-md',
-                isOverbudget 
+                (isOverbudget || !form.amount || form.amount <= 0 || !form.title || !form.evidence_number || !form.budget_line_id)
                   ? 'bg-slate-300 text-slate-500 cursor-not-allowed shadow-none' 
                   : 'bg-sky-600 hover:bg-sky-500 text-white shadow-sky-600/20'
               ]"
             >
               <Check class="w-4 h-4" />
-              <span>Simpan &amp; Proses</span>
+              <span>Ajukan Transaksi</span>
             </button>
           </div>
         </div>
