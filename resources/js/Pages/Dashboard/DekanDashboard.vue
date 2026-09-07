@@ -59,10 +59,10 @@ const pendingAuthorizationCount = computed(() => {
       </div>
     </div>
 
-    <!-- 5 Clean Executive KPI Cards -->
+    <!-- 5 Clean Executive KPI Cards: Pagu Fakultas, Diajukan, Realisasi Internal, Saldo, Open Warning -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
       <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-1">
-        <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">TOTAL PAGU FAKULTAS</div>
+        <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">PAGU FAKULTAS</div>
         <div class="text-xl font-extrabold text-slate-900 font-sans tracking-tight truncate" :title="formatRupiah(totalAllocated)">
           {{ formatRupiahCompact(totalAllocated) }}
         </div>
@@ -70,7 +70,15 @@ const pendingAuthorizationCount = computed(() => {
       </div>
 
       <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-1">
-        <div class="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">REALISASI FINAL (LRA)</div>
+        <div class="text-[11px] font-bold text-indigo-700 uppercase tracking-wider">DIAJUKAN (KOMITMEN)</div>
+        <div class="text-xl font-extrabold text-indigo-900 font-sans tracking-tight truncate" :title="formatRupiah(totalReserved)">
+          {{ formatRupiahCompact(totalReserved) }}
+        </div>
+        <div class="text-xs text-indigo-700 font-semibold">Utilization: {{ utilizationRate }}%</div>
+      </div>
+
+      <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-1">
+        <div class="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">REALISASI INTERNAL</div>
         <div class="text-xl font-extrabold text-emerald-900 font-sans tracking-tight truncate" :title="formatRupiah(totalRealized)">
           {{ formatRupiahCompact(totalRealized) }}
         </div>
@@ -78,7 +86,7 @@ const pendingAuthorizationCount = computed(() => {
       </div>
 
       <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-1">
-        <div class="text-[11px] font-bold text-sky-800 uppercase tracking-wider">SALDO BEBAS (AVAILABLE)</div>
+        <div class="text-[11px] font-bold text-sky-800 uppercase tracking-wider">SALDO TERSEDIA</div>
         <div class="text-xl font-extrabold text-sky-950 font-sans tracking-tight truncate" :title="formatRupiah(totalAvailable)">
           {{ formatRupiahCompact(totalAvailable) }}
         </div>
@@ -86,19 +94,11 @@ const pendingAuthorizationCount = computed(() => {
       </div>
 
       <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-1">
-        <div class="text-[11px] font-bold text-rose-800 uppercase tracking-wider">CRITICAL WARNING</div>
+        <div class="text-[11px] font-bold text-rose-800 uppercase tracking-wider">OPEN WARNING EWS</div>
         <div class="text-xl font-extrabold text-rose-950 font-sans tracking-tight">
           {{ criticalWarningsCount || 0 }}
         </div>
         <div class="text-xs text-rose-700 font-semibold">Butuh Atensi KPA</div>
-      </div>
-
-      <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-1">
-        <div class="text-[11px] font-bold text-blue-800 uppercase tracking-wider">PENDING AUTHORIZATION</div>
-        <div class="text-xl font-extrabold text-blue-950 font-sans tracking-tight">
-          {{ pendingAuthorizationCount }}
-        </div>
-        <div class="text-xs text-blue-700 font-medium">Antrean Persetujuan</div>
       </div>
     </div>
 

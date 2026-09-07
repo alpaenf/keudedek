@@ -6,6 +6,7 @@ use App\Models\BudgetBucket;
 use App\Models\EarlyWarning;
 use App\Models\FiscalYear;
 use App\Services\AuditLogService;
+use App\Services\EarlyWarningService;
 use App\Services\RuleEngineService;
 use App\Services\ScopeService;
 use Carbon\Carbon;
@@ -17,6 +18,7 @@ use Inertia\Response;
 class EarlyWarningController extends Controller
 {
     public function __construct(
+        protected EarlyWarningService $earlyWarningService,
         protected RuleEngineService $ruleEngineService
     ) {}
 
@@ -25,7 +27,7 @@ class EarlyWarningController extends Controller
         $user = $request->user();
 
         // Run EWS sweep on demand
-        $this->ruleEngineService->evaluateAllEws();
+        $this->earlyWarningService->evaluateAll();
 
         $query = EarlyWarning::with([
             'department',
@@ -144,28 +146,32 @@ class EarlyWarningController extends Controller
             'budgetBucket.fiscalYear',
             'budgetBucket.fundingSource',
             'budgetBucket.budgetVersion',
+            'submission.department',
+            'submission.budgetBucket',
+            'budgetVersion',
+            'ruleConfig',
             'acknowledger',
         ]);
 
-        $bucket = $earlyWarning->budgetBucket;
-        $dept = $earlyWarning->department;
+        $bucket = $earlyWarning->budgetBucket ?: $earlyWarning->submission?->budgetBucket;
+        $dept = $earlyWarning->department ?: $bucket?->department ?: $earlyWarning->submission?->department;
         $deptName = $dept?->name ?? 'Fakultas Teknik';
 
         $ruleNames = [
             'EWS-001' => 'Saldo Kritis',
-            'EWS-002' => 'High Utilization',
-            'EWS-003' => 'Transaksi Terlalu Lama Dalam Proses',
-            'EWS-004' => 'Revision Conflict',
-            'EWS-005' => 'Unmapped Data Staging',
+            'EWS-002' => 'Stale Submission',
+            'EWS-003' => 'Revision Conflict',
+            'EWS-004' => 'Unmapped Data',
+            'EWS-005' => 'Repeated Return',
         ];
 
-        $ruleName = $ruleNames[$earlyWarning->rule_code] ?? 'Early Warning Indicator';
+        $ruleName = $earlyWarning->ruleConfig?->rule_name ?? ($ruleNames[$earlyWarning->rule_code] ?? 'Early Warning Indicator');
 
-        // 7-Segment Budget Context
+        // Budget Context
         $budgetContext = [
             'ta' => $bucket?->fiscalYear?->year ?? 2026,
             'sumber_dana' => $bucket?->fundingSource?->code ?? 'RM',
-            'revision' => $bucket?->budgetVersion?->revision_no ?? 'Rev 02',
+            'revision' => $earlyWarning->budgetVersion?->revision_no ?? ($bucket?->budgetVersion?->revision_no ?? 'Rev 02'),
             'jurusan_code' => $dept?->code ?? 'FT',
             'jurusan_name' => $deptName,
             'program_code' => 'WA',
@@ -179,14 +185,12 @@ class EarlyWarningController extends Controller
             'component_code' => '001',
             'component_name' => 'Operasional & Pemeliharaan Kantor',
             'subcomponent_code' => $bucket?->subcomponent_code ?? 'AA',
-            'subcomponent_name' => $bucket?->subcomponent_name ?? "Operasional & Praktikum {$deptName}",
+            'subcomponent_name' => $bucket?->subcomponent_name ?? "Operasional {$deptName}",
             'account_code' => $bucket?->account_code ?? '-',
             'account_name' => $bucket?->account_name ?? 'Belanja Operasional',
-            'subaccount_code' => ($bucket?->account_code ?? '521211').'.001',
-            'subaccount_name' => 'Alokasi Operasional Standar Unit',
         ];
 
-        // Calculation Metrics & Ratios
+        // Explainability & Calculation Metrics
         $allocated = (float) ($bucket?->allocated_budget ?? 0);
         $available = (float) ($bucket?->available_balance ?? 0);
         $reserved = (float) ($bucket?->reserved_budget ?? 0);
@@ -196,11 +200,11 @@ class EarlyWarningController extends Controller
         $utilizationRatio = $allocated > 0 ? round((($realized + $reserved) / $allocated) * 100, 2) : 0;
 
         $thresholdMap = [
-            'EWS-001' => 'Available Balance Ratio <= 10.00% atau Saldo <= Rp 0',
-            'EWS-002' => 'Utilization Ratio (Realized + Reserved) >= 85.00%',
-            'EWS-003' => 'Pending Examination Duration > 3 Hari Kerja',
-            'EWS-004' => 'Pagu Revisi Baru < Total Belanja Berjalan',
-            'EWS-005' => 'Unmapped Field Count > 0 pada Import Staging',
+            'EWS-001' => 'Rasio Saldo Tersedia <= '.((float) EarlyWarningService::getParameter('EWS-001', 'warning_ratio', 0.15) * 100).'%',
+            'EWS-002' => 'Durasi Antrean DIAJUKAN > '.((int) EarlyWarningService::getParameter('EWS-002', 'stale_days', 3)).' Hari',
+            'EWS-003' => 'Pagu Revisi Baru < Komitmen Aktif + Realisasi Selesai',
+            'EWS-004' => 'Baris Import Staging Belum Terpetakan > 0',
+            'EWS-005' => 'Frekuensi Dikembalikan >= '.((int) EarlyWarningService::getParameter('EWS-005', 'threshold_return_count', 2)).' Kali',
         ];
 
         $calculation = [
@@ -210,31 +214,38 @@ class EarlyWarningController extends Controller
             'realized_budget' => $realized,
             'available_ratio' => $availableRatio,
             'utilization_ratio' => $utilizationRatio,
-            'threshold' => $thresholdMap[$earlyWarning->rule_code] ?? 'Standard Threshold',
-            'reason' => "{$earlyWarning->rule_code} triggered: {$earlyWarning->message}",
+            'current_value' => (float) $earlyWarning->current_value,
+            'threshold_value' => (float) $earlyWarning->threshold_value,
+            'threshold' => $thresholdMap[$earlyWarning->rule_code] ?? 'Standard Configured Threshold',
+            'reason' => $earlyWarning->reason ?: $earlyWarning->message,
+            'target_object' => $earlyWarning->target_object,
+            'first_triggered_at' => $earlyWarning->first_triggered_at?->toIso8601String() ?? $earlyWarning->created_at->toIso8601String(),
         ];
 
         // History Timeline
         $history = [
             'opened' => [
-                'timestamp' => $earlyWarning->created_at,
-                'human' => $earlyWarning->created_at->diffForHumans(),
-                'actor' => 'System Evaluator Engine (RBC/EWS)',
-                'notes' => 'Peringatan terdeteksi secara otomatis oleh pemindaian sistem.',
+                'timestamp' => $earlyWarning->first_triggered_at ?? $earlyWarning->created_at,
+                'human' => ($earlyWarning->first_triggered_at ?? $earlyWarning->created_at)->diffForHumans(),
+                'actor' => 'System Evaluator Engine (EWS Monitoring)',
+                'notes' => 'Peringatan terdeteksi secara otomatis oleh mesin pemantau EWS.',
             ],
             'acknowledged' => $earlyWarning->acknowledged_at ? [
                 'timestamp' => $earlyWarning->acknowledged_at,
                 'human' => Carbon::parse($earlyWarning->acknowledged_at)->diffForHumans(),
-                'actor' => $earlyWarning->acknowledger?->name ?? 'Verifikator',
-                'notes' => 'Peringatan telah dipelajari dan sedang dalam penanganan unit terkait.',
+                'actor' => $earlyWarning->acknowledger?->name ?? 'Verifikator/Pejabat',
+                'notes' => 'Peringatan telah dipelajari dan direspon oleh pejabat terkait.',
             ] : null,
             'resolved' => $earlyWarning->lifecycle_state === 'RESOLVED' ? [
                 'timestamp' => $earlyWarning->updated_at,
                 'human' => $earlyWarning->updated_at->diffForHumans(),
-                'actor' => 'Pejabat Otorisator',
-                'notes' => 'Kondisi risiko telah diselesaikan atau pagu telah disesuaikan.',
+                'actor' => 'Sistem / Pengguna Terotorisasi',
+                'notes' => 'Kondisi risiko telah diselesaikan atau transaksi telah ditindaklanjuti.',
             ] : null,
         ];
+
+        $relatedBudgetUrl = $bucket ? "/budgets/{$bucket->id}" : '/budgets';
+        $relatedTransactionUrl = $earlyWarning->submission_id ? "/transactions/{$earlyWarning->submission_id}" : ($bucket ? "/submissions?account_code={$bucket->account_code}" : '/transactions');
 
         return Inertia::render('Warnings/Show', [
             'warning' => $earlyWarning,
@@ -242,8 +253,8 @@ class EarlyWarningController extends Controller
             'budgetContext' => $budgetContext,
             'calculation' => $calculation,
             'history' => $history,
-            'relatedBudgetUrl' => $bucket ? "/budgets/{$bucket->id}" : '/budgets',
-            'relatedTransactionUrl' => $bucket ? "/submissions?account_code={$bucket->account_code}" : '/submissions',
+            'relatedBudgetUrl' => $relatedBudgetUrl,
+            'relatedTransactionUrl' => $relatedTransactionUrl,
         ]);
     }
 

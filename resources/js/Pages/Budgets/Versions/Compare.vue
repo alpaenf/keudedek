@@ -25,6 +25,8 @@ const props = defineProps({
   baseVersion: Object,
   targetVersion: Object,
   comparisonItems: Array,
+  lineDifferences: Object,
+  conflicts: Array,
   summary: Object,
 });
 
@@ -37,6 +39,9 @@ const onVersionChange = () => {
     target_version_id: targetVersionId.value,
   }, { preserveState: true });
 };
+
+// Mode: 'buckets' | 'lines' | 'conflicts'
+const activeViewMode = ref('buckets');
 
 // Filter & Search
 const searchQuery = ref('');
@@ -220,6 +225,45 @@ const formatDelta = (val) => {
           <span :class="['text-[10px]', (summary?.conflict_count > 0) ? 'text-rose-700 font-bold' : 'text-slate-400']">
             {{ (summary?.conflict_count > 0) ? 'Harus Disesuaikan' : 'Aman / Tidak Ada Konflik' }}
           </span>
+        </div>
+      </div>
+
+      <!-- Line-Level Revision Differences Cards -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+        <!-- Line Baru -->
+        <div class="bg-emerald-50/60 border border-emerald-200 p-4 rounded-3xl space-y-1">
+          <span class="text-[10px] font-bold text-emerald-800 uppercase tracking-wider block">Line Baru</span>
+          <span class="font-sans font-black text-emerald-950 text-xl block">
+            {{ summary?.new_lines_count || 0 }} <span class="text-xs font-normal text-emerald-700">Baris</span>
+          </span>
+          <span class="text-[10px] text-emerald-700">Ditambahkan di versi baru</span>
+        </div>
+
+        <!-- Line Hilang -->
+        <div class="bg-rose-50/60 border border-rose-200 p-4 rounded-3xl space-y-1">
+          <span class="text-[10px] font-bold text-rose-800 uppercase tracking-wider block">Line Hilang</span>
+          <span class="font-sans font-black text-rose-950 text-xl block">
+            {{ summary?.removed_lines_count || 0 }} <span class="text-xs font-normal text-rose-700">Baris</span>
+          </span>
+          <span class="text-[10px] text-rose-700">Dihapus dari versi acuan</span>
+        </div>
+
+        <!-- Pagu Naik -->
+        <div class="bg-sky-50/60 border border-sky-200 p-4 rounded-3xl space-y-1">
+          <span class="text-[10px] font-bold text-sky-800 uppercase tracking-wider block">Pagu Naik</span>
+          <span class="font-sans font-black text-sky-950 text-xl block">
+            {{ summary?.increased_lines_count || 0 }} <span class="text-xs font-normal text-sky-700">Baris</span>
+          </span>
+          <span class="text-[10px] text-sky-700">Ekspansi alokasi</span>
+        </div>
+
+        <!-- Pagu Turun -->
+        <div class="bg-amber-50/60 border border-amber-200 p-4 rounded-3xl space-y-1">
+          <span class="text-[10px] font-bold text-amber-800 uppercase tracking-wider block">Pagu Turun</span>
+          <span class="font-sans font-black text-amber-950 text-xl block">
+            {{ summary?.decreased_lines_count || 0 }} <span class="text-xs font-normal text-amber-700">Baris</span>
+          </span>
+          <span class="text-[10px] text-amber-700">Reduksi alokasi</span>
         </div>
       </div>
 

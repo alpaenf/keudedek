@@ -4,9 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\BudgetAccount;
 use App\Models\BudgetActivity;
-use App\Models\BudgetBucket;
 use App\Models\BudgetComponent;
-use App\Models\BudgetImportStaging;
 use App\Models\BudgetKro;
 use App\Models\BudgetProgram;
 use App\Models\BudgetRo;
@@ -16,10 +14,9 @@ use App\Models\Department;
 use App\Models\FiscalYear;
 use App\Models\FundingSource;
 use App\Models\ImportHistory;
-use App\Services\AuditLogService;
+use App\Services\BudgetImportPipelineService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -63,177 +60,21 @@ class BudgetImportController extends Controller
         $selectedYear = (int) ($request->fiscal_year ?: 2026);
         $selectedFunding = trim($request->funding_source_code ?: 'RM');
         $selectedRevision = trim($request->revision_no ?: 'Rev 02');
+        $versionLabel = $request->version_label ?: "Pagu {$selectedRevision} TA {$selectedYear}";
 
-        $history = ImportHistory::create([
-            'user_id' => auth()->id() ?? 1,
-            'filename' => $filename,
-            'status' => 'PENDING',
-        ]);
-
-        $departments = Department::all()->keyBy('code');
-        $fiscalYears = FiscalYear::all()->keyBy('year');
-        $fundingSources = FundingSource::all()->keyBy('code');
-
-        $rows = [];
-        $isSimapanSchema = false;
-
-        // Parse file based on extension
-        if (in_array($extension, ['csv', 'txt'])) {
-            $handle = fopen($path, 'r');
-            $firstLine = fgets($handle);
-            if (substr($firstLine, 0, 3) === chr(0xEF).chr(0xBB).chr(0xBF)) {
-                $firstLine = substr($firstLine, 3);
-            }
-            rewind($handle);
-
-            $header = fgetcsv($handle, 3000, ',');
-            if (count($header) === 1 && str_contains($header[0], ';')) {
-                rewind($handle);
-                $header = fgetcsv($handle, 3000, ';');
-                $delimiter = ';';
-            } else {
-                $delimiter = ',';
-            }
-
-            $isSimapanSchema = (count($header) >= 18 && (str_contains(strtolower($header[3] ?? ''), 'unit') || str_contains(strtolower($header[16] ?? ''), 'akun')));
-
-            while (($data = fgetcsv($handle, 3000, $delimiter)) !== false) {
-                if (! empty(array_filter($data))) {
-                    $rows[] = $data;
-                }
-            }
-            fclose($handle);
-        } else {
-            // For Excel / ODS / PDF / DOCS uploaded in demonstration or testing, generate structured staged rows based on master data
-            $isSimapanSchema = true;
-            $deptCodes = ['JTIF', 'JTS', 'JTE', 'JTI', 'JTG'];
-            $sampleAccounts = [
-                ['521111', 'Belanja Keperluan Perkantoran', 150000000.00, '4257.EBA.994.001.AA'],
-                ['521211', 'Belanja Bahan', 75000000.00, '4257.EBA.994.001.AB'],
-                ['521811', 'Belanja Barang Persediaan Konsumsi', 45000000.00, '4257.EBA.994.001.AC'],
-                ['524111', 'Belanja Perjalanan Dinas Biasa', 60000000.00, '4257.EBA.994.002.AA'],
-                ['532111', 'Belanja Modal Peralatan dan Mesin', 250000000.00, '7730.DBA.001.051.AA'],
-            ];
-
-            foreach ($deptCodes as $dCode) {
-                foreach ($sampleAccounts as $idx => $acc) {
-                    $rows[] = [
-                        $idx + 1,
-                        $selectedYear,
-                        '0',
-                        "Jurusan {$dCode}",
-                        'P01',
-                        'Program Dukungan Manajemen',
-                        '4257',
-                        'Dukungan Manajemen FT',
-                        'EBA',
-                        'Layanan Manajemen',
-                        '994',
-                        'Layanan Perkantoran',
-                        '001',
-                        'Operasional Kantor',
-                        $acc[3],
-                        "Operasional {$dCode}",
-                        $acc[0],
-                        $acc[1],
-                        (string) $acc[2],
-                        '0',
-                        (string) $acc[2],
-                        $selectedFunding,
-                        "Import dari {$filename}",
-                    ];
-                }
-            }
-        }
-
-        $validCount = 0;
-        $invalidCount = 0;
-        $totalCount = 0;
-
-        foreach ($rows as $data) {
-            $totalCount++;
-            $errors = [];
-
-            if ($isSimapanSchema) {
-                $year = (int) trim($data[1] ?? $selectedYear);
-                $unitName = trim($data[3] ?? '');
-                $accountCode = trim($data[16] ?? '');
-                $accountName = trim($data[17] ?? '');
-                $initialBudget = (float) str_replace(['.', ',', 'Rp', ' '], ['', '.', '', ''], trim($data[18] ?? '0'));
-                $fundingCode = trim($data[21] ?? $selectedFunding);
-
-                $deptCode = 'FT';
-                foreach ($departments as $code => $dept) {
-                    if (str_contains(strtolower($unitName), strtolower($code)) || str_contains(strtolower($unitName), strtolower($dept->name))) {
-                        $deptCode = $code;
-                        break;
-                    }
-                }
-            } else {
-                $deptCode = trim($data[0] ?? '');
-                $year = (int) trim($data[1] ?? $selectedYear);
-                $fundingCode = trim($data[2] ?? $selectedFunding);
-                $accountCode = trim($data[3] ?? '');
-                $accountName = trim($data[4] ?? '');
-                $initialBudget = (float) str_replace(['.', ',', 'Rp', ' '], ['', '.', '', ''], trim($data[5] ?? '0'));
-            }
-
-            if (! isset($departments[$deptCode])) {
-                $errors[] = "Kode Jurusan '{$deptCode}' tidak terdaftar.";
-            }
-
-            if (! isset($fiscalYears[$year])) {
-                $year = $selectedYear;
-            }
-
-            if (! isset($fundingSources[$fundingCode])) {
-                $fundingCode = $selectedFunding;
-            }
-
-            if (empty($accountCode) || strlen($accountCode) < 6) {
-                $errors[] = 'Kode akun harus 6 digit standar (contoh: 521211).';
-            }
-
-            if ($initialBudget <= 0) {
-                $errors[] = 'Nominal pagu harus lebih besar dari Rp 0.';
-            }
-
-            $status = empty($errors) ? 'VALID' : 'INVALID';
-            if ($status === 'VALID') {
-                $validCount++;
-            } else {
-                $invalidCount++;
-            }
-
-            BudgetImportStaging::create([
-                'import_history_id' => $history->id,
-                'department_code' => $deptCode,
-                'fiscal_year' => $year,
-                'funding_source_code' => $fundingCode,
-                'account_code' => $accountCode,
-                'account_name' => $accountName ?: 'Belanja Operasional',
-                'initial_budget' => $initialBudget,
-                'status' => $status,
-                'error_message' => implode(' | ', $errors),
-            ]);
-        }
-
-        $history->update([
-            'total_rows' => $totalCount,
-            'valid_rows' => $validCount,
-            'invalid_rows' => $invalidCount,
-        ]);
-
-        AuditLogService::log('UPLOAD_BUDGET_IMPORT', ImportHistory::class, $history->id, null, [
-            'batch_id' => $history->import_batch_id,
-            'filename' => $filename,
-            'total_rows' => $totalCount,
-            'valid_rows' => $validCount,
-            'invalid_rows' => $invalidCount,
-        ]);
+        $history = BudgetImportPipelineService::processUpload(
+            $path,
+            $filename,
+            $selectedYear,
+            $selectedFunding,
+            $selectedRevision,
+            $versionLabel,
+            $request->effective_date,
+            auth()->user()
+        );
 
         return redirect()->route('budgets.import.show', $history)
-            ->with('success', "Batch [{$history->import_batch_id}] berhasil diunggah. {$validCount} baris valid dari total {$totalCount} baris siap diverifikasi.");
+            ->with('success', "Batch [{$history->import_batch_id}] berhasil diunggah. {$history->valid_rows} baris valid dari total {$history->total_rows} baris siap diverifikasi.");
     }
 
     public function show(ImportHistory $importHistory): Response
@@ -359,80 +200,14 @@ class BudgetImportController extends Controller
 
     public function commit(ImportHistory $importHistory): RedirectResponse
     {
-        if ($importHistory->status === 'COMMITTED') {
-            return redirect()->back()->with('error', 'Batch import ini sudah pernah dicommit.');
+        try {
+            $result = BudgetImportPipelineService::commitBatch($importHistory, auth()->user());
+
+            return redirect()->route('budgets.import.show', $importHistory)
+                ->with('success', "Batch [{$importHistory->import_batch_id}] berhasil di-commit! {$result['lines_count']} baris RBA dan {$result['buckets_count']} Control Bucket telah disinkronkan ke versi anggaran [{$result['budget_version']->revision_no} - {$result['budget_version']->status}]. Versi tetap Draft hingga diaktifkan terpisah.");
+        } catch (\Throwable $e) {
+            return redirect()->back()->with('error', $e->getMessage());
         }
-
-        if ($importHistory->invalid_rows > 0) {
-            return redirect()->back()->with('error', 'Batch import masih memiliki baris data bermasalah (Invalid). Harap perbaiki sebelum commit.');
-        }
-
-        $activeVersion = BudgetVersion::where('status', 'ACTIVE')->first();
-
-        DB::transaction(function () use ($importHistory, $activeVersion) {
-            $validStagings = $importHistory->stagings()->where('status', 'VALID')->get();
-            $departments = Department::all()->keyBy('code');
-            $fiscalYears = FiscalYear::all()->keyBy('year');
-            $fundingSources = FundingSource::all()->keyBy('code');
-
-            foreach ($validStagings as $stg) {
-                $dept = $departments[$stg->department_code] ?? $departments['JTIF'] ?? Department::first();
-                $fy = $fiscalYears[$stg->fiscal_year] ?? $fiscalYears->first();
-                $fs = $fundingSources[$stg->funding_source_code] ?? $fundingSources['RM'] ?? FundingSource::first();
-
-                // 1. Auto-create new validated account master if not existing
-                BudgetAccount::firstOrCreate(
-                    ['code' => $stg->account_code],
-                    [
-                        'name' => $stg->account_name ?: 'Belanja Operasional',
-                        'type' => str_starts_with($stg->account_code, '53') ? 'Belanja Modal' : 'Belanja Barang',
-                        'data_status' => 'OFFICIAL',
-                    ]
-                );
-
-                // 2. Auto-create subcomponent master if applicable
-                BudgetSubcomponent::firstOrCreate(
-                    ['code' => 'AA', 'fiscal_year' => $fy->year ?? 2026],
-                    [
-                        'full_code' => '023.17.WA.4257.EBA.994.001.AA',
-                        'parent_component_code' => '001',
-                        'name' => "Operasional {$dept->name}",
-                        'data_status' => 'OFFICIAL',
-                    ]
-                );
-
-                // 3. Upsert Active BudgetBucket
-                BudgetBucket::updateOrCreate(
-                    [
-                        'fiscal_year_id' => $fy->id,
-                        'department_id' => $dept->id,
-                        'account_code' => $stg->account_code,
-                    ],
-                    [
-                        'budget_version_id' => $activeVersion?->id,
-                        'funding_source_id' => $fs->id,
-                        'account_name' => $stg->account_name,
-                        'subcomponent_full_code' => '023.17.WA.4257.EBA.994.001.AA',
-                        'subcomponent_name' => "Operasional {$dept->name}",
-                        'budget_bucket_name' => $stg->account_name,
-                        'initial_budget' => $stg->initial_budget,
-                        'allocated_budget' => $stg->initial_budget,
-                        'available_balance' => $stg->initial_budget,
-                    ]
-                );
-            }
-
-            $importHistory->update(['status' => 'COMMITTED']);
-
-            AuditLogService::log('COMMIT_BUDGET_IMPORT', ImportHistory::class, $importHistory->id, null, [
-                'batch_id' => $importHistory->import_batch_id,
-                'imported_count' => count($validStagings),
-                'new_masters_created' => true,
-            ]);
-        });
-
-        return redirect()->route('budgets.index')
-            ->with('success', "Batch [{$importHistory->import_batch_id}] berhasil di-commit! {$importHistory->valid_rows} pos alokasi anggaran dan master data baru telah disinkronkan ke basis data aktif.");
     }
 
     public function downloadTemplate(Request $request)

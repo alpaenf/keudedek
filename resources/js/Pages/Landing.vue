@@ -219,15 +219,13 @@ const highlightedFeatures = [
 </script>
 
 <template>
-  <div class="bg-slate-100 min-h-screen text-slate-800 font-sans antialiased selection:bg-sky-600 selection:text-white">
-    <!-- MAIN CONTAINER CARD -->
-    <div class="max-w-[1440px] mx-auto bg-white min-h-screen shadow-sm pb-16">
-      
-      <!-- HEADER -->
-      <header class="px-6 lg:px-12 py-5 flex items-center justify-between sticky top-0 bg-white/90 backdrop-blur-md z-50 border-b border-slate-100">
+  <div class="bg-slate-50/80 min-h-screen text-slate-800 font-sans antialiased selection:bg-sky-600 selection:text-white">
+    <!-- HEADER -->
+    <header class="w-full sticky top-0 bg-white/95 backdrop-blur-md z-50 border-b border-slate-200/80 shadow-xs">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between">
         <!-- Logo -->
         <div class="flex items-center gap-3">
-          <img src="/image/SIKARALOGO.png" alt="Logo SIKARA" class="w-9 h-9 object-contain rounded-xl shadow-sm" />
+          <img src="/image/SIKARALOGO.png" alt="Logo SIKARA" class="w-9 h-9 object-contain rounded-xl shadow-xs" />
           <div>
             <span class="text-xl font-black tracking-tight text-slate-900 uppercase">SIKARA</span>
             <span class="text-[10px] font-bold text-sky-700 block -mt-1">FT UNSOED</span>
@@ -261,33 +259,33 @@ const highlightedFeatures = [
             <LogIn class="w-3.5 h-3.5" /> Masuk ke SIKARA
           </Link>
         </div>
-      </header>
+      </div>
+    </header>
 
-      <!-- MAIN CONTENT -->
-      <main class="px-6 lg:px-12 space-y-16 mt-4">
-        
-        <!-- HERO SECTION WITH VIDEO BACKGROUND -->
-        <section id="about" class="relative h-[560px] sm:h-[600px] rounded-[32px] overflow-hidden shadow-xl border border-slate-200">
-          <!-- Video Background -->
-          <video 
-            autoplay 
-            loop 
-            muted 
-            playsinline 
-            class="absolute inset-0 w-full h-full object-cover scale-105"
-            src="/image/landingvideo.MP4"
-          ></video>
+    <!-- HERO CONTAINER (MEPET KE PINGGIR DENGAN SLIM GAP) -->
+    <div class="w-full px-2 sm:px-3 lg:px-4 pt-2 sm:pt-3">
+      <section id="about" class="relative min-h-[540px] sm:min-h-[580px] lg:h-[620px] rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl shadow-slate-950/20 border border-slate-800/40 flex items-center bg-slate-950">
+        <!-- Video Background -->
+        <video 
+          autoplay 
+          loop 
+          muted 
+          playsinline 
+          class="absolute inset-0 w-full h-full object-cover scale-105"
+          src="/image/landingvideo.MP4"
+        ></video>
 
-          <!-- Gradient Overlay -->
-          <div class="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-900/75 to-sky-950/60 backdrop-blur-[1px]"></div>
+        <!-- Rich Contrast Gradient Overlay -->
+        <div class="absolute inset-0 bg-gradient-to-r from-slate-950/95 via-slate-900/85 to-sky-950/70 backdrop-blur-[1px]"></div>
 
-          <!-- Hero Content (Vertically Centered on Left) -->
-          <div class="absolute inset-0 flex flex-col justify-center p-8 sm:p-12 lg:p-16 text-white max-w-3xl">
-            <span class="px-3.5 py-1 bg-sky-500/20 border border-sky-400/30 text-sky-200 text-xs font-bold rounded-full uppercase tracking-wider inline-block mb-3.5 self-start">
+        <!-- Hero Content -->
+        <div class="relative z-10 w-full max-w-7xl mx-auto px-6 sm:px-10 lg:px-12 py-10 sm:py-14 text-white">
+          <div class="max-w-3xl">
+            <span class="px-3.5 py-1 bg-sky-500/20 border border-sky-400/30 text-sky-200 text-xs font-bold rounded-full uppercase tracking-wider inline-block mb-3.5">
               Monitoring dan Pengendalian Realisasi Anggaran Fakultas Teknik
             </span>
 
-            <h1 class="text-2xl sm:text-4xl lg:text-5xl font-black leading-tight mb-2 tracking-tight max-w-2xl">
+            <h1 class="text-3xl sm:text-5xl lg:text-6xl font-black leading-tight mb-2 tracking-tight">
               SIKARA
             </h1>
             <h2 class="text-lg sm:text-2xl font-bold text-sky-200 mb-3.5 tracking-tight">
@@ -303,7 +301,7 @@ const highlightedFeatures = [
                 <KeyRound class="w-4 h-4" />
                 Masuk ke SIKARA
               </Link>
-              <a href="#alur" class="bg-white/10 border border-white/30 text-white px-6 py-3 rounded-full font-bold text-xs backdrop-blur-md flex items-center gap-2 hover:scale-105 transition">
+              <a href="#alur" class="bg-white/10 hover:bg-white/20 border border-white/30 text-white px-6 py-3 rounded-full font-bold text-xs backdrop-blur-md flex items-center gap-2 hover:scale-105 transition">
                 Lihat Alur Sistem
                 <ArrowRight class="w-4 h-4" />
               </a>
@@ -311,13 +309,17 @@ const highlightedFeatures = [
 
             <div class="mt-6 flex items-center gap-2 text-[11px] text-slate-300">
               <Info class="w-3.5 h-3.5 text-sky-400 shrink-0" />
-              <span>Monitoring berdasarkan data internal terkini Fakultas Teknik UNSOED.</span>
+              <span>Monitoring berdasarkan data internal definitif Fakultas Teknik UNSOED.</span>
             </div>
           </div>
-        </section>
+        </div>
+      </section>
+    </div>
 
-        <!-- SECTION: BAGAIMANA SIKARA BEKERJA (5 STEPS PIPELINE) -->
-        <section id="alur" class="pt-4 space-y-8">
+    <!-- MAIN CONTENT SECTIONS -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-16">
+      <!-- SECTION: BAGAIMANA SIKARA BEKERJA (5 STEPS PIPELINE) -->
+      <section id="alur" class="pt-4 space-y-8">
           <div class="text-center max-w-2xl mx-auto">
             <span class="text-xs font-bold text-sky-600 uppercase tracking-wider block mb-1">ALUR KERJA RINGKAS</span>
             <h2 class="text-2xl sm:text-3xl font-black text-slate-900">Bagaimana SIKARA Bekerja</h2>
@@ -569,7 +571,6 @@ const highlightedFeatures = [
         </footer>
       </main>
     </div>
-  </div>
 </template>
 
 <style scoped>

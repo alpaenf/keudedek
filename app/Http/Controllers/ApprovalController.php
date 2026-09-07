@@ -3,15 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\Submission;
-use App\Models\SubmissionStatusHistory;
-use App\Services\AuditLogService;
+use App\Services\BudgetCalculationService;
 use App\Services\BudgetControlService;
 use App\Services\BudgetService;
 use App\Services\ScopeService;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -29,20 +27,26 @@ class ApprovalController extends Controller
             abort(403, 'Akses Ditolak: Role Anda tidak memiliki kewenangan pemeriksaan / verifikasi finansial.');
         }
 
-        $activeTab = strtoupper($request->input('tab', 'NEW')); // NEW, PROCESSING, RETURNED, FINAL, ISSUE
+        $activeTab = strtoupper($request->input('tab', 'DIAJUKAN')); // DIAJUKAN, SELESAI, DIKEMBALIKAN, DITOLAK, ALL
 
-        // Base Query with Full Relational Context for Detail Drawer
+        // Base Query with Full Relational Context for Examination Workbench
         $baseQuery = Submission::with([
             'department',
             'studyProgram',
             'budgetBucket.fundingSource',
             'budgetBucket.fiscalYear',
             'budgetBucket.budgetVersion',
+            'budgetLine.subcomponent',
+            'budgetLine.account',
+            'budgetLine.program',
+            'budgetLine.activity',
+            'budgetLine.kro',
+            'budgetLine.ro',
+            'budgetLine.component',
             'creator',
             'items',
             'documents.documentType',
             'statusHistories.actor',
-            'approvals.user',
         ]);
 
         ScopeService::applyDepartmentScope($baseQuery, $user, $request->department_id);
@@ -56,6 +60,10 @@ class ApprovalController extends Controller
                     ->orWhereHas('creator', function ($cq) use ($search) {
                         $cq->where('name', 'like', "%{$search}%");
                     })
+                    ->orWhereHas('budgetLine', function ($blq) use ($search) {
+                        $blq->where('rba_sequence_no', 'like', "%{$search}%")
+                            ->orWhere('description', 'like', "%{$search}%");
+                    })
                     ->orWhereHas('budgetBucket', function ($bq) use ($search) {
                         $bq->where('account_code', 'like', "%{$search}%")
                             ->orWhere('account_name', 'like', "%{$search}%");
@@ -65,50 +73,41 @@ class ApprovalController extends Controller
 
         // Count for each Tab
         $countQuery = clone $baseQuery;
-        $countNew = (clone $countQuery)->whereIn('status', ['SUBMITTED', 'DRAFT'])->count();
-        $countProcessing = (clone $countQuery)->whereIn('status', ['PROCESSING', 'UNDER_REVIEW', 'REVIEW', 'APPROVED', 'RESERVED'])->count();
-        $countReturned = (clone $countQuery)->whereIn('status', ['RETURNED', 'REVISION_REQUIRED'])->count();
-        $countFinal = (clone $countQuery)->whereIn('status', ['FINAL', 'COMPLETED'])->count();
-        $countIssue = (clone $countQuery)->where(function ($q) {
-            $q->whereIn('status', ['RETURNED', 'REJECTED', 'CANCELLED'])
-                ->orWhereHas('budgetBucket', function ($bq) {
-                    $bq->where('available_balance', '<', 0);
-                });
-        })->count();
+        $countDiajukan = (clone $countQuery)->whereIn('status', ['PROCESSING', 'SUBMITTED', 'UNDER_REVIEW', 'APPROVED', 'RESERVED'])->count();
+        $countSelesai = (clone $countQuery)->whereIn('status', ['FINAL', 'COMPLETED'])->count();
+        $countDikembalikan = (clone $countQuery)->whereIn('status', ['RETURNED', 'REVISION_REQUIRED'])->count();
+        $countDitolak = (clone $countQuery)->whereIn('status', ['REJECTED', 'CANCELLED'])->count();
+        $countAll = (clone $countQuery)->count();
 
         // Apply Tab Filter
         $tabFilteredQuery = clone $baseQuery;
         switch ($activeTab) {
-            case 'NEW':
-                $tabFilteredQuery->whereIn('status', ['SUBMITTED', 'DRAFT']);
+            case 'DIAJUKAN':
+                $tabFilteredQuery->whereIn('status', ['PROCESSING', 'SUBMITTED', 'UNDER_REVIEW', 'APPROVED', 'RESERVED']);
                 break;
-            case 'PROCESSING':
-                $tabFilteredQuery->whereIn('status', ['PROCESSING', 'UNDER_REVIEW', 'REVIEW', 'APPROVED', 'RESERVED']);
-                break;
-            case 'RETURNED':
-                $tabFilteredQuery->whereIn('status', ['RETURNED', 'REVISION_REQUIRED']);
-                break;
-            case 'FINAL':
+            case 'SELESAI':
                 $tabFilteredQuery->whereIn('status', ['FINAL', 'COMPLETED']);
                 break;
-            case 'ISSUE':
-                $tabFilteredQuery->where(function ($q) {
-                    $q->whereIn('status', ['RETURNED', 'REJECTED', 'CANCELLED'])
-                        ->orWhereHas('budgetBucket', function ($bq) {
-                            $bq->where('available_balance', '<', 0);
-                        });
-                });
+            case 'DIKEMBALIKAN':
+                $tabFilteredQuery->whereIn('status', ['RETURNED', 'REVISION_REQUIRED']);
+                break;
+            case 'DITOLAK':
+                $tabFilteredQuery->whereIn('status', ['REJECTED', 'CANCELLED']);
+                break;
+            case 'ALL':
+                // All submissions
                 break;
             default:
-                $tabFilteredQuery->whereIn('status', ['SUBMITTED', 'DRAFT']);
+                $tabFilteredQuery->whereIn('status', ['PROCESSING', 'SUBMITTED', 'UNDER_REVIEW', 'APPROVED', 'RESERVED']);
                 break;
         }
 
         $submissionsPaginated = $tabFilteredQuery->latest('transaction_date')->latest('id')->paginate(15)->withQueryString();
 
-        // Transform collection to add computed helper attributes for Drawer
+        // Transform collection to add computed helper attributes for Drawer & Examination
         $submissionsPaginated->getCollection()->transform(function ($sub) {
             $bucket = $sub->budgetBucket;
+            $line = $sub->budgetLine;
             $dept = $sub->department;
             $deptName = $dept?->name ?? 'Fakultas Teknik';
 
@@ -116,55 +115,67 @@ class ApprovalController extends Controller
             $createdAt = Carbon::parse($sub->transaction_date ?: $sub->created_at);
             $sub->age_human = $createdAt->diffForHumans();
 
-            // 7-Segment Budget Context
+            // Financial Context Snapshot using single source of truth service
+            $snapshot = $line ? BudgetCalculationService::getLineFinancialSnapshot($line) : [
+                'line_budget' => 0,
+                'line_diajukan' => 0,
+                'line_realisasi' => 0,
+                'line_saldo' => 0,
+                'bucket_id' => $bucket?->id,
+                'bucket_allocated' => (float) ($bucket?->allocated_budget ?? 0),
+                'bucket_reserved' => (float) ($bucket?->reserved_budget ?? 0),
+                'bucket_realized' => (float) ($bucket?->realized_budget ?? 0),
+                'bucket_available' => (float) ($bucket?->available_balance ?? 0),
+            ];
+
+            $subAmount = (float) $sub->amount;
+            $bucketAvailable = $snapshot['bucket_available'];
+            $isSolvent = in_array($sub->status, ['PROCESSING', 'SUBMITTED', 'FINAL', 'COMPLETED']) || $bucketAvailable >= $subAmount;
+
+            $sub->financial_context = [
+                'allocated_budget' => $snapshot['bucket_allocated'],
+                'reserved_budget' => $snapshot['bucket_reserved'],
+                'realized_budget' => $snapshot['bucket_realized'],
+                'available_balance' => $bucketAvailable,
+                'submission_amount' => $subAmount,
+                'projected_balance' => $bucketAvailable - $subAmount,
+                'is_solvent' => $isSolvent,
+                'line_budget' => $snapshot['line_budget'],
+                'line_saldo' => $snapshot['line_saldo'],
+            ];
+
+            // 7-Segment Budget Hierarchy (from Line or Bucket)
             $sub->budget_context = [
                 'ta' => $bucket?->fiscalYear?->year ?? 2026,
                 'sumber_dana' => $bucket?->fundingSource?->code ?? 'RM',
-                'revision' => $bucket?->budgetVersion?->revision_no ?? 'Rev 02',
+                'revision' => $bucket?->budgetVersion?->revision_no ?? 'Rev 00',
                 'jurusan_code' => $dept?->code ?? 'FT',
                 'jurusan_name' => $deptName,
                 'prodi_name' => $sub->studyProgram?->name ?? 'Level Jurusan',
-                'program_code' => 'WA',
-                'program_name' => 'Program Dukungan Manajemen',
-                'activity_code' => '4257',
-                'activity_name' => 'Dukungan Manajemen & Pelaksanaan Tugas Teknis Ditjen Dikti',
-                'kro_code' => '7734.EBA',
-                'kro_name' => 'Layanan Dukungan Manajemen Internal',
-                'ro_code' => '994',
-                'ro_name' => 'Layanan Perkantoran',
-                'component_code' => '001',
-                'component_name' => 'Operasional & Pemeliharaan Kantor',
-                'subcomponent_code' => $bucket?->subcomponent_code ?? 'AA',
-                'subcomponent_name' => $bucket?->subcomponent_name ?? "Operasional & Praktikum {$deptName}",
-                'account_code' => $bucket?->account_code ?? '-',
-                'account_name' => $bucket?->account_name ?? 'Belanja Operasional',
-                'subaccount_code' => ($bucket?->account_code ?? '521211').'.001',
-                'subaccount_name' => 'Alokasi Operasional Standar Unit',
-            ];
-
-            // Financial Context Snapshot
-            $allocated = (float) ($bucket?->allocated_budget ?? 0);
-            $reserved = (float) ($bucket?->reserved_budget ?? 0);
-            $realized = (float) ($bucket?->realized_budget ?? 0);
-            $available = (float) ($bucket?->available_balance ?? ($allocated - $reserved - $realized));
-            $subAmount = (float) $sub->amount;
-            $projected = $available - $subAmount;
-
-            $sub->financial_context = [
-                'allocated_budget' => $allocated,
-                'reserved_budget' => $reserved,
-                'realized_budget' => $realized,
-                'available_balance' => $available,
-                'submission_amount' => $subAmount,
-                'projected_balance' => $projected,
-                'is_solvent' => $projected >= 0,
-                'serapan_rate' => $allocated > 0 ? round(($realized / $allocated) * 100, 1) : 0,
+                'rba_sequence_no' => $line?->rba_sequence_no ?? '-',
+                'rba_description' => $line?->description ?? $sub->title,
+                'program_code' => $line?->program?->code ?? 'WA',
+                'program_name' => $line?->program?->name ?? 'Program Pendidikan dan Pelayanan Masyarakat',
+                'activity_code' => $line?->activity?->code ?? '2134',
+                'activity_name' => $line?->activity?->name ?? 'Penyelenggaraan Pendidikan Tinggi',
+                'kro_code' => $line?->kro?->code ?? 'BMA',
+                'kro_name' => $line?->kro?->name ?? 'Gedung dan Prasarana Kampus',
+                'ro_code' => $line?->ro?->code ?? '001',
+                'ro_name' => $line?->ro?->name ?? 'Operasional Fakultas Teknik',
+                'component_code' => $line?->component?->code ?? '051',
+                'component_name' => $line?->component?->name ?? 'Layanan Perkantoran',
+                'subcomponent_code' => $line?->subcomponent?->code ?? $bucket?->subcomponent_code ?? 'A',
+                'subcomponent_name' => $line?->subcomponent?->name ?? $bucket?->subcomponent_name ?? "Operasional {$deptName}",
+                'account_code' => $line?->account?->code ?? $bucket?->account_code ?? '-',
+                'account_name' => $line?->account?->name ?? $bucket?->account_name ?? 'Belanja Bahan',
             ];
 
             // Rule Check Snapshot
+            $duplicateWarning = BudgetControlService::checkDuplicateReference($sub->evidence_number, $sub->department_id, $sub->id);
             $sub->rule_check = [
-                'rbc_001_solvency' => $projected >= 0 ? 'PASSED' : 'OVERBUDGET',
-                'rbc_006_duplicate' => 'PASSED',
+                'rbc_001_solvency' => $isSolvent ? 'PASSED' : 'OVERBUDGET',
+                'rbc_006_duplicate' => $duplicateWarning ? 'WARNING' : 'PASSED',
+                'duplicate_message' => $duplicateWarning,
                 'has_documents' => $sub->documents && $sub->documents->count() > 0,
                 'document_count' => $sub->documents ? $sub->documents->count() : 0,
             ];
@@ -179,12 +190,13 @@ class ApprovalController extends Controller
             'departments' => $departments,
             'activeTab' => $activeTab,
             'tabCounts' => [
-                'new' => $countNew,
-                'processing' => $countProcessing,
-                'returned' => $countReturned,
-                'final' => $countFinal,
-                'issue' => $countIssue,
+                'diajukan' => $countDiajukan,
+                'selesai' => $countSelesai,
+                'dikembalikan' => $countDikembalikan,
+                'ditolak' => $countDitolak,
+                'all' => $countAll,
             ],
+            'canFinalize' => ScopeService::canFinalizeTransaction($user),
             'filters' => $request->only(['department_id', 'search', 'tab']),
             'userRole' => $user->role === 'WD' ? 'WAKIL_DEKAN' : $user->role,
         ]);
@@ -203,56 +215,22 @@ class ApprovalController extends Controller
         }
 
         $request->validate([
-            'action' => 'required|string|in:VERIFY,RETURN,FINALIZE,APPROVED,RETURNED,REJECTED',
+            'action' => 'required|string|in:KEMBALIKAN,RETURN,RETURNED,TOLAK,REJECT,REJECTED,SELESAI,FINALIZE,APPROVED',
             'comment' => 'nullable|string|max:1000',
         ]);
 
         $action = strtoupper($request->action);
 
-        // Enforce: Return wajib memiliki alasan!
-        if (in_array($action, ['RETURN', 'RETURNED']) && empty(trim((string) $request->comment))) {
-            return redirect()->back()->withErrors([
-                'comment' => 'Wajib mengisi catatan / alasan pengembalian berkas kepada PTK.',
-            ]);
-        }
-
         // ==================================================
-        // ACTION 1: VERIFY (Lolos Tahap Pemeriksaan Awal)
+        // ACTION 1: KEMBALIKAN (Wajib Alasan -> DIKEMBALIKAN, Commitment Dilepas)
         // ==================================================
-        if ($action === 'VERIFY') {
-            DB::transaction(function () use ($submission, $user, $request) {
-                $sub = Submission::where('id', $submission->id)->lockForUpdate()->first();
-                $oldStatus = $sub->status;
-
-                $sub->status = 'PROCESSING';
-                $sub->notes = $request->comment ?: ($sub->notes ?: 'Telah diverifikasi kelengkapan bukti transaksi oleh PTU (Penguji Tagihan Unit BLU).');
-                $sub->save();
-
-                SubmissionStatusHistory::create([
-                    'submission_id' => $sub->id,
-                    'from_status' => $oldStatus,
-                    'to_status' => 'PROCESSING',
-                    'actor_id' => $user->id,
-                    'role' => $user->role,
-                    'notes' => $request->comment ?: 'Verifikasi berkas & kepatuhan SPJ dinyatakan lolos oleh PTU (Penguji Tagihan Unit BLU).',
+        if (in_array($action, ['KEMBALIKAN', 'RETURN', 'RETURNED'])) {
+            if (empty(trim((string) $request->comment))) {
+                return redirect()->back()->withErrors([
+                    'comment' => 'Wajib mengisi catatan / alasan pengembalian berkas transaksi kepada PTK.',
                 ]);
+            }
 
-                AuditLogService::log(
-                    'VERIFY_SUBMISSION',
-                    Submission::class,
-                    $sub->id,
-                    ['status' => $oldStatus],
-                    ['status' => 'PROCESSING', 'actor' => $user->name]
-                );
-            });
-
-            return redirect()->back()->with('success', "Transaksi {$submission->evidence_number} berhasil diverifikasi.");
-        }
-
-        // ==================================================
-        // ACTION 2: RETURN (Kembalikan ke PTK untuk Perbaikan)
-        // ==================================================
-        if (in_array($action, ['RETURN', 'RETURNED'])) {
             try {
                 BudgetControlService::transitionStatus(
                     submission: $submission,
@@ -268,9 +246,15 @@ class ApprovalController extends Controller
         }
 
         // ==================================================
-        // ACTION 3: REJECT (Tolak Transaksi)
+        // ACTION 2: TOLAK (Wajib Alasan -> DITOLAK, Commitment Dilepas)
         // ==================================================
-        if (in_array($action, ['REJECT', 'REJECTED'])) {
+        if (in_array($action, ['TOLAK', 'REJECT', 'REJECTED'])) {
+            if (empty(trim((string) $request->comment))) {
+                return redirect()->back()->withErrors([
+                    'comment' => 'Wajib mengisi catatan / alasan penolakan berkas transaksi.',
+                ]);
+            }
+
             try {
                 BudgetControlService::transitionStatus(
                     submission: $submission,
@@ -286,23 +270,27 @@ class ApprovalController extends Controller
         }
 
         // ==================================================
-        // ACTION 4: FINALIZE (Backend Transactional Realization)
+        // ACTION 3: SELESAI (Hanya Permission Diizinkan -> SELESAI, Commitment -> Realisasi)
         // ==================================================
-        if (in_array($action, ['FINALIZE', 'APPROVED'])) {
+        if (in_array($action, ['SELESAI', 'FINALIZE', 'APPROVED'])) {
+            if (! ScopeService::canFinalizeTransaction($user)) {
+                abort(403, 'Akses Ditolak: Anda tidak memiliki wewenang untuk menyelesaikan transaksi & realisasi.');
+            }
+
             try {
                 BudgetControlService::transitionStatus(
                     submission: $submission,
                     targetStatus: 'FINAL',
                     actor: $user,
-                    notes: $request->comment ?: 'Finalisasi pencairan anggaran & realisasi belanja definitif oleh Penguji Tagihan Unit BLU / Bendahara.'
+                    notes: $request->comment ?: 'Pemeriksaan selesai. Realisasi internal telah dibukukan oleh PTU / Bendahara.'
                 );
             } catch (\InvalidArgumentException $e) {
                 return redirect()->back()->with('error', $e->getMessage());
             }
 
-            return redirect()->back()->with('success', "Transaksi {$submission->evidence_number} berhasil difinalisasi & realisasi anggaran definitif telah dibukukan.");
+            return redirect()->back()->with('success', "Transaksi {$submission->evidence_number} berhasil diselesaikan. Realisasi anggaran internal telah dibukukan.");
         }
 
-        return redirect()->back()->with('error', 'Aksi otorisasi tidak dikenali.');
+        return redirect()->back()->with('error', 'Aksi pemeriksaan tidak dikenali.');
     }
 }

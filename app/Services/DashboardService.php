@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Models\AuditLog;
 use App\Models\BudgetBucket;
+use App\Models\BudgetLine;
+use App\Models\BudgetVersion;
 use App\Models\Department;
 use App\Models\EarlyWarning;
 use App\Models\FiscalYear;
@@ -45,17 +47,18 @@ class DashboardService
             $querySubmissions->where('study_program_id', $user->study_program_id);
         }
 
-        // Core Financial Totals
+        // Core Financial Totals using authoritative canonical service
         if ($role === 'KAPRODI' && $user->study_program_id) {
             $totalAllocated = 0; // No official standalone pagu at study program level
-            $totalRealized = (float) $querySubmissions->clone()->whereIn('status', ['FINAL', 'COMPLETED'])->sum('amount');
-            $totalReserved = (float) $querySubmissions->clone()->whereIn('status', ['PROCESSING', 'SUBMITTED', 'UNDER_REVIEW'])->sum('amount');
+            $totalRealized = (float) $querySubmissions->clone()->whereIn('status', BudgetControlService::REALIZATION_STATUSES)->sum('amount');
+            $totalReserved = (float) $querySubmissions->clone()->whereIn('status', BudgetControlService::COMMITMENT_STATUSES)->sum('amount');
             $totalAvailable = 0;
         } else {
             $totalAllocated = (float) $queryBuckets->clone()->sum('allocated_budget');
             $totalReserved = (float) $queryBuckets->clone()->sum('reserved_budget');
             $totalRealized = (float) $queryBuckets->clone()->sum('realized_budget');
-            $totalAvailable = (float) $queryBuckets->clone()->sum('available_balance');
+            // Canonical Invariant: Available = Allocated - Reserved - Realized
+            $totalAvailable = max(0, (float) $queryBuckets->clone()->sum('available_balance'));
         }
 
         // Authoritative Statistical Ratios
@@ -66,14 +69,15 @@ class DashboardService
         // Status Counts
         $statusCounts = [
             'DRAFT' => $querySubmissions->clone()->where('status', 'DRAFT')->count(),
-            'SUBMITTED' => $querySubmissions->clone()->where('status', 'SUBMITTED')->count(),
-            'UNDER_REVIEW' => $querySubmissions->clone()->whereIn('status', ['UNDER_REVIEW', 'REVIEW'])->count(),
-            'RETURNED' => $querySubmissions->clone()->where('status', 'RETURNED')->count(),
-            'APPROVED' => $querySubmissions->clone()->where('status', 'APPROVED')->count(),
-            'RESERVED' => $querySubmissions->clone()->where('status', 'RESERVED')->count(),
-            'PROCESSING' => $querySubmissions->clone()->whereIn('status', ['PROCESSING', 'SUBMITTED', 'UNDER_REVIEW', 'RESERVED'])->count(),
-            'FINAL' => $querySubmissions->clone()->whereIn('status', ['FINAL', 'COMPLETED'])->count(),
-            'REJECTED' => $querySubmissions->clone()->where('status', 'REJECTED')->count(),
+            'DIAJUKAN' => $querySubmissions->clone()->whereIn('status', BudgetControlService::COMMITMENT_STATUSES)->count(),
+            'PROCESSING' => $querySubmissions->clone()->whereIn('status', BudgetControlService::COMMITMENT_STATUSES)->count(),
+            'SUBMITTED' => $querySubmissions->clone()->whereIn('status', BudgetControlService::COMMITMENT_STATUSES)->count(),
+            'RETURNED' => $querySubmissions->clone()->whereIn('status', ['RETURNED', 'REVISION_REQUIRED'])->count(),
+            'DIKEMBALIKAN' => $querySubmissions->clone()->whereIn('status', ['RETURNED', 'REVISION_REQUIRED'])->count(),
+            'SELESAI' => $querySubmissions->clone()->whereIn('status', BudgetControlService::REALIZATION_STATUSES)->count(),
+            'FINAL' => $querySubmissions->clone()->whereIn('status', BudgetControlService::REALIZATION_STATUSES)->count(),
+            'DITOLAK' => $querySubmissions->clone()->whereIn('status', ['REJECTED', 'CANCELLED'])->count(),
+            'REJECTED' => $querySubmissions->clone()->whereIn('status', ['REJECTED', 'CANCELLED'])->count(),
         ];
 
         // Active Warnings stats
@@ -200,20 +204,28 @@ class DashboardService
         $adminMetrics = [];
         if ($role === 'ADMIN') {
             $lastImport = ImportHistory::latest()->first();
+            $activeVersion = BudgetVersion::where('status', 'ACTIVE')->first();
+            $totalBudgetLines = BudgetLine::count();
+            $unmappedLines = BudgetLine::whereNull('budget_bucket_id')->count();
+
             $adminMetrics = [
                 'active_fiscal_year' => $activeYear,
+                'active_revision' => $activeVersion?->revision_no ?? 'Rev 00',
+                'active_version_label' => $activeVersion?->version_label ?? 'DIPA Induk',
+                'total_budget_lines' => $totalBudgetLines,
+                'unmapped_lines_count' => $unmappedLines,
                 'last_import' => $lastImport,
                 'active_users_count' => User::count(),
                 'active_rules_count' => RuleConfig::where('is_active', true)->count(),
                 'departments_count' => Department::whereNotNull('parent_id')->count(),
                 'valid_mapping_count' => BudgetBucket::whereNotNull('account_code')->count(),
-                'unmapped_count' => BudgetBucket::whereNull('account_code')->count(),
+                'unmapped_count' => $unmappedLines + BudgetBucket::whereNull('account_code')->count(),
                 'recent_audit_logs' => AuditLog::with('user')->latest()->take(6)->get(),
                 'data_quality' => [
                     'valid' => BudgetBucket::whereNotNull('account_code')->count(),
                     'warning' => EarlyWarning::where('status', 'ACTIVE')->count(),
-                    'error' => 0,
-                    'unmapped' => BudgetBucket::whereNull('account_code')->count(),
+                    'error' => $unmappedLines,
+                    'unmapped' => $unmappedLines,
                 ],
             ];
         }

@@ -201,6 +201,22 @@ class ReportController extends Controller
         });
 
         // ==================================================
+        // 5. REPORT: TRANSAKSI PER STATUS
+        // ==================================================
+        $reportByStatus = collect(['DRAFT', 'PROCESSING', 'SUBMITTED', 'RETURNED', 'REJECTED', 'FINAL', 'COMPLETED'])->map(function ($st) use ($submissions) {
+            $matching = $submissions->where('status', $st);
+
+            return [
+                'status' => $st,
+                'count' => $matching->count(),
+                'total_amount' => (float) $matching->sum('amount'),
+                'is_commitment' => in_array($st, ['PROCESSING', 'SUBMITTED', 'UNDER_REVIEW', 'APPROVED', 'RESERVED']),
+                'is_realization' => in_array($st, ['FINAL', 'COMPLETED']),
+                'is_released' => in_array($st, ['RETURNED', 'REJECTED', 'CANCELLED', 'DRAFT']),
+            ];
+        });
+
+        // ==================================================
         // 6. REPORT: TRANSAKSI PER PERIODE
         // ==================================================
         $reportTransactions = $submissions->map(function ($s) {
@@ -302,10 +318,11 @@ class ReportController extends Controller
 
         return Inertia::render('Reports/Index', [
             'activeReport' => $activeReport,
-            // 9 Report Datasets
+            // Report Datasets
             'reportByDept' => $reportByDept,
             'reportPaguVsReal' => $reportPaguVsReal,
             'reportByAccount' => $reportByAccount,
+            'reportByStatus' => $reportByStatus,
             'reportByActivity' => $reportByActivity,
             'reportByProdi' => $reportByProdi,
             'reportTransactions' => $reportTransactions,
@@ -350,9 +367,22 @@ class ReportController extends Controller
     {
         $user = $request->user();
         $selectedDepartmentId = $request->query('department_id');
+        $ta = $request->query('fiscal_year_id');
+        $revision = $request->query('budget_version_id');
+        $akun = $request->query('account_code');
 
         $query = BudgetBucket::with(['department', 'fundingSource', 'fiscalYear']);
         ScopeService::applyDepartmentScope($query, $user, $selectedDepartmentId);
+
+        if ($ta) {
+            $query->where('fiscal_year_id', $ta);
+        }
+        if ($revision) {
+            $query->where('budget_version_id', $revision);
+        }
+        if ($akun) {
+            $query->where('account_code', $akun);
+        }
 
         $buckets = $query->orderBy('account_code')->get();
         $selectedDepartment = $selectedDepartmentId ? Department::find($selectedDepartmentId) : null;
@@ -376,6 +406,11 @@ class ReportController extends Controller
                 'department' => $selectedDepartment?->code ?? 'FACULTY',
                 'actor' => $user?->name,
                 'role' => $user?->role,
+                'filters' => [
+                    'fiscal_year_id' => $ta,
+                    'budget_version_id' => $revision,
+                    'account_code' => $akun,
+                ],
             ]
         );
 
@@ -399,9 +434,22 @@ class ReportController extends Controller
     {
         $user = $request->user();
         $selectedDepartmentId = $request->query('department_id');
+        $ta = $request->query('fiscal_year_id');
+        $revision = $request->query('budget_version_id');
+        $akun = $request->query('account_code');
 
         $query = BudgetBucket::with(['department', 'fundingSource', 'fiscalYear']);
         ScopeService::applyDepartmentScope($query, $user, $selectedDepartmentId);
+
+        if ($ta) {
+            $query->where('fiscal_year_id', $ta);
+        }
+        if ($revision) {
+            $query->where('budget_version_id', $revision);
+        }
+        if ($akun) {
+            $query->where('account_code', $akun);
+        }
 
         $buckets = $query->orderBy('account_code')->get();
         $selectedDepartment = $selectedDepartmentId ? Department::find($selectedDepartmentId) : null;
@@ -417,6 +465,11 @@ class ReportController extends Controller
                 'format' => 'XLSX',
                 'department' => $selectedDepartment?->code ?? 'FACULTY',
                 'actor' => $user?->name,
+                'filters' => [
+                    'fiscal_year_id' => $ta,
+                    'budget_version_id' => $revision,
+                    'account_code' => $akun,
+                ],
             ]
         );
 

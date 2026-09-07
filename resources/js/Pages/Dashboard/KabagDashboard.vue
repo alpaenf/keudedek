@@ -95,12 +95,12 @@ const warningChartOptions = computed(() => ({
         <p class="text-xs text-slate-500">Pengawasan terpusat posisi pagu 5 jurusan, rekonsiliasi keseimbangan saldo, dan mitigasi risiko EWS.</p>
       </div>
 
-      <div class="flex flex-wrap items-center gap-3">
+      <div class="flex items-center gap-2">
         <Link 
-          href="/approvals" 
-          class="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl text-xs font-bold transition flex items-center shadow-sm"
+          href="/submissions" 
+          class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 rounded-xl text-xs font-bold transition flex items-center shadow-sm"
         >
-          Eksekusi Komitmen Saldo
+          Daftar Transaksi
         </Link>
         <Link 
           href="/reports" 
@@ -111,10 +111,10 @@ const warningChartOptions = computed(() => ({
       </div>
     </div>
 
-    <!-- 5 Clean Financial KPI Cards -->
+    <!-- 5 Clean Financial KPI Cards: Pagu Fakultas, Diajukan, Realisasi Internal, Saldo, Open Warning -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
       <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-1">
-        <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">TOTAL PAGU FAKULTAS</div>
+        <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">PAGU FAKULTAS</div>
         <div class="text-xl font-extrabold text-slate-900 font-sans tracking-tight truncate" :title="formatRupiah(totalAllocated)">
           {{ formatRupiahCompact(totalAllocated) }}
         </div>
@@ -122,7 +122,7 @@ const warningChartOptions = computed(() => ({
       </div>
 
       <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-1">
-        <div class="text-[11px] font-bold text-indigo-700 uppercase tracking-wider">KOMITMEN (RESERVED)</div>
+        <div class="text-[11px] font-bold text-indigo-700 uppercase tracking-wider">DIAJUKAN (KOMITMEN)</div>
         <div class="text-xl font-extrabold text-indigo-900 font-sans tracking-tight truncate" :title="formatRupiah(totalReserved)">
           {{ formatRupiahCompact(totalReserved) }}
         </div>
@@ -130,7 +130,7 @@ const warningChartOptions = computed(() => ({
       </div>
 
       <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-1">
-        <div class="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">REALISASI FINAL (LRA)</div>
+        <div class="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">REALISASI INTERNAL</div>
         <div class="text-xl font-extrabold text-emerald-900 font-sans tracking-tight truncate" :title="formatRupiah(totalRealized)">
           {{ formatRupiahCompact(totalRealized) }}
         </div>
@@ -138,7 +138,7 @@ const warningChartOptions = computed(() => ({
       </div>
 
       <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-1">
-        <div class="text-[11px] font-bold text-sky-800 uppercase tracking-wider">SALDO BEBAS (AVAILABLE)</div>
+        <div class="text-[11px] font-bold text-sky-800 uppercase tracking-wider">SALDO TERSEDIA</div>
         <div class="text-xl font-extrabold text-sky-950 font-sans tracking-tight truncate" :title="formatRupiah(totalAvailable)">
           {{ formatRupiahCompact(totalAvailable) }}
         </div>

@@ -106,18 +106,18 @@ const utilizationChartOptions = computed(() => ({
 
       <div class="flex items-center gap-3">
         <Link 
-          href="/approvals" 
-          class="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-bold transition flex items-center shadow-sm"
+          href="/reports" 
+          class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 rounded-xl text-xs font-bold transition flex items-center shadow-sm"
         >
-          Persetujuan Strategis Pimpinan
+          Laporan Realisasi Fakultas
         </Link>
       </div>
     </div>
 
-    <!-- 5 Strategic KPI Cards -->
+    <!-- 5 Strategic KPI Cards: Pagu Fakultas, Diajukan, Realisasi Internal, Saldo, Open Warning -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
       <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-1">
-        <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">TOTAL PAGU FAKULTAS</div>
+        <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">PAGU FAKULTAS</div>
         <div class="text-xl font-extrabold text-slate-900 font-sans tracking-tight truncate" :title="formatRupiah(totalAllocated)">
           {{ formatRupiahCompact(totalAllocated) }}
         </div>
@@ -125,7 +125,15 @@ const utilizationChartOptions = computed(() => ({
       </div>
 
       <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-1">
-        <div class="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">REALISASI FINAL (LRA)</div>
+        <div class="text-[11px] font-bold text-indigo-700 uppercase tracking-wider">DIAJUKAN (KOMITMEN)</div>
+        <div class="text-xl font-extrabold text-indigo-900 font-sans tracking-tight truncate" :title="formatRupiah(totalReserved)">
+          {{ formatRupiahCompact(totalReserved) }}
+        </div>
+        <div class="text-xs text-indigo-700 font-semibold">Utilization: {{ utilizationRate }}%</div>
+      </div>
+
+      <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-1">
+        <div class="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">REALISASI INTERNAL</div>
         <div class="text-xl font-extrabold text-emerald-900 font-sans tracking-tight truncate" :title="formatRupiah(totalRealized)">
           {{ formatRupiahCompact(totalRealized) }}
         </div>
@@ -133,15 +141,7 @@ const utilizationChartOptions = computed(() => ({
       </div>
 
       <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-1">
-        <div class="text-[11px] font-bold text-indigo-700 uppercase tracking-wider">KOMITMEN (RESERVED)</div>
-        <div class="text-xl font-extrabold text-indigo-900 font-sans tracking-tight truncate" :title="formatRupiah(totalReserved)">
-          {{ formatRupiahCompact(totalReserved) }}
-        </div>
-        <div class="text-xs text-indigo-700 font-semibold">Terkunci</div>
-      </div>
-
-      <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-1">
-        <div class="text-[11px] font-bold text-sky-800 uppercase tracking-wider">SALDO BEBAS (AVAILABLE)</div>
+        <div class="text-[11px] font-bold text-sky-800 uppercase tracking-wider">SALDO TERSEDIA</div>
         <div class="text-xl font-extrabold text-sky-950 font-sans tracking-tight truncate" :title="formatRupiah(totalAvailable)">
           {{ formatRupiahCompact(totalAvailable) }}
         </div>
@@ -149,9 +149,9 @@ const utilizationChartOptions = computed(() => ({
       </div>
 
       <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-1">
-        <div class="text-[11px] font-bold text-rose-800 uppercase tracking-wider">CRITICAL WARNING</div>
+        <div class="text-[11px] font-bold text-rose-800 uppercase tracking-wider">OPEN WARNING EWS</div>
         <div class="text-xl font-extrabold text-rose-950 font-sans tracking-tight">
-          {{ criticalWarningsCount || 0 }}
+          {{ criticalWarningsCount || activeWarningsCount || 0 }}
         </div>
         <div class="text-xs text-rose-700 font-semibold">Risiko Tinggi</div>
       </div>

@@ -126,12 +126,12 @@ const getMasterStatusBadge = (st) => {
             class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl text-xs font-bold flex items-center gap-2 transition disabled:opacity-50 shadow-md shadow-emerald-600/20"
           >
             <Check class="w-4 h-4" />
-            <span>Commit ke Pagu Aktif (Step 6)</span>
+            <span>Commit ke Versi Anggaran (Draft)</span>
           </button>
 
           <span v-else class="px-4 py-2 bg-emerald-50 text-emerald-800 border border-emerald-300 rounded-2xl text-xs font-bold flex items-center gap-1.5">
             <ShieldCheck class="w-4 h-4 text-emerald-600" />
-            <span>Batch Berhasil Di-Commit</span>
+            <span>Batch Berhasil Di-Commit (Status Draft)</span>
           </span>
         </div>
       </div>

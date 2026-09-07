@@ -61,64 +61,50 @@ const getStatusBadge = (status) => {
       <div class="flex items-center gap-3">
         <Link 
           href="/approvals" 
-          class="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-md shadow-sky-600/20"
+          class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl text-xs font-bold transition flex items-center gap-2 shadow-md shadow-indigo-600/20"
         >
           <FileCheck class="w-4 h-4" />
-          <span>Ruang Pemeriksaan SPJ</span>
+          <span>Pemeriksaan Transaksi &rarr;</span>
         </Link>
       </div>
     </div>
 
-    <!-- 5 Clean PTU / Bendahara KPI Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-      <!-- 1. Menunggu Pemeriksaan -->
+    <!-- 4 Clean PTU / Bendahara KPI Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <!-- 1. Jumlah DIAJUKAN -->
       <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-1">
-        <div class="text-[11px] font-bold text-sky-700 uppercase tracking-wider">MENUNGGU PEMERIKSAAN</div>
-        <div class="text-xl font-extrabold text-sky-950 font-sans">
-          {{ verificationQueue ? verificationQueue.length : 0 }}
+        <div class="text-[11px] font-bold text-indigo-700 uppercase tracking-wider">JUMLAH DIAJUKAN</div>
+        <div class="text-2xl font-black text-indigo-950 font-sans">
+          {{ statusCounts?.DIAJUKAN ?? (verificationQueue ? verificationQueue.length : 0) }}
         </div>
-        <div class="text-xs text-sky-700 font-medium">Antrean aktif</div>
+        <div class="text-xs text-indigo-700 font-medium">Antrean aktif saat ini</div>
       </div>
 
-      <!-- 2. Returned Hari Ini -->
+      <!-- 2. DIKEMBALIKAN -->
       <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-1">
-        <div class="text-[11px] font-bold text-amber-800 uppercase tracking-wider">DIKEMBALIKAN HARI INI</div>
-        <div class="text-xl font-extrabold text-amber-950 font-sans">
-          {{ statusCounts?.RETURNED || 0 }}
+        <div class="text-[11px] font-bold text-amber-800 uppercase tracking-wider">DIKEMBALIKAN</div>
+        <div class="text-2xl font-black text-amber-950 font-sans">
+          {{ statusCounts?.DIKEMBALIKAN ?? (statusCounts?.RETURNED || 0) }}
         </div>
-        <div class="text-xs text-amber-700 font-medium">Perlu revisi unit</div>
+        <div class="text-xs text-amber-700 font-medium">Perlu perbaikan PTK</div>
       </div>
 
-      <!-- 3. Perlu Perhatian (Open EWS / Warning) -->
+      <!-- 3. Rata-rata Aging -->
       <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-1">
-        <div class="text-[11px] font-bold text-rose-800 uppercase tracking-wider">PERLU PERHATIAN</div>
-        <div class="text-xl font-extrabold text-rose-950 font-sans">
-          {{ attentionItemsCount || activeWarningsCount || 0 }}
-        </div>
-        <div class="text-xs text-rose-700 font-semibold">Peringatan / EWS aktif</div>
-      </div>
-
-      <!-- 4. Dokumen Bermasalah -->
-      <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-1">
-        <div class="text-[11px] font-bold text-orange-800 uppercase tracking-wider">DOKUMEN BERMASALAH</div>
-        <div class="text-xl font-extrabold text-orange-950 font-sans">
-          {{ activeWarningsCount || 0 }}
-        </div>
-        <div class="text-xs text-orange-700 font-semibold">Lampiran belum lengkap</div>
-      </div>
-
-      <!-- 5. Average Review Time (Computed from DB) -->
-      <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-1">
-        <div class="text-[11px] font-bold text-slate-600 uppercase tracking-wider">AVERAGE REVIEW TIME</div>
-        <div class="text-xl font-extrabold text-slate-900 font-sans">
+        <div class="text-[11px] font-bold text-slate-600 uppercase tracking-wider">RATA-RATA AGING</div>
+        <div class="text-2xl font-black text-slate-900 font-sans">
           {{ avgReviewDays ? avgReviewDays + ' Hari' : '1.2 Hari' }}
         </div>
-        <div v-if="targetSlaDays" class="text-xs text-slate-500 font-medium">
-          Target SLA &lt; {{ targetSlaDays }} Hari
+        <div class="text-xs text-slate-500 font-medium">Durasi respon pemeriksaan</div>
+      </div>
+
+      <!-- 4. Selesai Periode Ini -->
+      <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-1">
+        <div class="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">SELESAI PERIODE INI</div>
+        <div class="text-2xl font-black text-emerald-950 font-sans">
+          {{ statusCounts?.SELESAI ?? (statusCounts?.FINAL || 0) }}
         </div>
-        <div v-else class="text-xs text-slate-400 font-medium">
-          Waktu respon rata-rata
-        </div>
+        <div class="text-xs text-emerald-700 font-bold">Realisasi definitif</div>
       </div>
     </div>
 

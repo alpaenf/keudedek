@@ -7,9 +7,9 @@ use App\Models\BudgetVersion;
 use App\Models\FiscalYear;
 use App\Models\FundingSource;
 use App\Services\AuditLogService;
+use App\Services\BudgetImportPipelineService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -186,6 +186,8 @@ class BudgetVersionController extends Controller
             ];
         }
 
+        $comparison = BudgetImportPipelineService::compareVersions($baseVersion, $targetVersion);
+
         return Inertia::render('Budgets/Versions/Compare', [
             'fiscalYears' => $fiscalYears,
             'fundingSources' => $fundingSources,
@@ -193,13 +195,19 @@ class BudgetVersionController extends Controller
             'baseVersion' => $baseVersion,
             'targetVersion' => $targetVersion,
             'comparisonItems' => $comparisonItems,
+            'lineDifferences' => $comparison['line_differences'],
+            'conflicts' => $comparison['conflicts'],
             'summary' => [
                 'total_old_pagu' => $totalOldPagu,
                 'total_new_pagu' => $totalNewPagu,
                 'total_delta' => $totalDelta,
                 'total_in_process' => $totalInProcess,
                 'total_realized' => $totalRealized,
-                'conflict_count' => $conflictCount,
+                'conflict_count' => count($comparison['conflicts']) ?: $conflictCount,
+                'new_lines_count' => $comparison['summary']['new_lines_count'],
+                'removed_lines_count' => $comparison['summary']['removed_lines_count'],
+                'increased_lines_count' => $comparison['summary']['increased_lines_count'],
+                'decreased_lines_count' => $comparison['summary']['decreased_lines_count'],
             ],
         ]);
     }
@@ -213,32 +221,13 @@ class BudgetVersionController extends Controller
             return redirect()->back()->with('error', 'Anda tidak memiliki hak otorisasi untuk mengaktifkan versi revisi pagu.');
         }
 
-        DB::transaction(function () use ($budgetVersion) {
-            // 1. Archive previous active version for same fiscal year and funding source (Never overwrite old records)
-            BudgetVersion::where('fiscal_year_id', $budgetVersion->fiscal_year_id)
-                ->where('funding_source_id', $budgetVersion->funding_source_id)
-                ->where('status', 'ACTIVE')
-                ->where('id', '!=', $budgetVersion->id)
-                ->update(['status' => 'ARCHIVED']);
+        try {
+            BudgetImportPipelineService::activateVersion($budgetVersion, $user);
 
-            // 2. Set target version to ACTIVE
-            $budgetVersion->update([
-                'status' => 'ACTIVE',
-                'effective_at' => now(),
-            ]);
-
-            // 3. Link budget buckets to new active version
-            BudgetBucket::where('fiscal_year_id', $budgetVersion->fiscal_year_id)
-                ->where('funding_source_id', $budgetVersion->funding_source_id)
-                ->update(['budget_version_id' => $budgetVersion->id]);
-
-            AuditLogService::log('ACTIVATE_BUDGET_VERSION', BudgetVersion::class, $budgetVersion->id, null, [
-                'revision_no' => $budgetVersion->revision_no,
-                'version_label' => $budgetVersion->version_label,
-            ]);
-        });
-
-        return redirect()->back()->with('success', "Versi anggaran [{$budgetVersion->revision_no}] berhasil diaktifkan sebagai pagu aktif berjalan.");
+            return redirect()->back()->with('success', "Versi anggaran [{$budgetVersion->revision_no}] berhasil diaktifkan sebagai pagu aktif berjalan. Versi sebelumnya telah diarsipkan secara otomatis tanpa overwrite histori.");
+        } catch (\Throwable $e) {
+            return redirect()->back()->with('error', 'Gagal mengaktifkan versi: '.$e->getMessage());
+        }
     }
 
     public function archive(BudgetVersion $budgetVersion): RedirectResponse

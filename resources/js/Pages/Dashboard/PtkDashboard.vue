@@ -165,14 +165,14 @@ const getStatusBadge = (status) => {
         <div class="text-[11px] text-slate-400 font-medium">Pagu DIPA aktif unit</div>
       </Link>
 
-      <!-- Dalam Proses -->
+      <!-- Diajukan -->
       <Link 
         href="/submissions?status=PROCESSING" 
         class="bg-white p-4 sm:p-5 rounded-3xl border border-slate-200/80 hover:border-indigo-300 hover:shadow-md transition group block space-y-1"
-        title="Klik untuk melihat transaksi dalam proses"
+        title="Klik untuk melihat transaksi diajukan / dalam proses"
       >
         <div class="flex items-center justify-between text-[11px] font-bold text-indigo-700 uppercase tracking-wider">
-          <span>Dalam Proses</span>
+          <span>Diajukan</span>
           <ArrowRight class="w-3.5 h-3.5 text-indigo-300 group-hover:text-indigo-600 transition" />
         </div>
         <div class="text-xl sm:text-2xl font-black text-indigo-900 font-sans tracking-tight truncate">
@@ -181,14 +181,14 @@ const getStatusBadge = (status) => {
         <div class="text-[11px] text-indigo-600 font-semibold">Komitmen terkunci</div>
       </Link>
 
-      <!-- Realisasi -->
+      <!-- Realisasi Internal -->
       <Link 
         href="/submissions?status=FINAL" 
         class="bg-white p-4 sm:p-5 rounded-3xl border border-slate-200/80 hover:border-emerald-300 hover:shadow-md transition group block space-y-1"
         title="Klik untuk melihat transaksi final/realisasi"
       >
         <div class="flex items-center justify-between text-[11px] font-bold text-emerald-700 uppercase tracking-wider">
-          <span>Realisasi</span>
+          <span>Realisasi Internal</span>
           <ArrowRight class="w-3.5 h-3.5 text-emerald-300 group-hover:text-emerald-600 transition" />
         </div>
         <div class="text-xl sm:text-2xl font-black text-emerald-900 font-sans tracking-tight truncate">
@@ -197,14 +197,14 @@ const getStatusBadge = (status) => {
         <div class="text-[11px] text-emerald-700 font-bold">Serapan: {{ serapanRate }}%</div>
       </Link>
 
-      <!-- Saldo Tersedia -->
+      <!-- Saldo -->
       <Link 
         href="/budgets" 
         class="bg-white p-4 sm:p-5 rounded-3xl border border-slate-200/80 hover:border-sky-300 hover:shadow-md transition group block space-y-1"
         title="Klik untuk melihat detail sisa saldo per pos"
       >
         <div class="flex items-center justify-between text-[11px] font-bold text-sky-800 uppercase tracking-wider">
-          <span>Saldo Tersedia</span>
+          <span>Saldo</span>
           <ArrowRight class="w-3.5 h-3.5 text-sky-300 group-hover:text-sky-600 transition" />
         </div>
         <div class="text-xl sm:text-2xl font-black text-sky-950 font-sans tracking-tight truncate">

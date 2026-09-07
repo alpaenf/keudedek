@@ -186,14 +186,17 @@ class BudgetControlService
                 'notes' => $targetStatus === self::STATUS_DRAFT ? 'Draft transaksi dicatat.' : 'Transaksi dicatat dan masuk ke Active Commitment (Diajukan).',
             ]);
 
+            $initialAuditAction = $targetStatus === self::STATUS_DRAFT ? 'CREATE_TRANSACTION' : 'SUBMIT_TRANSACTION';
+
             AuditLogService::log(
-                'RECORD_TRANSACTION',
+                $initialAuditAction,
                 Submission::class,
                 $submission->id,
                 null,
                 [
                     'amount' => $amount,
                     'status' => $targetStatus,
+                    'evidence_number' => $submission->evidence_number,
                     'bucket_id' => $bucket->id,
                     'available_balance' => $bucket->available_balance,
                 ]
@@ -301,12 +304,21 @@ class BudgetControlService
                 'notes' => $notes ?: "Transisi status dari {$oldStatus} ke {$targetStatus}.",
             ]);
 
+            $auditAction = match ($targetStatus) {
+                'PROCESSING', 'SUBMITTED' => ($oldStatus === 'RETURNED' ? 'RESUBMIT_TRANSACTION' : 'SUBMIT_TRANSACTION'),
+                'RETURNED' => 'RETURN_TRANSACTION',
+                'REJECTED' => 'REJECT_TRANSACTION',
+                'FINAL', 'COMPLETED' => 'COMPLETE_TRANSACTION',
+                'CANCELLED' => 'CANCEL_TRANSACTION',
+                default => 'TRANSITION_STATUS',
+            };
+
             AuditLogService::log(
-                'TRANSITION_STATUS',
+                $auditAction,
                 Submission::class,
                 $sub->id,
                 ['status' => $oldStatus, 'amount' => $oldAmount],
-                ['status' => $targetStatus, 'amount' => $effectiveAmount, 'available_balance' => $bucket->available_balance]
+                ['status' => $targetStatus, 'amount' => $effectiveAmount, 'available_balance' => $bucket->available_balance, 'notes' => $notes]
             );
 
             return $sub;

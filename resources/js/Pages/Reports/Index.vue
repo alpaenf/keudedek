@@ -31,6 +31,7 @@ const props = defineProps({
   reportByDept: Array,
   reportPaguVsReal: Object,
   reportByAccount: Array,
+  reportByStatus: Array,
   reportByActivity: Array,
   reportByProdi: Array,
   reportTransactions: Array,
@@ -114,36 +115,29 @@ const resetFilters = () => {
   handleFilter(currentReport.value);
 };
 
-const exportPdf = () => {
-  const params = new URLSearchParams({
+const getExportParams = () => {
+  return new URLSearchParams({
     department_id: departmentId.value || '',
     fiscal_year_id: fiscalYearId.value || '',
-  });
-  window.open(`/reports/export-pdf?${params.toString()}`, '_blank');
+    budget_version_id: budgetVersionId.value || '',
+    account_code: accountCode.value || '',
+  }).toString();
+};
+
+const exportPdf = () => {
+  window.open(`/reports/export-pdf?${getExportParams()}`, '_blank');
 };
 
 const exportXlsx = () => {
-  const params = new URLSearchParams({
-    department_id: departmentId.value || '',
-    fiscal_year_id: fiscalYearId.value || '',
-  });
-  window.open(`/reports/export-xlsx?${params.toString()}`, '_blank');
+  window.open(`/reports/export-xlsx?${getExportParams()}`, '_blank');
 };
 
 const exportCsv = () => {
-  const params = new URLSearchParams({
-    department_id: departmentId.value || '',
-    fiscal_year_id: fiscalYearId.value || '',
-  });
-  window.open(`/reports/export-csv?${params.toString()}`, '_blank');
+  window.open(`/reports/export-csv?${getExportParams()}`, '_blank');
 };
 
 const exportDocx = () => {
-  const params = new URLSearchParams({
-    department_id: departmentId.value || '',
-    fiscal_year_id: fiscalYearId.value || '',
-  });
-  window.open(`/reports/export-docx?${params.toString()}`, '_blank');
+  window.open(`/reports/export-docx?${getExportParams()}`, '_blank');
 };
 
 const printReport = () => {
@@ -168,17 +162,18 @@ const formatRupiahCompact = (val) => {
   return formatRupiah(num);
 };
 
-// 9 Report Navigation Tabs Definitions
+// 10 Report Navigation Tabs Definitions
 const reportTabs = [
   { key: 'REALISASI_JURUSAN', label: 'Realisasi per Jurusan' },
-  { key: 'PAGU_VS_REALISASI', label: 'Pagu vs Dalam Proses vs Realisasi' },
+  { key: 'PAGU_VS_REALISASI', label: 'Pagu vs Diajukan vs Realisasi vs Saldo' },
   { key: 'REALISASI_AKUN', label: 'Realisasi per Akun' },
-  { key: 'REALISASI_KEGIATAN', label: 'Realisasi per Kegiatan' },
-  { key: 'REALISASI_PRODI', label: 'Realisasi per Prodi' },
+  { key: 'TRANSAKSI_STATUS', label: 'Transaksi per Status' },
   { key: 'TRANSAKSI_PERIODE', label: 'Transaksi per Periode' },
   { key: 'SALDO_ANGGARAN', label: 'Saldo Anggaran' },
-  { key: 'EWS_SUMMARY', label: 'Early Warning Summary' },
   { key: 'REVISION_COMP', label: 'Revision Comparison' },
+  { key: 'EWS_SUMMARY', label: 'EWS Summary' },
+  { key: 'REALISASI_KEGIATAN', label: 'Realisasi per Kegiatan' },
+  { key: 'REALISASI_PRODI', label: 'Realisasi per Prodi' },
 ];
 </script>
 
@@ -612,6 +607,45 @@ const reportTabs = [
                   <td class="py-3.5 px-4 text-right font-medium text-amber-900">{{ formatRupiah(p.processing_amount) }}</td>
                   <td class="py-3.5 px-4 text-right font-bold text-sky-900">{{ formatRupiah(p.realized_amount) }}</td>
                   <td class="py-3.5 px-4 text-right font-black text-slate-900">{{ formatRupiah(p.total_activity_amount) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ================================================== -->
+        <!-- REPORT: TRANSAKSI PER STATUS                       -->
+        <!-- ================================================== -->
+        <div v-else-if="currentReport === 'TRANSAKSI_STATUS'" class="p-6 space-y-4">
+          <div class="border-b border-slate-100 pb-3">
+            <h3 class="text-sm font-bold text-slate-900">Laporan Transaksi per Status Pengajuan</h3>
+            <p class="text-xs text-slate-500">Agregasi jumlah dan nilai nominal transaksi berdasarkan siklus status verifikasi</p>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs font-sans border-collapse">
+              <thead class="bg-slate-50 text-slate-400 uppercase tracking-wider text-[10px] border-b border-slate-200">
+                <tr>
+                  <th class="py-3.5 px-4 font-semibold">Status Transaksi</th>
+                  <th class="py-3.5 px-4 font-semibold">Kategori Perlakuan Anggaran</th>
+                  <th class="py-3.5 px-4 text-center font-semibold">Jumlah Transaksi</th>
+                  <th class="py-3.5 px-4 text-right font-semibold">Total Nominal (Rp)</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                <tr v-for="st in reportByStatus" :key="st.status" class="hover:bg-slate-50/70 transition">
+                  <td class="py-3.5 px-4 font-mono font-bold text-slate-900">
+                    <span class="px-2.5 py-1 rounded-md text-[11px] font-black uppercase border border-slate-200 bg-slate-50">
+                      {{ st.status }}
+                    </span>
+                  </td>
+                  <td class="py-3.5 px-4 font-medium text-slate-700">
+                    <span v-if="st.is_commitment" class="text-amber-800 font-semibold">● Active Commitment (Cadangan Pagu)</span>
+                    <span v-else-if="st.is_realization" class="text-sky-800 font-bold">● Internal Realization (Realisasi Definitif)</span>
+                    <span v-else class="text-slate-500">● Released / Released Balance (Bebas / Tanpa Beban)</span>
+                  </td>
+                  <td class="py-3.5 px-4 text-center font-bold text-slate-900">{{ st.count }}</td>
+                  <td class="py-3.5 px-4 text-right font-black text-slate-900">{{ formatRupiah(st.total_amount) }}</td>
                 </tr>
               </tbody>
             </table>

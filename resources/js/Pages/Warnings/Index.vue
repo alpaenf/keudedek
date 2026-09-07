@@ -118,11 +118,11 @@ const getStateBadge = (st) => {
 
 const getRuleTitle = (code) => {
   switch (code) {
-    case 'EWS-001': return 'EWS-001: Saldo Kritis (< 10%)';
-    case 'EWS-002': return 'EWS-002: High Utilization (>= 85%)';
-    case 'EWS-003': return 'EWS-003: Transaksi Terlalu Lama (> 3 Hari)';
-    case 'EWS-004': return 'EWS-004: Revision Conflict';
-    case 'EWS-005': return 'EWS-005: Unmapped Data Staging';
+    case 'EWS-001': return 'EWS-001: Saldo Kritis';
+    case 'EWS-002': return 'EWS-002: Stale Submission';
+    case 'EWS-003': return 'EWS-003: Revision Conflict';
+    case 'EWS-004': return 'EWS-004: Unmapped Data';
+    case 'EWS-005': return 'EWS-005: Repeated Return';
     default: return code;
   }
 };
@@ -209,34 +209,34 @@ const getRuleTitle = (code) => {
 
           <button 
             @click="ruleCode = ruleCode === 'EWS-002' ? '' : 'EWS-002'; handleFilter();"
-            :class="['px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1.5 border text-[11px]', ruleCode === 'EWS-002' ? 'bg-orange-600 text-white border-orange-600' : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border-slate-200']"
+            :class="['px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1.5 border text-[11px]', ruleCode === 'EWS-002' ? 'bg-amber-600 text-white border-amber-600' : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border-slate-200']"
           >
-            <Layers class="w-3.5 h-3.5" />
-            <span>EWS-002: High Utilization</span>
+            <Clock class="w-3.5 h-3.5" />
+            <span>EWS-002: Stale Submission</span>
           </button>
 
           <button 
             @click="ruleCode = ruleCode === 'EWS-003' ? '' : 'EWS-003'; handleFilter();"
-            :class="['px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1.5 border text-[11px]', ruleCode === 'EWS-003' ? 'bg-amber-600 text-white border-amber-600' : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border-slate-200']"
+            :class="['px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1.5 border text-[11px]', ruleCode === 'EWS-003' ? 'bg-rose-700 text-white border-rose-700' : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border-slate-200']"
           >
-            <Clock class="w-3.5 h-3.5" />
-            <span>EWS-003: Transaksi Tertahan</span>
+            <RotateCcw class="w-3.5 h-3.5" />
+            <span>EWS-003: Revision Conflict</span>
           </button>
 
           <button 
             @click="ruleCode = ruleCode === 'EWS-004' ? '' : 'EWS-004'; handleFilter();"
-            :class="['px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1.5 border text-[11px]', ruleCode === 'EWS-004' ? 'bg-rose-700 text-white border-rose-700' : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border-slate-200']"
+            :class="['px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1.5 border text-[11px]', ruleCode === 'EWS-004' ? 'bg-sky-600 text-white border-sky-600' : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border-slate-200']"
           >
-            <RotateCcw class="w-3.5 h-3.5" />
-            <span>EWS-004: Revision Conflict</span>
+            <Info class="w-3.5 h-3.5" />
+            <span>EWS-004: Unmapped Data</span>
           </button>
 
           <button 
             @click="ruleCode = ruleCode === 'EWS-005' ? '' : 'EWS-005'; handleFilter();"
-            :class="['px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1.5 border text-[11px]', ruleCode === 'EWS-005' ? 'bg-sky-600 text-white border-sky-600' : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border-slate-200']"
+            :class="['px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1.5 border text-[11px]', ruleCode === 'EWS-005' ? 'bg-orange-600 text-white border-orange-600' : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border-slate-200']"
           >
-            <Info class="w-3.5 h-3.5" />
-            <span>EWS-005: Unmapped Data</span>
+            <RefreshCw class="w-3.5 h-3.5" />
+            <span>EWS-005: Repeated Return</span>
           </button>
         </div>
       </div>
@@ -348,9 +348,9 @@ const getRuleTitle = (code) => {
             <thead class="bg-slate-50 text-slate-400 uppercase tracking-wider text-[10px] border-b border-slate-200">
               <tr>
                 <th class="py-3 px-3.5 font-semibold">Aturan (Rule)</th>
+                <th class="py-3 px-3 font-semibold">Objek Target</th>
                 <th class="py-3 px-3 font-semibold">Tingkat Keparahan</th>
-                <th class="py-3 px-3 font-semibold">Jurusan / Akun</th>
-                <th class="py-3 px-3.5 font-semibold">Uraian Peringatan &amp; Dampak</th>
+                <th class="py-3 px-3.5 font-semibold">Uraian Peringatan &amp; Alasan</th>
                 <th class="py-3 px-3 text-center font-semibold">Status Siklus (State)</th>
                 <th class="py-3 px-3 font-semibold">Waktu Deteksi</th>
                 <th class="py-3 px-3.5 text-center font-semibold">Aksi Tindak Lanjut</th>
@@ -375,25 +375,30 @@ const getRuleTitle = (code) => {
                   </span>
                 </td>
 
-                <!-- 2. Severity -->
+                <!-- 2. Objek Target -->
+                <td class="py-3.5 px-3 whitespace-nowrap">
+                  <span class="font-bold text-slate-900 block text-xs">
+                    {{ w.target_object || (w.department?.code ? (w.department.code + ' ' + (w.budget_bucket ? '[' + w.budget_bucket.account_code + ']' : '')) : 'Fakultas Teknik') }}
+                  </span>
+                  <span v-if="w.budget_bucket" class="font-mono text-sky-800 text-[10px] block">
+                    {{ w.budget_bucket?.account_name }}
+                  </span>
+                </td>
+
+                <!-- 3. Severity -->
                 <td class="py-3.5 px-3 whitespace-nowrap">
                   <span :class="['px-2.5 py-0.5 rounded-full text-[10px] border inline-block uppercase', getSeverityBadge(w.severity).class]">
                     {{ getSeverityBadge(w.severity).label }}
                   </span>
                 </td>
 
-                <!-- 3. Jurusan / Akun -->
-                <td class="py-3.5 px-3 whitespace-nowrap">
-                  <span class="font-bold text-slate-900 block">{{ w.department?.code || 'FT' }}</span>
-                  <span v-if="w.budget_bucket" class="font-mono text-sky-800 text-[10px] font-bold block">
-                    [{{ w.budget_bucket?.account_code }}]
-                  </span>
-                </td>
-
-                <!-- 4. Pesan Peringatan & Dampak -->
+                <!-- 4. Pesan Peringatan & Alasan -->
                 <td class="py-3.5 px-3.5 max-w-md">
-                  <div class="font-medium text-slate-800 leading-relaxed">
+                  <div class="font-medium text-slate-800 leading-relaxed text-xs">
                     {{ w.message }}
+                  </div>
+                  <div v-if="w.reason" class="text-[11px] text-slate-500 mt-1 line-clamp-1 italic">
+                    Alasan: {{ w.reason }}
                   </div>
                   <div v-if="w.acknowledger" class="text-[10px] text-indigo-700 mt-1 font-semibold flex items-center gap-1">
                     <CheckCircle2 class="w-3 h-3" /> Direspon oleh {{ w.acknowledger?.name }} ({{ new Date(w.acknowledged_at || w.updated_at).toLocaleString('id-ID') }})

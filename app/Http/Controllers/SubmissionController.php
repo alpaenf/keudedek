@@ -324,7 +324,7 @@ class SubmissionController extends Controller
         return Storage::disk('local')->download($document->stored_filename, $document->original_filename);
     }
 
-    public function printDocument(Submission $submission): Response
+    public function printDocument(Request $request, Submission $submission): Response
     {
         $user = auth()->user();
         if (! ScopeService::canAccessDepartment($user, $submission->department_id)) {
@@ -336,6 +336,8 @@ class SubmissionController extends Controller
             'studyProgram',
             'budgetBucket.fundingSource',
             'budgetBucket.budgetVersion',
+            'budgetLine.account',
+            'budgetLine.subcomponent',
             'creator',
             'items',
             'documents.documentType',
@@ -344,6 +346,18 @@ class SubmissionController extends Controller
         ]);
 
         $signoffApproval = $submission->approvals()->latest()->first();
+
+        // Configurable Signature Blocks (Allows user or department to customize signers)
+        $signers = [
+            'submitter_title' => $request->query('submitter_title', 'Pengolah Transaksi Keuangan (PTK)'),
+            'submitter_name' => $request->query('submitter_name', $submission->creator?->name ?? 'Operator PTK'),
+            'submitter_nip' => $request->query('submitter_nip', $submission->creator?->nip ?? '-'),
+            'verifier_title' => $request->query('verifier_title', 'Verifikator PTU / Bendahara'),
+            'verifier_name' => $request->query('verifier_name', $signoffApproval?->user?->name ?? 'Verifikator Keuangan'),
+            'verifier_nip' => $request->query('verifier_nip', $signoffApproval?->user?->nip ?? '-'),
+            'city' => $request->query('city', 'Purwokerto'),
+            'print_date' => $request->query('print_date', date('d F Y')),
+        ];
 
         // Audit Log Recording
         AuditLogService::log(
@@ -356,6 +370,7 @@ class SubmissionController extends Controller
                 'amount' => $submission->amount,
                 'actor' => $user?->name,
                 'role' => $user?->role,
+                'signers' => $signers,
             ]
         );
 
@@ -363,6 +378,7 @@ class SubmissionController extends Controller
             'submission' => $submission,
             'signoffUser' => $signoffApproval?->user,
             'signoffDate' => $signoffApproval ? date('d F Y', strtotime($signoffApproval->created_at)) : null,
+            'signers' => $signers,
         ]);
     }
 

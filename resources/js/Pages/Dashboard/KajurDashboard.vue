@@ -63,54 +63,56 @@ const getStatusBadge = (status) => {
 
       <div class="flex items-center gap-3">
         <Link 
-          href="/approvals" 
-          class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition flex items-center shadow-sm"
+          href="/submissions" 
+          class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 rounded-xl text-xs font-bold transition flex items-center shadow-sm"
         >
-          Antrean Persetujuan Jurusan
+          Daftar Transaksi Jurusan
+        </Link>
+        <Link 
+          href="/budgets" 
+          class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 rounded-xl text-xs font-bold transition flex items-center shadow-sm"
+        >
+          Pagu Anggaran
         </Link>
       </div>
     </div>
 
-    <!-- 5 Clean KPI Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+    <!-- 4 Clean Read-Only KPI Cards: Pagu, Diajukan, Realisasi Internal, Saldo -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <!-- 1. Pagu -->
       <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-1">
         <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">PAGU JURUSAN</div>
         <div class="text-xl font-extrabold text-slate-900 font-sans tracking-tight truncate" :title="formatRupiah(totalAllocated)">
           {{ formatRupiahCompact(totalAllocated) }}
         </div>
-        <div class="text-xs text-slate-500">Alokasi Resmi</div>
+        <div class="text-xs text-slate-500">Alokasi resmi DIPA unit</div>
       </div>
 
+      <!-- 2. Diajukan -->
       <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-1">
-        <div class="text-[11px] font-bold text-indigo-700 uppercase tracking-wider">KOMITMEN (RESERVED)</div>
+        <div class="text-[11px] font-bold text-indigo-700 uppercase tracking-wider">DIAJUKAN (KOMITMEN)</div>
         <div class="text-xl font-extrabold text-indigo-900 font-sans tracking-tight truncate" :title="formatRupiah(totalReserved)">
           {{ formatRupiahCompact(totalReserved) }}
         </div>
-        <div class="text-xs text-indigo-700 font-semibold">Terkunci</div>
+        <div class="text-xs text-indigo-700 font-semibold">Active Commitment</div>
       </div>
 
+      <!-- 3. Realisasi Internal -->
       <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-1">
-        <div class="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">REALISASI FINAL (LRA)</div>
+        <div class="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">REALISASI INTERNAL</div>
         <div class="text-xl font-extrabold text-emerald-900 font-sans tracking-tight truncate" :title="formatRupiah(totalRealized)">
           {{ formatRupiahCompact(totalRealized) }}
         </div>
         <div class="text-xs text-emerald-700 font-bold">Serapan: {{ serapanRate }}%</div>
       </div>
 
+      <!-- 4. Saldo -->
       <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-1">
-        <div class="text-[11px] font-bold text-sky-800 uppercase tracking-wider">SALDO BEBAS (AVAILABLE)</div>
+        <div class="text-[11px] font-bold text-sky-800 uppercase tracking-wider">SALDO TERSEDIA</div>
         <div class="text-xl font-extrabold text-sky-950 font-sans tracking-tight truncate" :title="formatRupiah(totalAvailable)">
           {{ formatRupiahCompact(totalAvailable) }}
         </div>
         <div class="text-xs text-sky-700 font-semibold">Sisa: {{ availableRate }}%</div>
-      </div>
-
-      <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-1">
-        <div class="text-[11px] font-bold text-slate-600 uppercase tracking-wider">SERAPAN REALISASI</div>
-        <div class="text-xl font-extrabold text-emerald-700 font-sans">
-          {{ serapanRate }}%
-        </div>
-        <div class="text-xs text-slate-500 font-medium">LRA / Pagu</div>
       </div>
     </div>
 

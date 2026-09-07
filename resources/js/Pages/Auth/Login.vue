@@ -68,19 +68,22 @@ const getRoleDisplay = (usr) => {
           <ArrowLeft class="w-4 h-4" /> Kembali ke Beranda
         </Link>
 
-        <!-- Compact Tab Switcher (Only in Demo/Local Environment) -->
-        <div v-if="isDemoOrLocal && users && users.length > 0" class="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
+        <!-- Tab Switcher: Form Login & Quick Switcher -->
+        <div class="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
           <button 
-            @click="activeTab = 'quick'" 
-            :class="['px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition', activeTab === 'quick' ? 'bg-sky-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900']"
-          >
-            <Sparkles class="w-3.5 h-3.5" /> Switch Demo Role ({{ users?.length || 0 }} Akun)
-          </button>
-          <button 
+            type="button"
             @click="activeTab = 'formal'" 
             :class="['px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition', activeTab === 'formal' ? 'bg-sky-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900']"
           >
-            <KeyRound class="w-3.5 h-3.5" /> Form Login
+            <KeyRound class="w-3.5 h-3.5" /> Form Login (Username / Password)
+          </button>
+          <button 
+            v-if="isDemoOrLocal"
+            type="button"
+            @click="activeTab = 'quick'" 
+            :class="['px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition', activeTab === 'quick' ? 'bg-sky-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900']"
+          >
+            <Sparkles class="w-3.5 h-3.5" /> 1-Click Role Switcher ({{ users?.length || 0 }})
           </button>
         </div>
       </div>
@@ -100,23 +103,87 @@ const getRoleDisplay = (usr) => {
         <span class="font-medium">{{ loginForm.errors.login || loginForm.errors.password }}</span>
       </div>
 
-      <!-- TAB 1: QUICK ROLE SWITCHER (Demo / Local Only) -->
-      <div v-if="isDemoOrLocal && activeTab === 'quick'" class="space-y-4">
+      <!-- VIEW 1: FORMAL LOGIN (Default & Standar Resmi) -->
+      <div v-if="activeTab === 'formal'">
+        <form @submit.prevent="submitFormalLogin" class="space-y-4">
+          <div class="space-y-3.5">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1.5">Email / Username Akun</label>
+              <input 
+                v-model="loginForm.login" 
+                type="text" 
+                required 
+                autofocus
+                placeholder="nama@ft.unsoed.ac.id atau admin / dekan / ptk_if" 
+                class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-sky-500 focus:outline-none"
+              >
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1.5">Password</label>
+              <input 
+                v-model="loginForm.password" 
+                type="password" 
+                required 
+                placeholder="••••••••" 
+                class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-sky-500 focus:outline-none"
+              >
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between text-xs text-slate-600 pt-1">
+            <label class="flex items-center gap-2 cursor-pointer select-none">
+              <input v-model="loginForm.remember" type="checkbox" class="rounded border-slate-300 text-sky-600 focus:ring-sky-500">
+              <span class="font-medium text-xs">Ingat saya di perangkat ini</span>
+            </label>
+            
+            <span v-if="isDemoOrLocal" class="text-slate-400 text-[11px]">
+              Password bawaan demo: <span class="font-mono font-semibold text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">password</span>
+            </span>
+          </div>
+
+          <button 
+            type="submit" 
+            :disabled="loginForm.processing" 
+            class="w-full py-3 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 shadow-md shadow-sky-600/20 disabled:opacity-50 mt-3"
+          >
+            <LogIn class="w-4 h-4" /> Masuk ke Aplikasi SIKARA
+          </button>
+        </form>
+
+        <!-- Shortcut info to Quick Switcher -->
+        <div v-if="isDemoOrLocal && users && users.length > 0" class="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 bg-slate-50 p-3 rounded-xl border border-slate-200">
+          <span>Ingin langsung mencoba dengan peran spesifik tanpa mengetik password?</span>
+          <button 
+            type="button" 
+            @click="activeTab = 'quick'" 
+            class="font-bold text-sky-600 hover:text-sky-700 underline text-xs shrink-0 ml-2"
+          >
+            Gunakan Quick Role Switcher &rarr;
+          </button>
+        </div>
+      </div>
+
+      <!-- VIEW 2: 1-CLICK ROLE SWITCHER (Demo / Local Mode) -->
+      <div v-else-if="activeTab === 'quick'" class="space-y-4">
         <!-- Sub-filter Pills for Faculty & 5 Jurusan -->
         <div class="flex flex-wrap items-center gap-1.5 bg-slate-50 p-1.5 rounded-2xl border border-slate-200 text-xs">
           <button 
+            type="button"
             @click="selectedDeptTab = 'ALL'"
             :class="['px-3 py-1.5 rounded-xl font-bold transition text-[11px]', selectedDeptTab === 'ALL' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200']"
           >
             Semua ({{ users?.length || 0 }} Akun)
           </button>
           <button 
+            type="button"
             @click="selectedDeptTab = 'FAKULTAS'"
             :class="['px-3 py-1.5 rounded-xl font-bold transition text-[11px]', selectedDeptTab === 'FAKULTAS' ? 'bg-purple-700 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200']"
           >
             Level Fakultas
           </button>
           <button 
+            type="button"
             v-for="code in ['JTIF', 'JTS', 'JTE', 'JTG', 'JTI']" 
             :key="code"
             @click="selectedDeptTab = code"
@@ -127,10 +194,11 @@ const getRoleDisplay = (usr) => {
         </div>
 
         <!-- 2-Column User Cards Grid -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-80 overflow-y-auto pr-1">
+        <div v-if="filteredUsers.length > 0" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-80 overflow-y-auto pr-1">
           <button 
             v-for="usr in filteredUsers" 
             :key="usr.id" 
+            type="button"
             @click="loginAs(usr.id)" 
             class="p-3 bg-slate-50 hover:bg-sky-50 border border-slate-200 hover:border-sky-300 rounded-2xl flex items-center justify-between transition group text-left shadow-sm"
           >
@@ -150,56 +218,11 @@ const getRoleDisplay = (usr) => {
             <ChevronRight class="w-4 h-4 text-slate-400 group-hover:text-sky-600 group-hover:translate-x-0.5 transition shrink-0" />
           </button>
         </div>
-      </div>
 
-      <!-- TAB 2: FORMAL LOGIN FORM -->
-      <div v-else>
-        <form @submit.prevent="submitFormalLogin" class="space-y-4">
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-xs font-semibold text-slate-700 mb-1.5">Email / Username</label>
-              <input 
-                v-model="loginForm.login" 
-                type="text" 
-                required 
-                autofocus
-                placeholder="nama@ft.unsoed.ac.id atau username" 
-                class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-sky-500 focus:outline-none"
-              >
-            </div>
-
-            <div>
-              <label class="block text-xs font-semibold text-slate-700 mb-1.5">Password</label>
-              <input 
-                v-model="loginForm.password" 
-                type="password" 
-                required 
-                placeholder="••••••••" 
-                class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-sky-500 focus:outline-none"
-              >
-            </div>
-          </div>
-
-          <div class="flex items-center justify-between text-xs text-slate-600 pt-0.5">
-            <label class="flex items-center gap-2 cursor-pointer select-none">
-              <input v-model="loginForm.remember" type="checkbox" class="rounded border-slate-300 text-sky-600 focus:ring-sky-500">
-              <span class="font-medium">Remember Me (Ingat saya di perangkat ini)</span>
-            </label>
-            
-            <!-- Demo Password Helper only shown when isDemoOrLocal is true -->
-            <span v-if="isDemoOrLocal" class="text-slate-400 text-[11px]">
-              Default password: <span class="font-sans font-semibold text-slate-600">password</span>
-            </span>
-          </div>
-
-          <button 
-            type="submit" 
-            :disabled="loginForm.processing" 
-            class="w-full py-3 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 shadow-md shadow-sky-600/20 disabled:opacity-50 mt-2"
-          >
-            <LogIn class="w-4 h-4" /> Masuk ke Aplikasi
-          </button>
-        </form>
+        <!-- Empty State if no users in filtered category -->
+        <div v-else class="text-center py-8 bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-slate-400 text-xs">
+          Tidak ada akun pengguna pada kategori ini.
+        </div>
       </div>
 
       <!-- Footer -->

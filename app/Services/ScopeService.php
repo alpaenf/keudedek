@@ -105,7 +105,7 @@ class ScopeService
     }
 
     /**
-     * Check if a role has financial verification/approval permission.
+     * Check if a role has financial verification/examination permission (PTU & Bendahara primary).
      */
     public static function canApproveFinancial(?User $user): bool
     {
@@ -113,7 +113,19 @@ class ScopeService
             return false;
         }
 
-        return $user->hasRole(['PTU', 'BENDAHARA', 'KABAG', 'WAKIL_DEKAN', 'WD', 'DEKAN']);
+        return $user->hasRole(['PTU', 'BENDAHARA', 'ADMIN']);
+    }
+
+    /**
+     * Check if user is authorized to perform SELESAI (Finalization) of transaction.
+     */
+    public static function canFinalizeTransaction(?User $user): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        return $user->hasRole(['PTU', 'BENDAHARA', 'ADMIN']);
     }
 
     /**

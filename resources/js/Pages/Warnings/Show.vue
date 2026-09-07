@@ -179,6 +179,43 @@ const getStateBadge = (st) => {
               <span class="text-[10px] font-bold text-slate-400 uppercase">Snapshot Finansial</span>
             </div>
 
+            <!-- 8 Explainable Specification Points Table -->
+            <div class="bg-slate-50/70 p-4 rounded-2xl border border-slate-200 space-y-3">
+              <span class="text-xs font-bold text-slate-800 uppercase tracking-wider block">Spesifikasi Detail Peringatan (Explainable Warning Detail)</span>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div class="p-2.5 bg-white rounded-xl border border-slate-200/80">
+                  <span class="text-[10px] text-slate-400 font-bold uppercase block">1. Rule Code</span>
+                  <strong class="font-mono text-rose-600 text-sm">{{ warning.rule_code }}</strong> &mdash; {{ ruleName }}
+                </div>
+                <div class="p-2.5 bg-white rounded-xl border border-slate-200/80">
+                  <span class="text-[10px] text-slate-400 font-bold uppercase block">2. Target Object</span>
+                  <strong class="text-slate-900">{{ warning.target_object || budgetContext.jurusan_code + ' - ' + budgetContext.account_code }}</strong>
+                </div>
+                <div class="p-2.5 bg-white rounded-xl border border-slate-200/80">
+                  <span class="text-[10px] text-slate-400 font-bold uppercase block">3. Nilai Sekarang (Current Value)</span>
+                  <strong class="text-slate-900 font-mono">{{ calculation.current_value }}</strong>
+                </div>
+                <div class="p-2.5 bg-white rounded-xl border border-slate-200/80">
+                  <span class="text-[10px] text-slate-400 font-bold uppercase block">4. Threshold Batas</span>
+                  <strong class="text-amber-800 font-mono">{{ calculation.threshold }}</strong>
+                </div>
+                <div class="p-2.5 bg-white rounded-xl border border-slate-200/80 sm:col-span-2">
+                  <span class="text-[10px] text-slate-400 font-bold uppercase block">5. Alasan Trigger (Reason)</span>
+                  <p class="text-slate-800 leading-relaxed font-medium mt-0.5">{{ calculation.reason }}</p>
+                </div>
+                <div class="p-2.5 bg-white rounded-xl border border-slate-200/80">
+                  <span class="text-[10px] text-slate-400 font-bold uppercase block">6. First Triggered</span>
+                  <strong class="text-slate-900">{{ new Date(calculation.first_triggered_at).toLocaleString('id-ID') }}</strong>
+                </div>
+                <div class="p-2.5 bg-white rounded-xl border border-slate-200/80">
+                  <span class="text-[10px] text-slate-400 font-bold uppercase block">7. Status Siklus Hidup</span>
+                  <strong :class="warning.lifecycle_state === 'RESOLVED' ? 'text-emerald-700' : (warning.lifecycle_state === 'ACKNOWLEDGED' ? 'text-indigo-700' : 'text-amber-700')">
+                    {{ warning.lifecycle_state }}
+                  </strong>
+                </div>
+              </div>
+            </div>
+
             <!-- Metric Grid -->
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-0.5">

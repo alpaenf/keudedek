@@ -126,6 +126,16 @@ class UserController extends Controller
 
         $user->save();
 
+        if ($oldData['role'] !== $user->role || (int) $oldData['department_id'] !== (int) $user->department_id) {
+            AuditLogService::log(
+                'ROLE_OR_SCOPE_CHANGE',
+                User::class,
+                $user->id,
+                ['role' => $oldData['role'], 'department_id' => $oldData['department_id']],
+                ['role' => $user->role, 'department_id' => $user->department_id]
+            );
+        }
+
         AuditLogService::log(
             'UPDATE_USER',
             User::class,

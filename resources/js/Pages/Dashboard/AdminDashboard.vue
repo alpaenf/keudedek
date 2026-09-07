@@ -108,46 +108,62 @@ const mappingChartOptions = computed(() => ({
       </div>
     </div>
 
-    <!-- 5 Clean Admin KPI Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-      <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-1">
-        <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">TAHUN ANGGARAN</div>
-        <div class="text-xl font-extrabold text-slate-900 font-sans">
+    <!-- 6 Clean Admin System & Budget Foundation KPI Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 sm:gap-4">
+      <!-- 1. TA Aktif -->
+      <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-1">
+        <div class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">TA AKTIF</div>
+        <div class="text-lg font-black text-slate-900 font-sans">
           TA {{ adminMetrics?.active_fiscal_year || 2026 }}
         </div>
-        <div class="text-xs text-emerald-700 font-bold">Status Aktif</div>
+        <div class="text-[11px] text-emerald-700 font-bold">Status Aktif</div>
       </div>
 
-      <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-1">
-        <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">PENGGUNA TERDAFTAR</div>
-        <div class="text-xl font-extrabold text-slate-900 font-sans">
-          {{ adminMetrics?.active_users_count || 0 }}
+      <!-- 2. Revisi Aktif -->
+      <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-1">
+        <div class="text-[10px] font-bold text-indigo-700 uppercase tracking-wider">REVISI AKTIF</div>
+        <div class="text-lg font-black text-indigo-900 font-sans">
+          {{ adminMetrics?.active_revision || 'Rev 00' }}
         </div>
-        <div class="text-xs text-slate-500 font-medium">Pengguna Aktif</div>
+        <div class="text-[11px] text-indigo-600 truncate">{{ adminMetrics?.active_version_label || 'DIPA Induk' }}</div>
       </div>
 
-      <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-1">
-        <div class="text-[11px] font-bold text-emerald-800 uppercase tracking-wider">MAPPED VALID</div>
-        <div class="text-xl font-extrabold text-emerald-950 font-sans">
-          {{ adminMetrics?.valid_mapping_count || 0 }}
+      <!-- 3. Budget Line -->
+      <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-1">
+        <div class="text-[10px] font-bold text-sky-700 uppercase tracking-wider">BUDGET LINE</div>
+        <div class="text-lg font-black text-sky-950 font-sans">
+          {{ adminMetrics?.total_budget_lines || 0 }}
         </div>
-        <div class="text-xs text-emerald-700 font-bold">Pos Terhubung</div>
+        <div class="text-[11px] text-slate-500">Pos Baris RBA</div>
       </div>
 
-      <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-1">
-        <div class="text-[11px] font-bold text-amber-800 uppercase tracking-wider">UNMAPPED</div>
-        <div class="text-xl font-extrabold text-amber-950 font-sans">
+      <!-- 4. Unmapped Lines -->
+      <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-1">
+        <div class="text-[10px] font-bold text-amber-700 uppercase tracking-wider">UNMAPPED</div>
+        <div class="text-lg font-black text-amber-950 font-sans">
           {{ adminMetrics?.unmapped_count || 0 }}
         </div>
-        <div class="text-xs text-amber-700 font-semibold">Perlu Mapping</div>
+        <div class="text-[11px] text-amber-600 font-semibold">Perlu Mapping</div>
       </div>
 
-      <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-1">
-        <div class="text-[11px] font-bold text-slate-600 uppercase tracking-wider">IMPORT ERRORS</div>
-        <div class="text-xl font-extrabold text-emerald-700 font-sans">
-          0
+      <!-- 5. Users -->
+      <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-1">
+        <div class="text-[10px] font-bold text-slate-600 uppercase tracking-wider">PENGGUNA</div>
+        <div class="text-lg font-black text-slate-900 font-sans">
+          {{ adminMetrics?.active_users_count || 0 }}
         </div>
-        <div class="text-xs text-emerald-700 font-bold">Sistem Sehat</div>
+        <div class="text-[11px] text-slate-500">Akun Terdaftar</div>
+      </div>
+
+      <!-- 6. Import Terakhir -->
+      <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-1">
+        <div class="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">IMPORT TERAKHIR</div>
+        <div class="text-xs font-black text-slate-900 font-mono truncate" :title="adminMetrics?.last_import?.file_name || 'Belum ada import'">
+          {{ adminMetrics?.last_import?.file_name ? adminMetrics.last_import.file_name.substring(0, 16) + '...' : 'Belum ada' }}
+        </div>
+        <div class="text-[11px] text-emerald-700 font-semibold">
+          {{ adminMetrics?.last_import?.imported_rows ? adminMetrics.last_import.imported_rows + ' baris' : 'N/A' }}
+        </div>
       </div>
     </div>
 

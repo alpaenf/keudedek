@@ -13,11 +13,19 @@ class ImportHistory extends Model
 
     protected $fillable = [
         'user_id',
+        'budget_version_id',
+        'revision_no',
+        'version_label',
         'filename',
         'total_rows',
         'valid_rows',
         'invalid_rows',
+        'validation_report',
         'status',
+    ];
+
+    protected $casts = [
+        'validation_report' => 'array',
     ];
 
     protected $appends = [
@@ -39,5 +47,10 @@ class ImportHistory extends Model
     public function stagings(): HasMany
     {
         return $this->hasMany(BudgetImportStaging::class);
+    }
+
+    public function budgetVersion(): BelongsTo
+    {
+        return $this->belongsTo(BudgetVersion::class);
     }
 }
