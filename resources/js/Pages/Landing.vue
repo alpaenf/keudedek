@@ -38,13 +38,76 @@ const handleScroll = () => {
   isScrolled.value = window.scrollY > 40;
 };
 
+// Typewriter Animation
+const typedText = ref('');
+const typingPhrases = [
+  'Monitoring dan Pengendalian Realisasi Anggaran Fakultas Teknik',
+  'Rule-Based Budget Control & Transparansi Keuangan Unit',
+  'Pencatatan Realisasi & Pengawasan Sisa Saldo Real-Time'
+];
+
+let phraseIdx = 0;
+let charIdx = 0;
+let isDeleting = false;
+let typingTimer = null;
+
+const typeEffect = () => {
+  const currentPhrase = typingPhrases[phraseIdx];
+
+  if (isDeleting) {
+    typedText.value = currentPhrase.substring(0, charIdx - 1);
+    charIdx--;
+  } else {
+    typedText.value = currentPhrase.substring(0, charIdx + 1);
+    charIdx++;
+  }
+
+  let speed = isDeleting ? 30 : 60;
+
+  if (!isDeleting && charIdx === currentPhrase.length) {
+    speed = 2500;
+    isDeleting = true;
+  } else if (isDeleting && charIdx === 0) {
+    isDeleting = false;
+    phraseIdx = (phraseIdx + 1) % typingPhrases.length;
+    speed = 400;
+  }
+
+  typingTimer = setTimeout(typeEffect, speed);
+};
+
+let observer = null;
+
+const initScrollReveal = () => {
+  const elements = document.querySelectorAll('.reveal-card');
+  if (!elements.length) return;
+
+  observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('reveal-visible');
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { 
+    threshold: 0.1,
+    rootMargin: '0px 0px -30px 0px'
+  });
+
+  elements.forEach(el => observer.observe(el));
+};
+
 onMounted(() => {
   window.addEventListener('scroll', handleScroll, { passive: true });
   handleScroll();
+  typeEffect();
+  initScrollReveal();
 });
 
 onUnmounted(() => {
   window.removeEventListener('scroll', handleScroll);
+  if (typingTimer) clearTimeout(typingTimer);
+  if (observer) observer.disconnect();
 });
 
 const selectedRoleTab = ref('PTK');
@@ -189,132 +252,145 @@ const highlightedFeatures = [
     title: 'Rule-Based Budget Control',
     desc: 'Pengendalian server-side aktif (RBC-001) yang memblokir transaksi overbudget dan mengunci komitmen secara atomik.',
     icon: Lock,
-    color: 'bg-indigo-100 text-indigo-700'
+    color: 'bg-sky-100 text-sky-700'
   },
   {
     title: 'Monitoring per Jurusan',
     desc: 'Pemisahan dan pemantauan realisasi anggaran per jurusan (JTIF, JTS, JTE, JTG, JTI) dan program studi secara terstruktur.',
     icon: Building2,
-    color: 'bg-emerald-100 text-emerald-700'
+    color: 'bg-sky-100 text-sky-700'
   },
   {
     title: 'Early Warning System (EWS)',
     desc: 'Deteksi dini otomatis notifikasi saldo kritis (< 15%), high utilization, zero spending, dan aging verifikasi.',
     icon: AlertTriangle,
-    color: 'bg-amber-100 text-amber-700'
+    color: 'bg-sky-100 text-sky-700'
   },
   {
     title: 'Comprehensive Audit Trail',
     desc: 'Pencatatan transparan seluruh mutasi data, alamat IP, timestamp, dan payload perubahan untuk akuntabilitas institusi.',
     icon: ShieldCheck,
-    color: 'bg-blue-100 text-blue-700'
+    color: 'bg-sky-100 text-sky-700'
   },
   {
     title: 'Reporting & Export',
     desc: 'Penyajian laporan LRA komprehensif secara berkala dengan dukungan ekspor siap cetak PDF Landscape dan CSV.',
     icon: BarChart3,
-    color: 'bg-purple-100 text-purple-700'
+    color: 'bg-sky-100 text-sky-700'
   }
 ];
 </script>
 
 <template>
   <div class="bg-slate-50/80 min-h-screen text-slate-800 font-sans antialiased selection:bg-sky-600 selection:text-white">
-    <!-- HEADER -->
-    <header class="w-full sticky top-0 bg-white/95 backdrop-blur-md z-50 border-b border-slate-200/80 shadow-xs">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between">
+    <!-- FLOATING CAPSULE NAVBAR ON SCROLL -->
+    <div 
+      :class="[
+        'fixed left-0 right-0 z-50 transition-all duration-500 ease-in-out flex justify-center px-4 pointer-events-none',
+        isScrolled ? 'top-3 sm:top-4' : 'top-0 py-3 sm:py-4'
+      ]"
+    >
+      <header 
+        :class="[
+          'w-full transition-all duration-500 ease-in-out flex items-center justify-between pointer-events-auto',
+          isScrolled 
+            ? 'max-w-5xl bg-white/90 backdrop-blur-xl border border-slate-200/90 shadow-xl shadow-slate-950/10 rounded-full px-5 py-2.5 sm:px-6 sm:py-3 text-slate-800' 
+            : 'max-w-7xl bg-transparent border-b border-transparent px-2 text-white'
+        ]"
+      >
         <!-- Logo -->
         <div class="flex items-center gap-3">
-          <img src="/image/SIKARALOGO.png" alt="Logo SIKARA" class="w-9 h-9 object-contain rounded-xl shadow-xs" />
+          <img src="/image/SIKARALOGO.png" alt="Logo SIKARA" class="w-9 h-9 object-contain rounded-xl shadow-xs shrink-0" />
           <div>
-            <span class="text-xl font-black tracking-tight text-slate-900 uppercase">SIKARA</span>
-            <span class="text-[10px] font-bold text-sky-700 block -mt-1">FT UNSOED</span>
+            <span :class="['text-lg sm:text-xl font-black tracking-tight uppercase transition-colors duration-300', isScrolled ? 'text-slate-900' : 'text-white']">SIKARA</span>
+            <span :class="['text-[10px] font-bold block -mt-1 transition-colors duration-300', isScrolled ? 'text-sky-700' : 'text-sky-300']">FT UNSOED</span>
           </div>
         </div>
 
         <!-- Navigation -->
-        <nav class="hidden md:flex items-center space-x-6 text-xs font-semibold text-slate-600">
-          <a class="hover:text-sky-600 transition-colors" href="#about">Tentang SIKARA</a>
-          <a class="hover:text-sky-600 transition-colors" href="#alur">Alur Sistem</a>
-          <a class="hover:text-sky-600 transition-colors" href="#features">Fitur Unggulan</a>
-          <a class="hover:text-sky-600 transition-colors" href="#simulation">Simulasi Live</a>
-          <a class="hover:text-sky-600 transition-colors" href="#roles">Struktur Peran</a>
+        <nav :class="['hidden md:flex items-center space-x-5 lg:space-x-7 text-xs font-semibold transition-colors duration-300', isScrolled ? 'text-slate-600' : 'text-slate-200']">
+          <a :class="[isScrolled ? 'hover:text-sky-600' : 'hover:text-sky-300', 'transition-colors']" href="#about">Tentang SIKARA</a>
+          <a :class="[isScrolled ? 'hover:text-sky-600' : 'hover:text-sky-300', 'transition-colors']" href="#alur">Alur Sistem</a>
+          <a :class="[isScrolled ? 'hover:text-sky-600' : 'hover:text-sky-300', 'transition-colors']" href="#features">Fitur Unggulan</a>
+          <a :class="[isScrolled ? 'hover:text-sky-600' : 'hover:text-sky-300', 'transition-colors']" href="#simulation">Simulasi Live</a>
+          <a :class="[isScrolled ? 'hover:text-sky-600' : 'hover:text-sky-300', 'transition-colors']" href="#roles">Struktur Peran</a>
         </nav>
 
         <!-- Right Actions -->
-        <div class="flex items-center space-x-4">
+        <div class="flex items-center space-x-3">
           <!-- CTA -->
           <Link 
             v-if="user" 
             href="/dashboard" 
-            class="bg-sky-600 text-white px-5 py-2.5 rounded-full text-xs font-bold hover:bg-sky-500 transition-all shadow-md shadow-sky-600/20 flex items-center gap-1.5"
+            class="bg-sky-600 text-white px-5 py-2.5 rounded-full text-xs font-bold hover:bg-sky-500 transition-all shadow-md shadow-sky-600/20 flex items-center gap-1.5 shrink-0"
           >
             <UserCheck class="w-3.5 h-3.5" /> Dashboard ({{ user.role }})
           </Link>
           <Link 
             v-else 
             href="/login" 
-            class="bg-sky-600 text-white px-6 py-2.5 rounded-full text-xs font-bold hover:bg-sky-500 transition-all shadow-md shadow-sky-600/20 flex items-center gap-1.5"
+            class="bg-sky-600 text-white px-5 sm:px-6 py-2.5 rounded-full text-xs font-bold hover:bg-sky-500 transition-all shadow-md shadow-sky-600/20 flex items-center gap-1.5 shrink-0 hover:scale-105"
           >
             <LogIn class="w-3.5 h-3.5" /> Masuk ke SIKARA
           </Link>
         </div>
-      </div>
-    </header>
+      </header>
+    </div>
 
-    <!-- HERO CONTAINER (MEPET KE PINGGIR DENGAN SLIM GAP) -->
-    <div class="w-full px-2 sm:px-3 lg:px-4 pt-2 sm:pt-3">
-      <section id="about" class="relative min-h-[540px] sm:min-h-[580px] lg:h-[620px] rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl shadow-slate-950/20 border border-slate-800/40 flex items-center bg-slate-950">
-        <!-- Video Background -->
-        <video 
-          autoplay 
-          loop 
-          muted 
-          playsinline 
-          class="absolute inset-0 w-full h-full object-cover scale-105"
-          src="/image/landingvideo.MP4"
-        ></video>
+    <!-- FULLSCREEN HERO SECTION (EDGE-TO-EDGE FULL SCREEN WITH VIDEO BG) -->
+    <section id="about" class="relative w-full min-h-screen flex items-center justify-center overflow-hidden bg-slate-950 pt-20 pb-16">
+      <!-- Video Background -->
+      <video 
+        autoplay 
+        loop 
+        muted 
+        playsinline 
+        class="absolute inset-0 w-full h-full object-cover scale-105 pointer-events-none"
+        src="/image/landingvideo.MP4"
+      ></video>
 
-        <!-- Rich Contrast Gradient Overlay -->
-        <div class="absolute inset-0 bg-gradient-to-r from-slate-950/95 via-slate-900/85 to-sky-950/70 backdrop-blur-[1px]"></div>
+      <!-- Rich Contrast Gradient Overlay -->
+      <div class="absolute inset-0 bg-gradient-to-r from-slate-950/95 via-slate-950/80 to-sky-950/60 backdrop-blur-[1px]"></div>
+      <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-slate-950/50"></div>
 
-        <!-- Hero Content -->
-        <div class="relative z-10 w-full max-w-7xl mx-auto px-6 sm:px-10 lg:px-12 py-10 sm:py-14 text-white">
-          <div class="max-w-3xl">
-            <span class="px-3.5 py-1 bg-sky-500/20 border border-sky-400/30 text-sky-200 text-xs font-bold rounded-full uppercase tracking-wider inline-block mb-3.5">
-              Monitoring dan Pengendalian Realisasi Anggaran Fakultas Teknik
-            </span>
+      <!-- Hero Content -->
+      <div class="relative z-10 w-full max-w-7xl mx-auto px-6 sm:px-10 lg:px-12 text-white">
+        <div class="max-w-3xl">
+          <div class="inline-flex items-center gap-2 text-sky-400 font-extrabold text-xs sm:text-sm tracking-wider uppercase mb-4 min-h-[28px]">
+            <span>{{ typedText }}</span>
+            <span class="inline-block w-1.5 h-4 bg-sky-400 animate-pulse rounded-full"></span>
+          </div>
 
-            <h1 class="text-3xl sm:text-5xl lg:text-6xl font-black leading-tight mb-2 tracking-tight">
-              SIKARA
-            </h1>
-            <h2 class="text-lg sm:text-2xl font-bold text-sky-200 mb-3.5 tracking-tight">
-              Sistem Informasi Kendali Anggaran dan Realisasi
-            </h2>
+          <h1 class="text-4xl sm:text-6xl lg:text-7xl font-black leading-tight mb-3 tracking-tight">
+            SIKARA
+          </h1>
+          <h2 class="text-xl sm:text-3xl font-bold text-sky-200 mb-4 tracking-tight">
+            Sistem Informasi Kendali Anggaran dan Realisasi
+          </h2>
 
-            <p class="text-xs sm:text-sm lg:text-base mb-6 max-w-xl text-slate-200 leading-relaxed font-sans opacity-95">
-              Sistem internal Fakultas Teknik untuk membantu pencatatan realisasi, pengendalian ketersediaan anggaran, monitoring per jurusan, dan penyajian informasi keuangan secara terstruktur.
-            </p>
+          <p class="text-xs sm:text-sm lg:text-base mb-8 max-w-xl text-slate-200 leading-relaxed font-sans opacity-95">
+            Sistem internal Fakultas Teknik untuk membantu pencatatan realisasi, pengendalian ketersediaan anggaran, monitoring per jurusan, dan penyajian informasi keuangan secara terstruktur.
+          </p>
 
-            <div class="flex flex-wrap items-center gap-3">
-              <Link href="/login" class="bg-sky-600 hover:bg-sky-500 text-white px-6 py-3 rounded-full font-bold text-xs flex items-center gap-2 shadow-lg shadow-sky-600/30 hover:scale-105 transition">
-                <KeyRound class="w-4 h-4" />
-                Masuk ke SIKARA
-              </Link>
-              <a href="#alur" class="bg-white/10 hover:bg-white/20 border border-white/30 text-white px-6 py-3 rounded-full font-bold text-xs backdrop-blur-md flex items-center gap-2 hover:scale-105 transition">
-                Lihat Alur Sistem
-                <ArrowRight class="w-4 h-4" />
-              </a>
-            </div>
+          <div class="flex flex-wrap items-center gap-3.5">
+            <Link href="/login" class="bg-sky-600 hover:bg-sky-500 text-white px-7 py-3.5 rounded-full font-bold text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-sky-600/30 hover:scale-105 transition-all">
+              <KeyRound class="w-4 h-4" />
+              Masuk ke SIKARA
+            </Link>
+            <a href="#alur" class="bg-white/10 hover:bg-white/20 border border-white/30 text-white px-7 py-3.5 rounded-full font-bold text-xs sm:text-sm backdrop-blur-md flex items-center gap-2 hover:scale-105 transition-all">
+              Lihat Alur Sistem
+              <ArrowRight class="w-4 h-4" />
+            </a>
+          </div>
 
-            <div class="mt-6 flex items-center gap-2 text-[11px] text-slate-300">
-              <Info class="w-3.5 h-3.5 text-sky-400 shrink-0" />
-              <span>Monitoring berdasarkan data internal definitif Fakultas Teknik UNSOED.</span>
-            </div>
+          <div class="mt-8 flex items-center gap-2 text-xs text-slate-300/90">
+            <Info class="w-4 h-4 text-sky-400 shrink-0" />
+            <span>Monitoring berdasarkan data internal definitif Fakultas Teknik UNSOED.</span>
           </div>
         </div>
-      </section>
-    </div>
+      </div>
+
+    </section>
 
     <!-- MAIN CONTENT SECTIONS -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-16">
@@ -330,9 +406,10 @@ const highlightedFeatures = [
 
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6">
             <div 
-              v-for="w in systemWorkflowSteps" 
+              v-for="(w, idx) in systemWorkflowSteps" 
               :key="w.num" 
-              class="bg-slate-50 p-6 rounded-3xl border border-slate-200/80 hover:border-sky-300 hover:shadow-md transition space-y-3 relative group"
+              :style="{ transitionDelay: `${idx * 100}ms` }"
+              class="reveal-card bg-slate-50 p-6 rounded-3xl border border-slate-200/80 hover:border-sky-300 hover:shadow-md transition space-y-3 relative group"
             >
               <div class="w-9 h-9 rounded-2xl bg-sky-600 text-white font-black text-sm flex items-center justify-center shadow-md shadow-sky-600/20 group-hover:scale-105 transition">
                 {{ w.num }}
@@ -357,7 +434,8 @@ const highlightedFeatures = [
             <div 
               v-for="(f, idx) in highlightedFeatures" 
               :key="idx" 
-              class="bg-slate-50 p-6 rounded-3xl border border-slate-200/80 hover:border-sky-300 hover:shadow-md transition space-y-3"
+              :style="{ transitionDelay: `${idx * 100}ms` }"
+              class="reveal-card bg-slate-50 p-6 rounded-3xl border border-slate-200/80 hover:border-sky-300 hover:shadow-md transition space-y-3"
             >
               <div :class="['w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm', f.color]">
                 <component :is="f.icon" class="w-6 h-6" />
@@ -369,7 +447,7 @@ const highlightedFeatures = [
         </section>
 
         <!-- SIMULASI LIVE SECTION -->
-        <section id="simulation" class="bg-slate-50 rounded-[32px] p-8 lg:p-12 relative border border-slate-200">
+        <section id="simulation" class="reveal-card bg-slate-50 rounded-[32px] p-8 lg:p-12 relative border border-slate-200">
           <div class="flex justify-between items-end mb-8">
             <div>
               <span class="text-xs font-bold text-sky-600 uppercase tracking-wider block mb-1">SIMULASI LIVE &amp; MONITORING</span>
@@ -491,7 +569,7 @@ const highlightedFeatures = [
         </section>
 
         <!-- ROLE OVERVIEW SECTION -->
-        <section id="roles" class="border-t border-slate-200 pt-12">
+        <section id="roles" class="reveal-card border-t border-slate-200 pt-12">
           <div class="text-center max-w-2xl mx-auto mb-8">
             <span class="text-xs font-bold text-sky-600 uppercase tracking-wider block mb-1">STRUKTUR PENGGUNA</span>
             <h2 class="text-2xl sm:text-3xl font-black text-slate-900">Peran dan Tanggung Jawab Pengguna</h2>
@@ -574,4 +652,15 @@ const highlightedFeatures = [
 </template>
 
 <style scoped>
+.reveal-card {
+  opacity: 0;
+  transform: translateY(32px);
+  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.reveal-card.reveal-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
 </style>
