@@ -69,21 +69,21 @@ const getRoleDisplay = (usr) => {
         </Link>
 
         <!-- Tab Switcher: Form Login & Quick Switcher -->
-        <div class="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
+        <div class="flex bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs">
           <button 
             type="button"
             @click="activeTab = 'formal'" 
-            :class="['px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition', activeTab === 'formal' ? 'bg-sky-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900']"
+            :class="['px-3.5 py-1.5 rounded-lg font-semibold transition', activeTab === 'formal' ? 'bg-sky-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900']"
           >
-            <KeyRound class="w-3.5 h-3.5" /> Form Login (Username / Password)
+            Form Login
           </button>
           <button 
             v-if="isDemoOrLocal"
             type="button"
             @click="activeTab = 'quick'" 
-            :class="['px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition', activeTab === 'quick' ? 'bg-sky-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900']"
+            :class="['px-3.5 py-1.5 rounded-lg font-semibold transition', activeTab === 'quick' ? 'bg-sky-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900']"
           >
-            <Sparkles class="w-3.5 h-3.5" /> 1-Click Role Switcher ({{ users?.length || 0 }})
+            Pilih Role ({{ users?.length || 0 }})
           </button>
         </div>
       </div>
@@ -157,7 +157,7 @@ const getRoleDisplay = (usr) => {
           <button 
             type="button" 
             @click="activeTab = 'quick'" 
-            class="font-bold text-sky-600 hover:text-sky-700 underline text-xs shrink-0 ml-2"
+            class="font-bold text-sky-600 hover:text-sky-700 text-xs shrink-0 ml-2 transition"
           >
             Gunakan Quick Role Switcher &rarr;
           </button>

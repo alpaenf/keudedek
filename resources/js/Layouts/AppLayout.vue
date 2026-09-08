@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { Link, usePage, router } from '@inertiajs/vue3';
 import { 
   LayoutDashboard, 
@@ -44,6 +44,16 @@ const role = computed(() => {
 });
 
 const isMobileMenuOpen = ref(false);
+const isSuccessDismissed = ref(false);
+const isErrorDismissed = ref(false);
+
+watch(() => flash.value?.success, (newVal) => {
+  if (newVal) isSuccessDismissed.value = false;
+});
+watch(() => flash.value?.error, (newVal) => {
+  if (newVal) isErrorDismissed.value = false;
+});
+
 const canCreateTransaction = computed(() => page.props.auth?.user?.can_create_transaction ?? true);
 const canImportTransaction = computed(() => page.props.auth?.user?.can_import_transaction ?? false);
 const canApproveFinancial = computed(() => page.props.auth?.user?.can_approve_financial);
@@ -377,15 +387,48 @@ const logout = () => {
 
       <!-- Main Body -->
       <main class="flex-1 p-4 sm:p-6 lg:p-8">
-        <!-- Flash Messages -->
-        <div v-if="flash?.success" class="mb-6 p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl flex items-start gap-3 shadow-sm animate-in fade-in">
-          <CheckCircle2 class="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
-          <div class="text-xs sm:text-sm font-medium">{{ flash.success }}</div>
+        <!-- Flash Messages (Personal Welcome & Alerts) -->
+        <div 
+          v-if="flash?.success && !isSuccessDismissed" 
+          class="mb-6 p-4 bg-emerald-50 border border-emerald-200/90 text-emerald-900 rounded-2xl flex items-center justify-between gap-3 shadow-xs animate-in fade-in slide-in-from-top-2 duration-300"
+        >
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+              <CheckCircle2 class="w-4 h-4" />
+            </div>
+            <div>
+              <p class="text-xs sm:text-sm font-bold text-emerald-950">{{ flash.success }}</p>
+              <p v-if="user" class="text-[11px] text-emerald-700 font-medium">
+                Sesi aktif sebagai <strong>{{ user.name }}</strong> ({{ role }}) &bull; {{ user.department?.name || 'Fakultas Teknik' }}
+              </p>
+            </div>
+          </div>
+          <button 
+            @click="isSuccessDismissed = true" 
+            class="p-1.5 text-emerald-600 hover:text-emerald-900 hover:bg-emerald-100 rounded-lg transition"
+            title="Tutup Pesan"
+          >
+            <X class="w-4 h-4" />
+          </button>
         </div>
 
-        <div v-if="flash?.error" class="mb-6 p-4 bg-rose-50 border border-rose-200 text-rose-800 rounded-2xl flex items-start gap-3 shadow-sm animate-in fade-in">
-          <XCircle class="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
-          <div class="text-xs sm:text-sm font-medium">{{ flash.error }}</div>
+        <div 
+          v-if="flash?.error && !isErrorDismissed" 
+          class="mb-6 p-4 bg-rose-50 border border-rose-200 text-rose-900 rounded-2xl flex items-center justify-between gap-3 shadow-xs animate-in fade-in slide-in-from-top-2 duration-300"
+        >
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center shrink-0">
+              <XCircle class="w-4 h-4" />
+            </div>
+            <div class="text-xs sm:text-sm font-medium">{{ flash.error }}</div>
+          </div>
+          <button 
+            @click="isErrorDismissed = true" 
+            class="p-1.5 text-rose-600 hover:text-rose-900 hover:bg-rose-100 rounded-lg transition"
+            title="Tutup Pesan"
+          >
+            <X class="w-4 h-4" />
+          </button>
         </div>
 
         <slot />

@@ -62,13 +62,9 @@ class AuthController extends Controller
             $request->session()->regenerate();
 
             $user = Auth::user();
-            $roleLabel = $user->roles->pluck('name')->implode(' / ');
-            if (! $roleLabel) {
-                $roleLabel = $user->role;
-            }
 
             return redirect()->intended(route('dashboard'))
-                ->with('success', "Selamat datang kembali, {$user->name} ({$roleLabel}).");
+                ->with('success', "Selamat Datang, {$user->name}!");
         }
 
         // Hit rate limiter on failed attempt
@@ -89,13 +85,8 @@ class AuthController extends Controller
         Auth::login($user);
         request()->session()->regenerate();
 
-        $roleLabel = $user->roles->pluck('name')->implode(' / ');
-        if (! $roleLabel) {
-            $roleLabel = $user->role;
-        }
-
         return redirect()->route('dashboard')
-            ->with('success', "Berhasil masuk sebagai {$user->name} ({$roleLabel} - {$user->department?->name}).");
+            ->with('success', "Selamat Datang, {$user->name}!");
     }
 
     public function logout(Request $request): RedirectResponse

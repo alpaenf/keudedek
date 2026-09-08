@@ -41,9 +41,9 @@ const handleScroll = () => {
 // Typewriter Animation
 const typedText = ref('');
 const typingPhrases = [
+  'Pencatatan Realisasi & Pengawasan Sisa Saldo',
   'Monitoring dan Pengendalian Realisasi Anggaran Fakultas Teknik',
-  'Rule-Based Budget Control & Transparansi Keuangan Unit',
-  'Pencatatan Realisasi & Pengawasan Sisa Saldo Real-Time'
+  'Rule-Based Budget Control & Transparansi Keuangan Unit'
 ];
 
 let phraseIdx = 0;
@@ -295,25 +295,25 @@ const highlightedFeatures = [
           'w-full transition-all duration-500 ease-in-out flex items-center justify-between pointer-events-auto',
           isScrolled 
             ? 'max-w-5xl bg-white/90 backdrop-blur-xl border border-slate-200/90 shadow-xl shadow-slate-950/10 rounded-full px-5 py-2.5 sm:px-6 sm:py-3 text-slate-800' 
-            : 'max-w-7xl bg-transparent border-b border-transparent px-2 text-white'
+            : 'max-w-7xl bg-transparent border-b border-transparent px-4 sm:px-8 lg:px-10 text-slate-800'
         ]"
       >
         <!-- Logo -->
         <div class="flex items-center gap-3">
           <img src="/image/SIKARALOGO.png" alt="Logo SIKARA" class="w-9 h-9 object-contain rounded-xl shadow-xs shrink-0" />
           <div>
-            <span :class="['text-lg sm:text-xl font-black tracking-tight uppercase transition-colors duration-300', isScrolled ? 'text-slate-900' : 'text-white']">SIKARA</span>
-            <span :class="['text-[10px] font-bold block -mt-1 transition-colors duration-300', isScrolled ? 'text-sky-700' : 'text-sky-300']">FT UNSOED</span>
+            <span :class="['text-lg sm:text-xl font-black tracking-tight uppercase transition-colors duration-300', isScrolled ? 'text-slate-900' : 'text-[#11243e]']">SIKARA</span>
+            <span :class="['text-[10px] font-bold block -mt-1 transition-colors duration-300', isScrolled ? 'text-sky-700' : 'text-[#0080d8]']">FT UNSOED</span>
           </div>
         </div>
 
         <!-- Navigation -->
-        <nav :class="['hidden md:flex items-center space-x-5 lg:space-x-7 text-xs font-semibold transition-colors duration-300', isScrolled ? 'text-slate-600' : 'text-slate-200']">
-          <a :class="[isScrolled ? 'hover:text-sky-600' : 'hover:text-sky-300', 'transition-colors']" href="#about">Tentang SIKARA</a>
-          <a :class="[isScrolled ? 'hover:text-sky-600' : 'hover:text-sky-300', 'transition-colors']" href="#alur">Alur Sistem</a>
-          <a :class="[isScrolled ? 'hover:text-sky-600' : 'hover:text-sky-300', 'transition-colors']" href="#features">Fitur Unggulan</a>
-          <a :class="[isScrolled ? 'hover:text-sky-600' : 'hover:text-sky-300', 'transition-colors']" href="#simulation">Simulasi Live</a>
-          <a :class="[isScrolled ? 'hover:text-sky-600' : 'hover:text-sky-300', 'transition-colors']" href="#roles">Struktur Peran</a>
+        <nav :class="['hidden md:flex items-center space-x-6 lg:space-x-8 text-[14px] font-medium transition-colors duration-300', isScrolled ? 'text-slate-600' : 'text-[#2d3f57]']">
+          <a :class="[isScrolled ? 'hover:text-sky-600' : 'hover:text-[#0080d8]', 'transition-colors']" href="#about">Tentang SIKARA</a>
+          <a :class="[isScrolled ? 'hover:text-sky-600' : 'hover:text-[#0080d8]', 'transition-colors']" href="#alur">Alur Sistem</a>
+          <a :class="[isScrolled ? 'hover:text-sky-600' : 'hover:text-[#0080d8]', 'transition-colors']" href="#features">Fitur Unggulan</a>
+          <a :class="[isScrolled ? 'hover:text-sky-600' : 'hover:text-[#0080d8]', 'transition-colors']" href="#simulation">Simulasi Live</a>
+          <a :class="[isScrolled ? 'hover:text-sky-600' : 'hover:text-[#0080d8]', 'transition-colors']" href="#roles">Struktur Peran</a>
         </nav>
 
         <!-- Right Actions -->
@@ -322,74 +322,104 @@ const highlightedFeatures = [
           <Link 
             v-if="user" 
             href="/dashboard" 
-            class="bg-sky-600 text-white px-5 py-2.5 rounded-full text-xs font-bold hover:bg-sky-500 transition-all shadow-md shadow-sky-600/20 flex items-center gap-1.5 shrink-0"
+            class="bg-[#0080d8] hover:bg-[#0070be] text-white px-5 py-2.5 rounded-full text-xs font-semibold hover:shadow-md hover:shadow-blue-500/20 transition-all flex items-center gap-1.5 shrink-0"
           >
             <UserCheck class="w-3.5 h-3.5" /> Dashboard ({{ user.role }})
           </Link>
           <Link 
             v-else 
             href="/login" 
-            class="bg-sky-600 text-white px-5 sm:px-6 py-2.5 rounded-full text-xs font-bold hover:bg-sky-500 transition-all shadow-md shadow-sky-600/20 flex items-center gap-1.5 shrink-0 hover:scale-105"
+            class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#0080d8] hover:bg-[#0070be] active:scale-95 text-white text-[13.5px] font-medium tracking-wide shadow-sm shadow-blue-500/20 transition-all duration-150 shrink-0"
           >
-            <LogIn class="w-3.5 h-3.5" /> Masuk ke SIKARA
+            <svg class="w-4 h-4 stroke-[2.2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" stroke-linecap="round" stroke-linejoin="round" transform="rotate(180 12 12)"></path>
+            </svg>
+            <span>Masuk ke SIKARA</span>
           </Link>
         </div>
       </header>
     </div>
 
-    <!-- FULLSCREEN HERO SECTION (EDGE-TO-EDGE FULL SCREEN WITH VIDEO BG) -->
-    <section id="about" class="relative w-full min-h-screen flex items-center justify-center overflow-hidden bg-slate-950 pt-20 pb-16">
-      <!-- Video Background -->
-      <video 
-        autoplay 
-        loop 
-        muted 
-        playsinline 
-        class="absolute inset-0 w-full h-full object-cover scale-105 pointer-events-none"
-        src="/image/landingvideo.MP4"
-      ></video>
+    <!-- HERO SECTION WITH NEW PHOTO & BALANCED COMPOSITION -->
+    <section id="about" class="relative w-full min-h-[640px] lg:min-h-[calc(100vh-2rem)] flex items-center overflow-hidden pt-24 sm:pt-28 lg:pt-28 pb-16 sm:pb-20 lg:pb-20">
+      <!-- Background Image Container -->
+      <div class="absolute inset-0 z-0 pointer-events-none overflow-hidden" data-purpose="background-layer">
+        <img 
+          src="/image/new.png" 
+          alt="Gedung FT UNSOED" 
+          class="w-full h-full object-cover hero-bg-image pointer-events-none"
+        />
 
-      <!-- Rich Contrast Gradient Overlay -->
-      <div class="absolute inset-0 bg-gradient-to-r from-slate-950/95 via-slate-950/80 to-sky-950/60 backdrop-blur-[1px]"></div>
-      <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-slate-950/50"></div>
+        <!-- Ultra-Smooth Feathered Gradient Overlay for Natural Integration -->
+        <div class="absolute inset-0 hero-gradient-overlay pointer-events-none"></div>
+      </div>
 
-      <!-- Hero Content -->
-      <div class="relative z-10 w-full max-w-7xl mx-auto px-6 sm:px-10 lg:px-12 text-white">
-        <div class="max-w-3xl">
-          <div class="inline-flex items-center gap-2 text-sky-400 font-extrabold text-xs sm:text-sm tracking-wider uppercase mb-4 min-h-[28px]">
-            <span>{{ typedText }}</span>
-            <span class="inline-block w-1.5 h-4 bg-sky-400 animate-pulse rounded-full"></span>
+      <!-- Hero Content (Balanced vertically & positioned ~84px from left boundary) -->
+      <div class="relative z-10 w-full max-w-7xl mx-auto px-6 sm:px-10 lg:pl-[84px] lg:pr-8">
+        <div class="relative max-w-2xl w-full pt-4 sm:pt-6">
+          <!-- Top Badge: Clean Blue Text + Animated Dot (No Pill) -->
+          <div class="inline-flex items-center gap-2.5 mb-4 min-h-[24px]">
+            <span class="w-2 h-2 rounded-full bg-[#0284c7] animate-pulse shrink-0"></span>
+            <span class="text-[12px] sm:text-[12.5px] font-bold uppercase tracking-wider text-[#0284c7]">
+              {{ typedText }}
+            </span>
           </div>
 
-          <h1 class="text-4xl sm:text-6xl lg:text-7xl font-black leading-tight mb-3 tracking-tight">
+          <!-- Main Title -->
+          <h2 class="text-5xl sm:text-6xl lg:text-[68px] font-black tracking-tight text-slate-900 leading-none mb-3.5">
             SIKARA
-          </h1>
-          <h2 class="text-xl sm:text-3xl font-bold text-sky-200 mb-4 tracking-tight">
-            Sistem Informasi Kendali Anggaran dan Realisasi
           </h2>
 
-          <p class="text-xs sm:text-sm lg:text-base mb-8 max-w-xl text-slate-200 leading-relaxed font-sans opacity-95">
+          <!-- Sub-headline -->
+          <h3 class="text-[19px] sm:text-[22px] font-bold text-slate-900 tracking-tight leading-snug mb-5">
+            Sistem Kendali Anggaran dan Realisasi
+          </h3>
+
+          <!-- Description Paragraph -->
+          <p class="text-slate-700 text-[14px] sm:text-[15px] leading-[1.8] font-medium max-w-[520px] mb-9 text-justify">
             Sistem internal Fakultas Teknik untuk membantu pencatatan realisasi, pengendalian ketersediaan anggaran, monitoring per jurusan, dan penyajian informasi keuangan secara terstruktur.
           </p>
 
-          <div class="flex flex-wrap items-center gap-3.5">
-            <Link href="/login" class="bg-sky-600 hover:bg-sky-500 text-white px-7 py-3.5 rounded-full font-bold text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-sky-600/30 hover:scale-105 transition-all">
-              <KeyRound class="w-4 h-4" />
-              Masuk ke SIKARA
+          <!-- CTA Action Buttons -->
+          <div class="flex flex-wrap items-center gap-3.5 mb-9" data-purpose="cta-buttons">
+            <!-- Primary CTA Button with Key Icon -->
+            <Link 
+              href="/login" 
+              class="inline-flex items-center gap-2.5 px-6 py-3 rounded-full bg-[#0080d8] hover:bg-[#0070be] active:scale-95 text-white text-[14px] font-semibold tracking-wide shadow-md shadow-blue-500/20 hover:shadow-lg hover:shadow-blue-500/30 transition-all duration-150"
+            >
+              <!-- Key Icon -->
+              <svg class="w-4 h-4 stroke-[2.2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" stroke-linecap="round" stroke-linejoin="round"></path>
+              </svg>
+              <span>Masuk ke SIKARA</span>
             </Link>
-            <a href="#alur" class="bg-white/10 hover:bg-white/20 border border-white/30 text-white px-7 py-3.5 rounded-full font-bold text-xs sm:text-sm backdrop-blur-md flex items-center gap-2 hover:scale-105 transition-all">
-              Lihat Alur Sistem
-              <ArrowRight class="w-4 h-4" />
+
+            <!-- Secondary CTA Button: Lihat Alur Sistem -->
+            <a 
+              href="#alur" 
+              class="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white hover:bg-slate-50 active:scale-95 text-[#1e293b] border border-slate-300/80 text-[14px] font-semibold tracking-wide shadow-sm hover:border-slate-400 transition-all duration-150"
+            >
+              <span>Lihat Alur Sistem</span>
+              <!-- Arrow Right Icon -->
+              <svg class="w-4 h-4 text-slate-700 stroke-[2.2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path d="M14 5l7 7m0 0l-7 7m7-7H3" stroke-linecap="round" stroke-linejoin="round"></path>
+              </svg>
             </a>
           </div>
 
-          <div class="mt-8 flex items-center gap-2 text-xs text-slate-300/90">
-            <Info class="w-4 h-4 text-sky-400 shrink-0" />
+          <!-- Info Notice Tagline with Circle-i Icon -->
+          <div class="flex items-center gap-2 text-slate-700/90 text-[12.5px] sm:text-[13px] font-medium" data-purpose="system-note">
+            <svg class="w-4 h-4 text-[#0284c7] flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="M12 16v-4m0-4h.01" stroke-linecap="round" stroke-linejoin="round"></path>
+            </svg>
             <span>Monitoring berdasarkan data internal definitif Fakultas Teknik UNSOED.</span>
           </div>
         </div>
       </div>
 
+      <!-- Soft Bottom Gradient Blur Transition -->
+      <div class="absolute inset-x-0 bottom-0 h-24 sm:h-32 pointer-events-none z-20 hero-bottom-blur"></div>
     </section>
 
     <!-- MAIN CONTENT SECTIONS -->
@@ -652,6 +682,54 @@ const highlightedFeatures = [
 </template>
 
 <style scoped>
+.hero-bg-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center center;
+  filter: contrast(1.05) brightness(1.02) saturate(1.12);
+}
+
+.hero-bottom-blur {
+  background: linear-gradient(
+    to top,
+    #f8fafc 0%,
+    rgba(248, 250, 252, 0.90) 30%,
+    rgba(248, 250, 252, 0.45) 65%,
+    transparent 100%
+  );
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  mask-image: linear-gradient(to top, black 0%, black 45%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to top, black 0%, black 45%, transparent 100%);
+}
+
+.hero-gradient-overlay {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.98) 0%,
+    rgba(255, 255, 255, 0.96) 26%,
+    rgba(255, 255, 255, 0.91) 38%,
+    rgba(255, 255, 255, 0.72) 48%,
+    rgba(255, 255, 255, 0.35) 56%,
+    rgba(255, 255, 255, 0.08) 62%,
+    rgba(255, 255, 255, 0.00) 66%,
+    transparent 100%
+  );
+}
+@media (max-width: 1024px) {
+  .hero-gradient-overlay {
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.98) 0%,
+      rgba(255, 255, 255, 0.94) 48%,
+      rgba(255, 255, 255, 0.65) 70%,
+      rgba(255, 255, 255, 0.15) 88%,
+      transparent 100%
+    );
+  }
+}
+
 .reveal-card {
   opacity: 0;
   transform: translateY(32px);
