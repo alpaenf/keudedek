@@ -13,6 +13,7 @@ class DatabaseSeeder extends Seeder
             BudgetHierarchySeeder::class,
             PerformanceIndicatorSeeder::class,
             RuleConfigSeeder::class,
+            RbaDataSeeder::class,
         ]);
     }
 }

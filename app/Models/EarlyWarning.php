@@ -20,11 +20,14 @@ class EarlyWarning extends Model
         'budget_version_id',
         'current_value',
         'threshold_value',
+        'operator',
         'message',
         'reason',
         'status',
         'lifecycle_state',
+        'eval_status',
         'rule_config_id',
+        'parameter_version',
         'acknowledged_by',
         'first_triggered_at',
         'context_metadata',
@@ -33,6 +36,7 @@ class EarlyWarning extends Model
     protected $casts = [
         'current_value' => 'decimal:2',
         'threshold_value' => 'decimal:2',
+        'parameter_version' => 'integer',
         'first_triggered_at' => 'datetime',
         'context_metadata' => 'array',
     ];

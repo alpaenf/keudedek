@@ -24,13 +24,17 @@ class Submission extends Model
         'transaction_type_id',
         'submission_template_id',
         'budget_bucket_id',
+        'original_budget_bucket_id',
         'budget_line_id',
         'amount',
+        'is_documented_historical',
         'beneficiary_name',
         'status',
+        'needs_review',
         'current_workflow_step_id',
         'created_by',
         'notes',
+        'idempotency_key',
         'attachment_path',
         'electronic_signoff_hash',
         'background_narrative',
@@ -44,6 +48,8 @@ class Submission extends Model
     protected $casts = [
         'amount' => 'decimal:2',
         'transaction_date' => 'date',
+        'is_documented_historical' => 'boolean',
+        'needs_review' => 'boolean',
     ];
 
     public function department(): BelongsTo
@@ -74,6 +80,16 @@ class Submission extends Model
     public function budgetBucket(): BelongsTo
     {
         return $this->belongsTo(BudgetBucket::class);
+    }
+
+    public function originalBudgetBucket(): BelongsTo
+    {
+        return $this->belongsTo(BudgetBucket::class, 'original_budget_bucket_id');
+    }
+
+    public function rbcEventLogs(): HasMany
+    {
+        return $this->hasMany(RbcEventLog::class);
     }
 
     public function budgetLine(): BelongsTo

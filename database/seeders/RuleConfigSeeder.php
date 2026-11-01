@@ -17,7 +17,9 @@ class RuleConfigSeeder extends Seeder
                 [
                     'rule_name' => $cfg['name'],
                     'category' => $cfg['category'] ?? 'EWS',
+                    'indicator_type' => $cfg['indicator_type'] ?? 'CORE',
                     'parameters' => $cfg['default_parameters'] ?? [],
+                    'parameter_version' => 1,
                     'is_active' => $cfg['is_active'] ?? true,
                     'description' => $cfg['description'] ?? '',
                 ]

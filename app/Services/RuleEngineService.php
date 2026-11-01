@@ -17,8 +17,9 @@ class RuleEngineService
     public function evaluateAllEws(): int
     {
         $ewsService = app(EarlyWarningService::class);
+        $res = $ewsService->evaluateAll();
 
-        return $ewsService->evaluateAll();
+        return is_array($res) ? (int) array_sum($res) : (int) $res;
     }
 
     public function checkOverbudget(BudgetBucket $bucket, float $amount): bool

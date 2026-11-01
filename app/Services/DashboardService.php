@@ -33,8 +33,12 @@ class DashboardService
         // Active fiscal year
         $activeYear = FiscalYear::where('status', 'ACTIVE')->first()?->year ?? 2026;
 
-        // Base scoped queries
+        // Base scoped queries - ensure pos anggaran uses the ACTIVE budget version (RBC-01)
+        $activeVersion = BudgetVersion::where('status', 'ACTIVE')->first();
         $queryBuckets = BudgetBucket::with(['department', 'fundingSource']);
+        if ($activeVersion) {
+            $queryBuckets->where('budget_version_id', $activeVersion->id);
+        }
         $querySubmissions = Submission::with(['department', 'studyProgram', 'budgetBucket', 'creator', 'currentWorkflowStep']);
         $queryWarnings = EarlyWarning::with(['department', 'budgetBucket', 'acknowledger']);
 
@@ -57,8 +61,8 @@ class DashboardService
             $totalAllocated = (float) $queryBuckets->clone()->sum('allocated_budget');
             $totalReserved = (float) $queryBuckets->clone()->sum('reserved_budget');
             $totalRealized = (float) $queryBuckets->clone()->sum('realized_budget');
-            // Canonical Invariant: Available = Allocated - Reserved - Realized
-            $totalAvailable = max(0, (float) $queryBuckets->clone()->sum('available_balance'));
+            // Canonical Invariant: Available = Allocated - Reserved - Realized (Persamaan 4: S = P - C - R)
+            $totalAvailable = (float) $queryBuckets->clone()->sum('available_balance');
         }
 
         // Authoritative Statistical Ratios
@@ -110,7 +114,15 @@ class DashboardService
         ];
 
         // Department Summaries (5 Jurusan condition & stacked bar data)
-        $rawDeptSummaries = Department::with(['budgetBuckets', 'earlyWarnings'])
+        // Ensure only active budget version buckets are counted to avoid double counting across revisions (F-07, KF-09)
+        $rawDeptSummaries = Department::with([
+            'budgetBuckets' => function ($q) use ($activeVersion) {
+                if ($activeVersion) {
+                    $q->where('budget_version_id', $activeVersion->id);
+                }
+            },
+            'earlyWarnings',
+        ])
             ->whereNotNull('parent_id')
             ->where('is_active', true)
             ->get();

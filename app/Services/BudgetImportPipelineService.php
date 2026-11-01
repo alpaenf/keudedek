@@ -521,7 +521,7 @@ class BudgetImportPipelineService
                 if ($bucket) {
                     $bucket->allocated_budget = $totalAllocated;
                     $bucket->initial_budget = $totalAllocated;
-                    $bucket->available_balance = max(0, $totalAllocated - $bucket->reserved_budget - $bucket->realized_budget);
+                    $bucket->available_balance = $totalAllocated - $bucket->reserved_budget - $bucket->realized_budget;
                     $bucket->save();
                     $updatedBucketsCount++;
                 } else {
@@ -735,9 +735,26 @@ class BudgetImportPipelineService
                 'effective_at' => now()->toDateString(),
             ]);
 
-            // 3. Re-point active control buckets to this version
-            BudgetBucket::where('budget_version_id', $targetVersion->id)
-                ->update(['budget_version_id' => $targetVersion->id]);
+            // 3. RBC-01 Continuity: Carry over active transactions to the new active version's buckets
+            $targetBuckets = BudgetBucket::where('budget_version_id', $targetVersion->id)->get();
+            foreach ($targetBuckets as $tBucket) {
+                // Find all existing submissions belonging to this Pos Anggaran
+                $subs = BudgetCalculationService::getSubmissionsForBucket($tBucket)->get();
+
+                foreach ($subs as $sub) {
+                    if (! $sub->original_budget_bucket_id) {
+                        $sub->original_budget_bucket_id = $sub->budget_bucket_id;
+                    }
+                    $sub->budget_bucket_id = $tBucket->id;
+                    $sub->save();
+                }
+
+                // Synchronize bucket C, R, S from authoritative transaction records
+                BudgetCalculationService::synchronizeBucketFromTransactions($tBucket);
+
+                // Re-evaluate EWS indicators for new active bucket positions (I-04)
+                EarlyWarningService::evaluateAfterRbcChange($tBucket);
+            }
 
             AuditLogService::log('ACTIVATE_BUDGET_VERSION', BudgetVersion::class, $targetVersion->id, null, [
                 'revision_no' => $targetVersion->revision_no,

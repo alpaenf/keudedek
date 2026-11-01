@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\BudgetBucket;
 use App\Models\EarlyWarning;
 use App\Models\FiscalYear;
+use App\Models\RuleConfig;
 use App\Services\AuditLogService;
 use App\Services\EarlyWarningService;
 use App\Services\RuleEngineService;
@@ -118,12 +119,17 @@ class EarlyWarningController extends Controller
             'info_count' => (clone $statQuery)->where('severity', 'INFO')->whereIn('lifecycle_state', ['OPEN', 'ACKNOWLEDGED'])->count(),
         ];
 
+        $ruleConfigs = RuleConfig::all();
+
         return Inertia::render('Warnings/Index', [
             'warnings' => $warnings,
             'departments' => $departments,
             'fiscalYears' => $fiscalYears,
             'accounts' => $accounts,
             'stats' => $stats,
+            'ruleConfigs' => $ruleConfigs,
+            'canConfigureParameters' => $user && $user->hasRole(['WD', 'DEKAN', 'ADMIN']),
+            'isPolicyMaker' => $user && $user->hasRole(['WD', 'DEKAN']),
             'filters' => $request->only([
                 'fiscal_year_id',
                 'department_id',
@@ -139,8 +145,15 @@ class EarlyWarningController extends Controller
         ]);
     }
 
-    public function show(EarlyWarning $earlyWarning): Response
+    public function show(Request $request, EarlyWarning $earlyWarning): Response
     {
+        $user = $request->user();
+        $deptId = $earlyWarning->department_id ?: $earlyWarning->budgetBucket?->department_id;
+
+        if ($user && $deptId && ! ScopeService::canAccessDepartment($user, $deptId)) {
+            abort(403, 'Akses Ditolak: Anda tidak berwenang mengakses rincian peringatan unit lain.');
+        }
+
         $earlyWarning->load([
             'department',
             'budgetBucket.fiscalYear',
@@ -158,11 +171,15 @@ class EarlyWarningController extends Controller
         $deptName = $dept?->name ?? 'Fakultas Teknik';
 
         $ruleNames = [
-            'EWS-001' => 'Saldo Kritis',
-            'EWS-002' => 'Stale Submission',
-            'EWS-003' => 'Revision Conflict',
-            'EWS-004' => 'Unmapped Data',
-            'EWS-005' => 'Repeated Return',
+            'EWS-01' => 'Rasio Saldo Tersedia Menipis',
+            'EWS-02' => 'Durasi Transaksi Keadaan DP',
+            'EWS-03' => 'Realisasi di Bawah Target Kumulatif',
+            'EX-01' => 'Pengecualian Penggunaan Melampaui Pagu',
+            'EWS-001' => 'Rasio Saldo Tersedia Menipis (EWS-01)',
+            'EWS-002' => 'Durasi Transaksi Keadaan DP (EWS-02)',
+            'EWS-003' => 'Realisasi Target / Konflik Revisi',
+            'EWS-004' => 'Data Belum Terpetakan',
+            'EWS-005' => 'Pengembalian Berulang',
         ];
 
         $ruleName = $earlyWarning->ruleConfig?->rule_name ?? ($ruleNames[$earlyWarning->rule_code] ?? 'Early Warning Indicator');
@@ -200,9 +217,13 @@ class EarlyWarningController extends Controller
         $utilizationRatio = $allocated > 0 ? round((($realized + $reserved) / $allocated) * 100, 2) : 0;
 
         $thresholdMap = [
-            'EWS-001' => 'Rasio Saldo Tersedia <= '.((float) EarlyWarningService::getParameter('EWS-001', 'warning_ratio', 0.15) * 100).'%',
-            'EWS-002' => 'Durasi Antrean DIAJUKAN > '.((int) EarlyWarningService::getParameter('EWS-002', 'stale_days', 3)).' Hari',
-            'EWS-003' => 'Pagu Revisi Baru < Komitmen Aktif + Realisasi Selesai',
+            'EWS-01' => 'Rasio Saldo Tersedia (q) <= '.((float) EarlyWarningService::getParameter('EWS-01', 'threshold_ratio', 20.0)).'%',
+            'EWS-02' => 'Durasi Keadaan DP (a) > '.((int) EarlyWarningService::getParameter('EWS-02', 'threshold_days', 30)).' Hari Kalender',
+            'EWS-03' => 'Realisasi Kumulatif (u) < Target Kumulatif Sah (T)',
+            'EX-01' => 'Saldo Tersedia (S) < 0',
+            'EWS-001' => 'Rasio Saldo Tersedia <= '.((float) EarlyWarningService::getParameter('EWS-001', 'threshold_ratio', 20.0)).'%',
+            'EWS-002' => 'Durasi DP > '.((int) EarlyWarningService::getParameter('EWS-002', 'threshold_days', 30)).' Hari Kalender',
+            'EWS-003' => 'Realisasi di Bawah Target Kumulatif',
             'EWS-004' => 'Baris Import Staging Belum Terpetakan > 0',
             'EWS-005' => 'Frekuensi Dikembalikan >= '.((int) EarlyWarningService::getParameter('EWS-005', 'threshold_return_count', 2)).' Kali',
         ];
@@ -216,6 +237,9 @@ class EarlyWarningController extends Controller
             'utilization_ratio' => $utilizationRatio,
             'current_value' => (float) $earlyWarning->current_value,
             'threshold_value' => (float) $earlyWarning->threshold_value,
+            'operator' => $earlyWarning->operator ?? '<=',
+            'parameter_version' => $earlyWarning->parameter_version ?? 'v1.0-dev',
+            'eval_status' => $earlyWarning->eval_status ?? 'EVALUATED',
             'threshold' => $thresholdMap[$earlyWarning->rule_code] ?? 'Standard Configured Threshold',
             'reason' => $earlyWarning->reason ?: $earlyWarning->message,
             'target_object' => $earlyWarning->target_object,
@@ -255,6 +279,8 @@ class EarlyWarningController extends Controller
             'history' => $history,
             'relatedBudgetUrl' => $relatedBudgetUrl,
             'relatedTransactionUrl' => $relatedTransactionUrl,
+            'canConfigureParameters' => $user && $user->hasRole(['WD', 'DEKAN', 'ADMIN']),
+            'isPolicyMaker' => $user && $user->hasRole(['WD', 'DEKAN']),
         ]);
     }
 
@@ -301,5 +327,26 @@ class EarlyWarningController extends Controller
         $count = $this->ruleEngineService->evaluateAllEws();
 
         return redirect()->back()->with('success', "Pemindaian EWS selesai. {$count} aturan terdeteksi dan diperbarui.");
+    }
+
+    /**
+     * KF-07 & F-11: EWS Parameter Configuration with Role Enforcement
+     */
+    public function updateParameter(Request $request, string $ruleCode): RedirectResponse
+    {
+        $user = $request->user();
+
+        // Enforce authorization: only admin, WD, dekan can edit parameters (F-11)
+        if (! $user || ! $user->hasRole(['ADMIN', 'WD', 'DEKAN'])) {
+            abort(403, 'Akses Ditolak: Anda tidak memiliki kewenangan mengubah parameter EWS.');
+        }
+
+        $roleTitle = $user->hasRole(['WD', 'DEKAN'])
+            ? 'Pimpinan Fakultas (Penetap Kebijakan Ambang Batas)'
+            : 'Administrator Teknis Sistem';
+
+        EarlyWarningService::updateParameter($ruleCode, $request->parameters, $user);
+
+        return redirect()->back()->with('success', "Parameter indikator {$ruleCode} berhasil diperbarui oleh {$roleTitle} ({$user->name}). Versi parameter telah dimutakhirkan.");
     }
 }

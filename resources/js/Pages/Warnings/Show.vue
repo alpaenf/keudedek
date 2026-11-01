@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from 'vue';
-import { router, Link } from '@inertiajs/vue3';
+import { router, Link, useForm } from '@inertiajs/vue3';
 import AppLayout from '../../Layouts/AppLayout.vue';
 import { 
   AlertTriangle, 
@@ -20,7 +20,10 @@ import {
   AlertOctagon,
   Percent,
   TrendingDown,
-  Activity
+  Activity,
+  SlidersHorizontal,
+  X,
+  Shield
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -31,6 +34,8 @@ const props = defineProps({
   history: Object,
   relatedBudgetUrl: String,
   relatedTransactionUrl: String,
+  canConfigureParameters: Boolean,
+  isPolicyMaker: Boolean,
 });
 
 const isProcessing = ref(false);
@@ -81,6 +86,58 @@ const getStateBadge = (st) => {
     default:
       return { label: 'OPEN (AKTIF)', class: 'bg-amber-50 text-amber-900 border-amber-300 animate-pulse' };
   }
+};
+
+const isConfigModalOpen = ref(false);
+const paramForm = useForm({
+  threshold_ratio: 20,
+  critical_ratio: 5,
+  threshold_days: 30,
+  critical_days: 45,
+  notes: '',
+});
+
+const openConfigModal = () => {
+  const code = props.warning?.rule_code;
+  if (code === 'EWS-01' || code === 'EWS-001') {
+    const val = Number(props.calculation?.threshold_value ?? 0.20);
+    paramForm.threshold_ratio = val > 1 ? val : Math.round(val * 100);
+    paramForm.critical_ratio = 5;
+  } else if (code === 'EWS-02' || code === 'EWS-002') {
+    paramForm.threshold_days = Number(props.calculation?.threshold_value ?? 30);
+    paramForm.critical_days = 45;
+  }
+  paramForm.notes = '';
+  isConfigModalOpen.value = true;
+};
+
+const saveParameters = () => {
+  const code = props.warning?.rule_code;
+  let payload = {};
+  if (code === 'EWS-01' || code === 'EWS-001') {
+    payload = {
+      threshold_ratio: Number(paramForm.threshold_ratio) / 100,
+      critical_ratio: Number(paramForm.critical_ratio) / 100,
+      operator: '<=',
+    };
+  } else if (code === 'EWS-02' || code === 'EWS-002') {
+    payload = {
+      threshold_days: Number(paramForm.threshold_days),
+      critical_days: Number(paramForm.critical_days),
+      operator: '>',
+    };
+  }
+
+  paramForm.post(`/warnings/parameters/${code}`, {
+    preserveScroll: true,
+    data: {
+      parameters: payload,
+      notes: paramForm.notes,
+    },
+    onSuccess: () => {
+      isConfigModalOpen.value = false;
+    },
+  });
 };
 </script>
 
@@ -150,6 +207,16 @@ const getStateBadge = (st) => {
               <CheckCircle2 class="w-4 h-4" />
               <span>Selesaikan (Resolve)</span>
             </button>
+
+            <button 
+              v-if="canConfigureParameters"
+              @click="openConfigModal"
+              class="px-3.5 py-2.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-2xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs"
+              title="Ubah ambang batas indikator ini"
+            >
+              <SlidersHorizontal class="w-4 h-4 text-sky-600" />
+              <span>Ubah Parameter</span>
+            </button>
           </div>
         </div>
 
@@ -204,11 +271,21 @@ const getStateBadge = (st) => {
                   <p class="text-slate-800 leading-relaxed font-medium mt-0.5">{{ calculation.reason }}</p>
                 </div>
                 <div class="p-2.5 bg-white rounded-xl border border-slate-200/80">
-                  <span class="text-[10px] text-slate-400 font-bold uppercase block">6. First Triggered</span>
+                  <span class="text-[10px] text-slate-400 font-bold uppercase block">6. Operator &amp; Versi Parameter</span>
+                  <strong class="text-slate-900 font-mono text-xs">{{ calculation.operator }} (v{{ calculation.parameter_version }})</strong>
+                </div>
+                <div class="p-2.5 bg-white rounded-xl border border-slate-200/80">
+                  <span class="text-[10px] text-slate-400 font-bold uppercase block">7. Status Evaluasi</span>
+                  <strong :class="calculation.eval_status === 'CANNOT_BE_EVALUATED' ? 'text-rose-700' : 'text-emerald-700'" class="font-mono text-xs">
+                    {{ calculation.eval_status }}
+                  </strong>
+                </div>
+                <div class="p-2.5 bg-white rounded-xl border border-slate-200/80">
+                  <span class="text-[10px] text-slate-400 font-bold uppercase block">8. First Triggered</span>
                   <strong class="text-slate-900">{{ new Date(calculation.first_triggered_at).toLocaleString('id-ID') }}</strong>
                 </div>
                 <div class="p-2.5 bg-white rounded-xl border border-slate-200/80">
-                  <span class="text-[10px] text-slate-400 font-bold uppercase block">7. Status Siklus Hidup</span>
+                  <span class="text-[10px] text-slate-400 font-bold uppercase block">9. Status Siklus Hidup</span>
                   <strong :class="warning.lifecycle_state === 'RESOLVED' ? 'text-emerald-700' : (warning.lifecycle_state === 'ACKNOWLEDGED' ? 'text-indigo-700' : 'text-amber-700')">
                     {{ warning.lifecycle_state }}
                   </strong>
@@ -419,6 +496,131 @@ const getStateBadge = (st) => {
 
       </div>
 
+    </div>
+
+    <!-- Parameter Config Modal for this specific rule (KF-07) -->
+    <div v-if="isConfigModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+      <div class="max-w-lg w-full bg-white rounded-3xl border border-slate-200 shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-150 text-xs">
+        <div class="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
+          <div class="flex items-center gap-2.5">
+            <div class="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-white bg-sky-600">
+              <SlidersHorizontal class="w-5 h-5" />
+            </div>
+            <div>
+              <h3 class="text-base font-bold text-slate-900">Ubah Ambang Batas {{ warning.rule_code }}</h3>
+              <p class="text-xs text-slate-500 font-sans">
+                {{ isPolicyMaker ? 'Kewenangan Penetapan Kebijakan: Pimpinan Fakultas (WD / Dekan)' : 'Kewenangan Operasional: Administrator Teknis Sistem' }}
+              </p>
+            </div>
+          </div>
+          <button @click="isConfigModalOpen = false" class="p-1 text-slate-400 hover:text-slate-700 rounded-lg">
+            <X class="w-5 h-5" />
+          </button>
+        </div>
+
+        <form @submit.prevent="saveParameters" class="p-6 space-y-4">
+          <!-- Authority Notice Banner -->
+          <div :class="['p-3 rounded-xl border flex items-start gap-2', isPolicyMaker ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-sky-50 border-sky-200 text-sky-900']">
+            <Shield class="w-4 h-4 shrink-0 mt-0.5" :class="isPolicyMaker ? 'text-emerald-600' : 'text-sky-600'" />
+            <div class="space-y-0.5 text-[11px]">
+              <span class="font-bold block">
+                {{ isPolicyMaker ? 'Hak Penetapan Kebijakan Operasional Resmi' : 'Akses Konfigurasi Administrator Teknis' }}
+              </span>
+              <p class="leading-relaxed">
+                Pemutakhiran parameter akan menaikkan nomor versi parameter (saat ini v{{ calculation.parameter_version }}).
+              </p>
+            </div>
+          </div>
+
+          <!-- EWS-01 Fields -->
+          <template v-if="warning.rule_code === 'EWS-01' || warning.rule_code === 'EWS-001'">
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">Ambang Peringatan (&theta;<sub>s</sub> %)</label>
+                <div class="relative">
+                  <input 
+                    v-model="paramForm.threshold_ratio" 
+                    type="number" 
+                    min="1" 
+                    max="100" 
+                    step="0.5" 
+                    required
+                    class="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-sky-500 font-sans font-bold"
+                  >
+                  <span class="absolute right-3 top-2 text-slate-400 font-bold">%</span>
+                </div>
+              </div>
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">Ambang Kritis (%)</label>
+                <div class="relative">
+                  <input 
+                    v-model="paramForm.critical_ratio" 
+                    type="number" 
+                    min="1" 
+                    max="50" 
+                    step="0.5" 
+                    required
+                    class="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-sky-500 font-sans font-bold"
+                  >
+                  <span class="absolute right-3 top-2 text-slate-400 font-bold">%</span>
+                </div>
+              </div>
+            </div>
+          </template>
+
+          <!-- EWS-02 Fields -->
+          <template v-else-if="warning.rule_code === 'EWS-02' || warning.rule_code === 'EWS-002'">
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">Batas Waktu Peringatan (&tau; Hari)</label>
+                <div class="relative">
+                  <input 
+                    v-model="paramForm.threshold_days" 
+                    type="number" 
+                    min="1" 
+                    max="180" 
+                    required
+                    class="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-sky-500 font-sans font-bold"
+                  >
+                  <span class="absolute right-3 top-2 text-slate-400 font-bold">Hari</span>
+                </div>
+              </div>
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">Batas Kritis (Hari)</label>
+                <div class="relative">
+                  <input 
+                    v-model="paramForm.critical_days" 
+                    type="number" 
+                    min="1" 
+                    max="365" 
+                    required
+                    class="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-sky-500 font-sans font-bold"
+                  >
+                  <span class="absolute right-3 top-2 text-slate-400 font-bold">Hari</span>
+                </div>
+              </div>
+            </div>
+          </template>
+
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Dasar Kebijakan / Catatan Perubahan Parameter</label>
+            <textarea 
+              v-model="paramForm.notes" 
+              rows="2" 
+              placeholder="Catatan atau referensi penetapan kebijakan..."
+              class="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-sky-500"
+            ></textarea>
+          </div>
+
+          <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+            <button type="button" @click="isConfigModalOpen = false" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold transition">Batal</button>
+            <button type="submit" :disabled="paramForm.processing" class="px-5 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-xl font-bold transition flex items-center gap-1.5 shadow-md shadow-sky-600/20">
+              <CheckCircle2 class="w-4 h-4" />
+              Simpan Perubahan
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   </AppLayout>
 </template>

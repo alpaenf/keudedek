@@ -109,7 +109,7 @@ class BudgetCalculationService
             ->whereIn('status', ['FINAL', 'COMPLETED'])
             ->sum('amount');
 
-        $lineSaldo = max(0, $linePagu - $lineDiajukan - $lineRealisasi);
+        $lineSaldo = $linePagu - $lineDiajukan - $lineRealisasi;
 
         // Control Bucket metrics
         $bucket = $line->budgetBucket ?: self::resolveControlBucket($line);
@@ -252,5 +252,88 @@ class BudgetCalculationService
                 ),
             ];
         })->toArray();
+    }
+
+    /**
+     * Resolve all transactions that belong to a Pos Anggaran (Budget Bucket).
+     * Matches transactions by department, fiscal year, and bucket identity across revisions.
+     */
+    public static function getSubmissionsForBucket(BudgetBucket $bucket): Builder
+    {
+        return Submission::where('fiscal_year_id', $bucket->fiscal_year_id)
+            ->where('department_id', $bucket->department_id)
+            ->where(function (Builder $query) use ($bucket) {
+                $query->where('budget_bucket_id', $bucket->id)
+                    ->orWhere('original_budget_bucket_id', $bucket->id)
+                    ->orWhereHas('budgetBucket', function (Builder $bq) use ($bucket) {
+                        $bq->where('department_id', $bucket->department_id)
+                            ->where('account_code', $bucket->account_code)
+                            ->where(function ($sq) use ($bucket) {
+                                if ($bucket->subcomponent_full_code) {
+                                    $sq->where('subcomponent_full_code', $bucket->subcomponent_full_code);
+                                }
+                            });
+                    });
+            });
+    }
+
+    /**
+     * Synchronize a Pos Anggaran (BudgetBucket) from its underlying transactions.
+     * Implements Persamaan (3) & (4):
+     * C = sum(DP), R = sum(RI), S = P - C - R.
+     */
+    public static function synchronizeBucketFromTransactions(BudgetBucket $bucket): BudgetBucket
+    {
+        $submissions = self::getSubmissionsForBucket($bucket)->get();
+
+        $reserved = 0.0;
+        $realized = 0.0;
+        $hasUnmappedStatus = false;
+
+        foreach ($submissions as $sub) {
+            $status = $sub->status;
+            $amount = (float) $sub->amount;
+
+            if (in_array($status, BudgetControlService::COMMITMENT_STATUSES)) {
+                $reserved += $amount;
+            } elseif (in_array($status, BudgetControlService::REALIZATION_STATUSES)) {
+                $realized += $amount;
+            } elseif (! in_array($status, BudgetControlService::RELEASED_STATUSES)) {
+                $hasUnmappedStatus = true;
+            }
+        }
+
+        $allocated = (float) $bucket->allocated_budget;
+        $available = $allocated - $reserved - $realized;
+
+        $bucket->reserved_budget = $reserved;
+        $bucket->realized_budget = $realized;
+        $bucket->available_balance = $available;
+        $bucket->needs_review = ($available < 0);
+        $bucket->data_incomplete = $hasUnmappedStatus;
+        $bucket->save();
+
+        return $bucket;
+    }
+
+    /**
+     * Get authoritative financial snapshot for a Pos Anggaran (Control Bucket).
+     */
+    public static function getBucketFinancialSnapshot(BudgetBucket $bucket): array
+    {
+        $p = (float) $bucket->allocated_budget;
+        $c = (float) $bucket->reserved_budget;
+        $r = (float) $bucket->realized_budget;
+        $s = $p - $c - $r;
+
+        return [
+            'bucket_id' => $bucket->id,
+            'pagu' => $p,
+            'commitment' => $c,
+            'realization' => $r,
+            'available' => $s,
+            'needs_review' => (bool) $bucket->needs_review || ($s < 0),
+            'data_incomplete' => (bool) $bucket->data_incomplete,
+        ];
     }
 }

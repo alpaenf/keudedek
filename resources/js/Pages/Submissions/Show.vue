@@ -54,10 +54,26 @@ const getStatusBadge = (status) => {
   return map[status] || 'bg-slate-100 text-slate-700 border-slate-300';
 };
 
+const userRole = computed(() => page.props.auth?.user?.role);
+const canManage = computed(() => {
+  const role = userRole.value;
+  return ['PTK', 'ADMIN'].includes(role) || page.props.auth?.user?.id === props.submission?.created_by;
+});
+const canCorrect = computed(() => {
+  return ['PTU', 'BENDAHARA', 'ADMIN'].includes(userRole.value);
+});
+const canCancel = computed(() => {
+  return canManage.value && ['DRAFT', 'PROCESSING', 'SUBMITTED', 'RETURNED'].includes(props.submission.status);
+});
+const canResubmit = computed(() => {
+  return canManage.value && props.submission.status === 'RETURNED';
+});
+
 const isSignModalOpen = ref(false);
 const activeDecision = ref('APPROVED');
 
 const signForm = useForm({
+  action: 'APPROVED',
   decision: 'APPROVED',
   comment: '',
   password: '',
@@ -67,12 +83,15 @@ const signForm = useForm({
 const openSignModal = (decision) => {
   activeDecision.value = decision;
   signForm.reset();
+  signForm.action = decision;
   signForm.decision = decision;
   signForm.confirmed = false;
   isSignModalOpen.value = true;
 };
 
 const submitDecision = () => {
+  signForm.action = activeDecision.value;
+  signForm.decision = activeDecision.value;
   signForm.post(`/approvals/${props.submission.id}/decide`, {
     onSuccess: () => {
       isSignModalOpen.value = false;
@@ -81,11 +100,64 @@ const submitDecision = () => {
   });
 };
 
+const isResubmitModalOpen = ref(false);
+const resubmitForm = useForm({
+  amount: props.submission.amount,
+  title: props.submission.title,
+  notes: '',
+});
+const openResubmitModal = () => {
+  resubmitForm.amount = props.submission.amount;
+  resubmitForm.title = props.submission.title;
+  resubmitForm.notes = '';
+  isResubmitModalOpen.value = true;
+};
+const submitResubmit = () => {
+  resubmitForm.post(`/submissions/${props.submission.id}/resubmit`, {
+    onSuccess: () => {
+      isResubmitModalOpen.value = false;
+    },
+  });
+};
+
+const isCancelModalOpen = ref(false);
+const cancelForm = useForm({
+  reason: '',
+});
+const openCancelModal = () => {
+  cancelForm.reason = '';
+  isCancelModalOpen.value = true;
+};
+const submitCancel = () => {
+  cancelForm.post(`/submissions/${props.submission.id}/cancel`, {
+    onSuccess: () => {
+      isCancelModalOpen.value = false;
+    },
+  });
+};
+
+const isCorrectModalOpen = ref(false);
+const correctForm = useForm({
+  amount: props.submission.amount,
+  notes: '',
+});
+const openCorrectModal = () => {
+  correctForm.amount = props.submission.amount;
+  correctForm.notes = '';
+  isCorrectModalOpen.value = true;
+};
+const submitCorrect = () => {
+  correctForm.post(`/submissions/${props.submission.id}/correct`, {
+    onSuccess: () => {
+      isCorrectModalOpen.value = false;
+    },
+  });
+};
+
 const canApprove = computed(() => {
   // Hanya role pemeriksa tagihan / verifikator (PTU & Bendahara) yang memiliki aksi keputusan.
   // Pimpinan (Kajur, Kabag, WD, Dekan) bersifat monitoring / read-only.
-  const userRole = page.props.auth?.user?.role;
-  return ['PTU', 'BENDAHARA'].includes(userRole);
+  return ['PTU', 'BENDAHARA'].includes(userRole.value);
 });
 
 const printDocument = () => {
@@ -167,6 +239,37 @@ const printDocument = () => {
               <XCircle class="w-4 h-4" /> Tolak
             </button>
           </template>
+
+          <!-- Resubmit Button for RETURNED submission -->
+          <button 
+            v-if="canResubmit"
+            @click="openResubmitModal"
+            class="px-4 py-2.5 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-sky-600/20"
+          >
+            <RotateCcw class="w-4 h-4" />
+            <span>Ajukan Ulang</span>
+          </button>
+
+          <!-- Cancel Button for DRAFT / PROCESSING / SUBMITTED / RETURNED -->
+          <button 
+            v-if="canCancel"
+            @click="openCancelModal"
+            class="px-3.5 py-2.5 bg-slate-100 hover:bg-rose-50 hover:text-rose-700 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm"
+          >
+            <XCircle class="w-4 h-4 text-slate-500" />
+            <span>Batalkan Transaksi</span>
+          </button>
+
+          <!-- Correct Button for Authorized Financial Officers (RBC-05) -->
+          <button 
+            v-if="canCorrect"
+            @click="openCorrectModal"
+            class="px-3.5 py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm"
+            title="Koreksi Nominal / Data Transaksi (RBC-05)"
+          >
+            <Tag class="w-4 h-4 text-amber-700" />
+            <span>Koreksi Nominal</span>
+          </button>
         </div>
       </div>
 
@@ -483,6 +586,167 @@ const printDocument = () => {
             >
               <ShieldCheck class="w-4 h-4" />
               {{ activeDecision === 'APPROVED' ? 'Konfirmasi & Tanda Tangan' : (activeDecision === 'RETURNED' ? 'Kembalikan Berkas' : 'Tolak Berkas') }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Resubmit Modal -->
+    <div v-if="isResubmitModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+      <div class="max-w-lg w-full bg-white rounded-3xl border border-slate-200 shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-150">
+        <div class="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
+          <div class="flex items-center gap-2.5">
+            <div class="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-white bg-sky-600">
+              <RotateCcw class="w-5 h-5" />
+            </div>
+            <div>
+              <h3 class="text-base font-bold text-slate-900">Ajukan Ulang Transaksi</h3>
+              <p class="text-xs text-slate-500 font-sans">{{ submission.submission_number }}</p>
+            </div>
+          </div>
+          <button @click="isResubmitModalOpen = false" class="p-1 text-slate-400 hover:text-slate-700 rounded-lg">
+            <X class="w-5 h-5" />
+          </button>
+        </div>
+
+        <form @submit.prevent="submitResubmit" class="p-6 space-y-4 text-xs">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Judul / Uraian Transaksi</label>
+            <input 
+              v-model="resubmitForm.title" 
+              type="text" 
+              class="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-sky-500 focus:outline-none"
+            >
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Nominal Revisi (Rp) *</label>
+            <input 
+              v-model="resubmitForm.amount" 
+              type="number" 
+              min="1000"
+              required
+              class="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-sky-500 focus:outline-none font-sans font-bold"
+            >
+            <div v-if="resubmitForm.errors.amount" class="text-rose-600 text-[11px] mt-1">{{ resubmitForm.errors.amount }}</div>
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Catatan Perbaikan</label>
+            <textarea 
+              v-model="resubmitForm.notes" 
+              rows="3" 
+              placeholder="Jelaskan perbaikan yang telah dilakukan..."
+              class="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-sky-500 focus:outline-none"
+            ></textarea>
+          </div>
+          <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+            <button type="button" @click="isResubmitModalOpen = false" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold transition">Batal</button>
+            <button type="submit" :disabled="resubmitForm.processing" class="px-5 py-2.5 bg-sky-600 hover:bg-sky-500 text-white rounded-xl font-bold transition flex items-center gap-1.5 shadow-md shadow-sky-600/20">
+              <RotateCcw class="w-4 h-4" />
+              Kirim Pengajuan Ulang
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Cancel Modal -->
+    <div v-if="isCancelModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+      <div class="max-w-lg w-full bg-white rounded-3xl border border-slate-200 shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-150">
+        <div class="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
+          <div class="flex items-center gap-2.5">
+            <div class="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-white bg-rose-600">
+              <XCircle class="w-5 h-5" />
+            </div>
+            <div>
+              <h3 class="text-base font-bold text-slate-900">Batalkan Transaksi</h3>
+              <p class="text-xs text-slate-500 font-sans">{{ submission.submission_number }}</p>
+            </div>
+          </div>
+          <button @click="isCancelModalOpen = false" class="p-1 text-slate-400 hover:text-slate-700 rounded-lg">
+            <X class="w-5 h-5" />
+          </button>
+        </div>
+
+        <form @submit.prevent="submitCancel" class="p-6 space-y-4 text-xs">
+          <div class="p-4 bg-rose-50 border border-rose-200 rounded-2xl text-rose-900 space-y-1">
+            <span class="font-bold block">Peringatan Pembatalan Transaksi:</span>
+            <p class="text-[11px] leading-relaxed">
+              Pembatalan transaksi akan melepaskan komitmen anggaran (C) sebesar {{ formatRupiah(submission.amount) }} kembali ke saldo tersedia (S). Status transaksi akan menjadi DIBATALKAN secara permanen.
+            </p>
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Alasan Pembatalan</label>
+            <textarea 
+              v-model="cancelForm.reason" 
+              rows="3" 
+              placeholder="Tuliskan alasan pembatalan transaksi..."
+              class="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-rose-500 focus:outline-none"
+            ></textarea>
+          </div>
+          <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+            <button type="button" @click="isCancelModalOpen = false" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold transition">Batal</button>
+            <button type="submit" :disabled="cancelForm.processing" class="px-5 py-2.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl font-bold transition flex items-center gap-1.5 shadow-md shadow-rose-600/20">
+              <XCircle class="w-4 h-4" />
+              Konfirmasi Batalkan
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Correct Modal (RBC-05) -->
+    <div v-if="isCorrectModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+      <div class="max-w-lg w-full bg-white rounded-3xl border border-slate-200 shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-150">
+        <div class="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
+          <div class="flex items-center gap-2.5">
+            <div class="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-white bg-amber-600">
+              <Tag class="w-5 h-5" />
+            </div>
+            <div>
+              <h3 class="text-base font-bold text-slate-900">Koreksi Transaksi (RBC-05)</h3>
+              <p class="text-xs text-slate-500 font-sans">{{ submission.submission_number }}</p>
+            </div>
+          </div>
+          <button @click="isCorrectModalOpen = false" class="p-1 text-slate-400 hover:text-slate-700 rounded-lg">
+            <X class="w-5 h-5" />
+          </button>
+        </div>
+
+        <form @submit.prevent="submitCorrect" class="p-6 space-y-4 text-xs">
+          <div class="p-4 bg-amber-50 border border-amber-200 rounded-2xl text-amber-900 space-y-1">
+            <span class="font-bold block">Ketentuan Koreksi Transaksi:</span>
+            <p class="text-[11px] leading-relaxed">
+              Koreksi nominal dievaluasi terhadap kapasitas tersedia setelah kontribusi lama dikeluarkan (Persamaan 5 &amp; 6). Posisi anggaran C, R, dan S akan dimutakhirkan secara otomatis.
+            </p>
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Nominal Transaksi Baru (Rp) *</label>
+            <input 
+              v-model="correctForm.amount" 
+              type="number" 
+              min="1000"
+              required
+              class="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-amber-500 focus:outline-none font-sans font-bold"
+            >
+            <div v-if="correctForm.errors.amount" class="text-rose-600 text-[11px] mt-1">{{ correctForm.errors.amount }}</div>
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Dasar / Catatan Koreksi * (Wajib)</label>
+            <textarea 
+              v-model="correctForm.notes" 
+              rows="3" 
+              required
+              placeholder="Sebutkan alasan atau referensi dokumen koreksi..."
+              class="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-amber-500 focus:outline-none"
+            ></textarea>
+            <div v-if="correctForm.errors.notes" class="text-rose-600 text-[11px] mt-1">{{ correctForm.errors.notes }}</div>
+          </div>
+          <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+            <button type="button" @click="isCorrectModalOpen = false" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold transition">Batal</button>
+            <button type="submit" :disabled="correctForm.processing" class="px-5 py-2.5 bg-amber-600 hover:bg-amber-500 text-white rounded-xl font-bold transition flex items-center gap-1.5 shadow-md shadow-amber-600/20">
+              <CheckCircle2 class="w-4 h-4" />
+              Simpan Koreksi
             </button>
           </div>
         </form>

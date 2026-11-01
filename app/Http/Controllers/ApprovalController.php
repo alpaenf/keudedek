@@ -214,12 +214,15 @@ class ApprovalController extends Controller
             abort(403, 'Akses Ditolak: Anda tidak berwenang memeriksa pengajuan di luar lingkup unit Anda.');
         }
 
+        $actionInput = $request->input('action') ?? $request->input('decision');
+        $request->merge(['action' => $actionInput]);
+
         $request->validate([
             'action' => 'required|string|in:KEMBALIKAN,RETURN,RETURNED,TOLAK,REJECT,REJECTED,SELESAI,FINALIZE,APPROVED',
             'comment' => 'nullable|string|max:1000',
         ]);
 
-        $action = strtoupper($request->action);
+        $action = strtoupper((string) $request->action);
 
         // ==================================================
         // ACTION 1: KEMBALIKAN (Wajib Alasan -> DIKEMBALIKAN, Commitment Dilepas)

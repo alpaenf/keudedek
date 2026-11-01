@@ -581,4 +581,86 @@ Verifikator PTU / Bendahara<br/><br/><br/><br/>
         return redirect()->route('submissions.show', $submission)
             ->with('success', "Transaksi {$submission->evidence_number} berhasil diajukan ulang ke pemeriksaan PTU.");
     }
+
+    /**
+     * Cancel an active commitment or returned submission (RBC-06).
+     */
+    public function cancel(Request $request, Submission $submission): RedirectResponse
+    {
+        $user = $request->user();
+
+        if ($user->hasRole(['PTK', 'KAJUR', 'KAPRODI']) && (int) $user->department_id !== (int) $submission->department_id) {
+            abort(403, 'Akses Ditolak: Di luar lingkup unit Anda.');
+        }
+
+        if (! ScopeService::canCreateTransaction($user) && ! ScopeService::canApproveFinancial($user) && ! $user->hasRole('ADMIN')) {
+            abort(403, 'Akses Ditolak: Anda tidak memiliki izin membatalkan transaksi ini.');
+        }
+
+        $cancellableStatuses = ['DRAFT', 'PROCESSING', 'SUBMITTED', 'UNDER_REVIEW', 'RETURNED', 'REVISION_REQUIRED'];
+        if (! in_array($submission->status, $cancellableStatuses)) {
+            return redirect()->back()->with('error', "Transaksi dengan status '{$submission->status}' tidak dapat dibatalkan.");
+        }
+
+        $request->validate([
+            'reason' => 'nullable|string|max:500',
+        ]);
+
+        $notes = $request->filled('reason') ? "Pembatalan transaksi: {$request->reason}" : 'Transaksi dibatalkan.';
+
+        try {
+            BudgetControlService::transitionStatus(
+                submission: $submission,
+                targetStatus: 'CANCELLED',
+                actor: $user,
+                notes: $notes
+            );
+        } catch (\InvalidArgumentException $e) {
+            return redirect()->back()->with('error', $e->getMessage());
+        }
+
+        return redirect()->route('submissions.show', $submission)
+            ->with('success', "Transaksi {$submission->evidence_number} berhasil dibatalkan. Komitmen pagu telah dilepaskan.");
+    }
+
+    /**
+     * RBC-05: Correct transaction nominal and details according to Persamaan (5) & (6).
+     */
+    public function correct(Request $request, Submission $submission): RedirectResponse
+    {
+        $user = $request->user();
+
+        if (! ScopeService::canApproveFinancial($user) && ! ScopeService::canFinalizeTransaction($user) && ! $user->hasRole('ADMIN')) {
+            abort(403, 'Akses Ditolak: Anda tidak memiliki otoritas koreksi nominal transaksi.');
+        }
+
+        if (! ScopeService::canAccessDepartment($user, $submission->department_id)) {
+            abort(403, 'Akses Ditolak: Di luar lingkup unit Anda.');
+        }
+
+        $request->validate([
+            'amount' => 'required|numeric|min:1000',
+            'notes' => 'required|string|max:1000',
+        ], [
+            'amount.required' => 'Nominal koreksi wajib diisi.',
+            'amount.min' => 'Nominal koreksi minimal Rp 1.000.',
+            'notes.required' => 'Alasan / dasar dokumen koreksi wajib dicantumkan.',
+        ]);
+
+        try {
+            BudgetControlService::correctTransaction(
+                submission: $submission,
+                newAmount: (float) $request->amount,
+                actor: $user,
+                notes: "Koreksi transaksi: {$request->notes}"
+            );
+        } catch (\InvalidArgumentException $e) {
+            return redirect()->back()->withInput()->withErrors([
+                'amount' => $e->getMessage(),
+            ]);
+        }
+
+        return redirect()->route('submissions.show', $submission)
+            ->with('success', "Nominal transaksi {$submission->evidence_number} berhasil dikoreksi menjadi Rp ".number_format($request->amount, 0, ',', '.').'.');
+    }
 }

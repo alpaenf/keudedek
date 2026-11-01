@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from 'vue';
-import { router, Link } from '@inertiajs/vue3';
+import { router, Link, useForm } from '@inertiajs/vue3';
 import AppLayout from '../../Layouts/AppLayout.vue';
 import { 
   AlertTriangle, 
@@ -20,7 +20,10 @@ import {
   Filter,
   ArrowRight,
   Sparkles,
-  AlertOctagon
+  AlertOctagon,
+  SlidersHorizontal,
+  X,
+  Shield
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -29,6 +32,9 @@ const props = defineProps({
   fiscalYears: Array,
   accounts: Array,
   stats: Object,
+  ruleConfigs: Array,
+  canConfigureParameters: Boolean,
+  isPolicyMaker: Boolean,
   filters: Object,
   userRole: String,
 });
@@ -118,13 +124,75 @@ const getStateBadge = (st) => {
 
 const getRuleTitle = (code) => {
   switch (code) {
-    case 'EWS-001': return 'EWS-001: Saldo Kritis';
-    case 'EWS-002': return 'EWS-002: Stale Submission';
-    case 'EWS-003': return 'EWS-003: Revision Conflict';
-    case 'EWS-004': return 'EWS-004: Unmapped Data';
-    case 'EWS-005': return 'EWS-005: Repeated Return';
+    case 'EWS-01':
+    case 'EWS-001': return 'EWS-01: Saldo Tersedia Menipis';
+    case 'EWS-02':
+    case 'EWS-002': return 'EWS-02: Transaksi DP Terlalu Lama';
+    case 'EWS-03':
+    case 'EWS-003': return 'EWS-03: Realisasi di Bawah Target Kumulatif';
+    case 'EX-01': return 'EX-01: Pengecualian Saldo Negatif';
+    case 'EWS-004': return 'EWS-004: Data Belum Terpetakan';
+    case 'EWS-005': return 'EWS-005: Pengembalian Berulang';
     default: return code;
   }
+};
+
+const isConfigModalOpen = ref(false);
+const activeRuleConfigCode = ref('EWS-01');
+
+const paramForm = useForm({
+  threshold_ratio: 20,
+  critical_ratio: 5,
+  threshold_days: 30,
+  critical_days: 45,
+  notes: '',
+});
+
+const openConfigModal = () => {
+  const ews01 = props.ruleConfigs?.find(r => r.rule_code === 'EWS-01' || r.rule_code === 'EWS-001');
+  const ews02 = props.ruleConfigs?.find(r => r.rule_code === 'EWS-02' || r.rule_code === 'EWS-002');
+  
+  if (ews01?.parameters) {
+    const tr = Number(ews01.parameters.threshold_ratio ?? ews01.parameters.warning_ratio ?? 0.20);
+    const cr = Number(ews01.parameters.critical_ratio ?? 0.05);
+    paramForm.threshold_ratio = tr > 1 ? tr : Math.round(tr * 100);
+    paramForm.critical_ratio = cr > 1 ? cr : Math.round(cr * 100);
+  }
+  if (ews02?.parameters) {
+    paramForm.threshold_days = Number(ews02.parameters.threshold_days ?? ews02.parameters.stale_days ?? 30);
+    paramForm.critical_days = Number(ews02.parameters.critical_days ?? 45);
+  }
+  
+  paramForm.notes = '';
+  isConfigModalOpen.value = true;
+};
+
+const saveParameters = (ruleCodeToSave) => {
+  let payload = {};
+  if (ruleCodeToSave === 'EWS-01') {
+    payload = {
+      threshold_ratio: Number(paramForm.threshold_ratio) / 100,
+      critical_ratio: Number(paramForm.critical_ratio) / 100,
+      operator: '<=',
+    };
+  } else if (ruleCodeToSave === 'EWS-02') {
+    payload = {
+      threshold_days: Number(paramForm.threshold_days),
+      critical_days: Number(paramForm.critical_days),
+      operator: '>',
+    };
+  }
+  
+  paramForm.post(`/warnings/parameters/${ruleCodeToSave}`, {
+    preserveScroll: true,
+    data: {
+      parameters: payload,
+      notes: paramForm.notes,
+    },
+    onSuccess: () => {
+      isConfigModalOpen.value = false;
+    },
+  });
 };
 </script>
 
@@ -150,6 +218,16 @@ const getRuleTitle = (code) => {
         </div>
 
         <div class="flex flex-wrap items-center gap-2.5">
+          <button 
+            v-if="canConfigureParameters"
+            @click="openConfigModal"
+            class="px-4 py-2.5 bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 rounded-2xl text-xs font-bold transition flex items-center gap-2 shadow-xs"
+            title="Kelola Parameter dan Ambang Batas EWS"
+          >
+            <SlidersHorizontal class="w-4 h-4 text-sky-600" />
+            <span>Pengaturan Parameter EWS</span>
+          </button>
+
           <button 
             @click="triggerReevaluate"
             :disabled="isScanning"
@@ -490,6 +568,188 @@ const getRuleTitle = (code) => {
         </div>
       </div>
 
+    </div>
+
+    <!-- EWS Parameter Configuration Modal (KF-07, F-11) -->
+    <div v-if="isConfigModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+      <div class="max-w-xl w-full bg-white rounded-3xl border border-slate-200 shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-150">
+        <!-- Modal Header -->
+        <div class="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
+          <div class="flex items-center gap-2.5">
+            <div class="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-white bg-sky-600">
+              <SlidersHorizontal class="w-5 h-5" />
+            </div>
+            <div>
+              <h3 class="text-base font-bold text-slate-900">Pengaturan Parameter &amp; Ambang Batas EWS</h3>
+              <p class="text-xs text-slate-500 font-sans">
+                {{ isPolicyMaker ? 'Kewenangan Penetapan Kebijakan: Pimpinan Fakultas (WD / Dekan)' : 'Kewenangan Operasional: Administrator Teknis Sistem' }}
+              </p>
+            </div>
+          </div>
+          <button @click="isConfigModalOpen = false" class="p-1 text-slate-400 hover:text-slate-700 rounded-lg">
+            <X class="w-5 h-5" />
+          </button>
+        </div>
+
+        <div class="p-6 space-y-5 text-xs">
+          <!-- Authority Notice Banner -->
+          <div :class="['p-3.5 rounded-2xl border flex items-start gap-2.5', isPolicyMaker ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-sky-50 border-sky-200 text-sky-900']">
+            <Shield class="w-4 h-4 shrink-0 mt-0.5" :class="isPolicyMaker ? 'text-emerald-600' : 'text-sky-600'" />
+            <div class="space-y-0.5">
+              <span class="font-bold block">
+                {{ isPolicyMaker ? 'Hak Penetapan Kebijakan Operasional Resmi' : 'Akses Konfigurasi Administrator Teknis' }}
+              </span>
+              <p class="text-[11px] leading-relaxed">
+                Setiap pemutakhiran parameter akan menaikkan nomor versi parameter secara otomatis (versioning audit trail) dan dicatat ke dalam log aktivitas sistem.
+              </p>
+            </div>
+          </div>
+
+          <!-- Rule Switcher Tabs -->
+          <div class="flex gap-2 border-b border-slate-200 pb-2">
+            <button 
+              type="button"
+              @click="activeRuleConfigCode = 'EWS-01'"
+              :class="['px-3 py-1.5 rounded-xl font-bold transition text-xs', activeRuleConfigCode === 'EWS-01' ? 'bg-sky-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200']"
+            >
+              EWS-01 (Saldo Menipis)
+            </button>
+            <button 
+              type="button"
+              @click="activeRuleConfigCode = 'EWS-02'"
+              :class="['px-3 py-1.5 rounded-xl font-bold transition text-xs', activeRuleConfigCode === 'EWS-02' ? 'bg-sky-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200']"
+            >
+              EWS-02 (Durasi Transaksi DP)
+            </button>
+          </div>
+
+          <!-- Form Tab: EWS-01 -->
+          <form v-if="activeRuleConfigCode === 'EWS-01'" @submit.prevent="saveParameters('EWS-01')" class="space-y-4">
+            <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1">
+              <span class="font-bold text-slate-900 block">Indikator EWS-01 (Proposal Tabel 24 &amp; Persamaan 7-8)</span>
+              <p class="text-slate-600 text-[11px] leading-relaxed">
+                Kondisi terpicu: <code>0 &lt;= q &lt;= theta_s</code>, di mana <code>q = (S / P) * 100%</code>.
+              </p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">Ambang Peringatan / Warning (&theta;<sub>s</sub> %)</label>
+                <div class="relative">
+                  <input 
+                    v-model="paramForm.threshold_ratio" 
+                    type="number" 
+                    min="1" 
+                    max="100" 
+                    step="0.5" 
+                    required
+                    class="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-sky-500 font-sans font-bold"
+                  >
+                  <span class="absolute right-3 top-2 text-slate-400 font-bold">%</span>
+                </div>
+                <span class="text-[10px] text-slate-400 mt-1 block">Default proposal: 20%</span>
+              </div>
+
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">Ambang Kritis / Critical (%)</label>
+                <div class="relative">
+                  <input 
+                    v-model="paramForm.critical_ratio" 
+                    type="number" 
+                    min="1" 
+                    max="50" 
+                    step="0.5" 
+                    required
+                    class="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-sky-500 font-sans font-bold"
+                  >
+                  <span class="absolute right-3 top-2 text-slate-400 font-bold">%</span>
+                </div>
+                <span class="text-[10px] text-slate-400 mt-1 block">Default proposal: 5%</span>
+              </div>
+            </div>
+
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">Dasar Kebijakan / Catatan Perubahan Parameter</label>
+              <textarea 
+                v-model="paramForm.notes" 
+                rows="2" 
+                placeholder="Contoh: Penyesuaian ambang batas berdasarkan SK Pimpinan..."
+                class="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-sky-500"
+              ></textarea>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+              <button type="button" @click="isConfigModalOpen = false" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold transition">Batal</button>
+              <button type="submit" :disabled="paramForm.processing" class="px-5 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-xl font-bold transition flex items-center gap-1.5 shadow-md shadow-sky-600/20">
+                <CheckCircle2 class="w-4 h-4" />
+                Simpan Parameter EWS-01
+              </button>
+            </div>
+          </form>
+
+          <!-- Form Tab: EWS-02 -->
+          <form v-if="activeRuleConfigCode === 'EWS-02'" @submit.prevent="saveParameters('EWS-02')" class="space-y-4">
+            <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1">
+              <span class="font-bold text-slate-900 block">Indikator EWS-02 (Proposal Tabel 24 &amp; Persamaan 9-10)</span>
+              <p class="text-slate-600 text-[11px] leading-relaxed">
+                Kondisi terpicu: <code>status = DP AND a_i &gt; tau</code>, di mana <code>a_i</code> adalah umur hari kalender transaksi dalam proses.
+              </p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">Batas Waktu Peringatan (&tau; Hari Kalender)</label>
+                <div class="relative">
+                  <input 
+                    v-model="paramForm.threshold_days" 
+                    type="number" 
+                    min="1" 
+                    max="180" 
+                    required
+                    class="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-sky-500 font-sans font-bold"
+                  >
+                  <span class="absolute right-3 top-2 text-slate-400 font-bold">Hari</span>
+                </div>
+                <span class="text-[10px] text-slate-400 mt-1 block">Default proposal: 30 hari</span>
+              </div>
+
+              <div>
+                <label class="block font-semibold text-slate-700 mb-1">Batas Kritis / Critical (Hari)</label>
+                <div class="relative">
+                  <input 
+                    v-model="paramForm.critical_days" 
+                    type="number" 
+                    min="1" 
+                    max="365" 
+                    required
+                    class="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-sky-500 font-sans font-bold"
+                  >
+                  <span class="absolute right-3 top-2 text-slate-400 font-bold">Hari</span>
+                </div>
+                <span class="text-[10px] text-slate-400 mt-1 block">Default proposal: 45 hari</span>
+              </div>
+            </div>
+
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">Dasar Kebijakan / Catatan Perubahan Parameter</label>
+              <textarea 
+                v-model="paramForm.notes" 
+                rows="2" 
+                placeholder="Contoh: Penyesuaian batas SLA berkas belanja berdasarkan rapat koordinasi..."
+                class="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-sky-500"
+              ></textarea>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+              <button type="button" @click="isConfigModalOpen = false" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold transition">Batal</button>
+              <button type="submit" :disabled="paramForm.processing" class="px-5 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-xl font-bold transition flex items-center gap-1.5 shadow-md shadow-sky-600/20">
+                <CheckCircle2 class="w-4 h-4" />
+                Simpan Parameter EWS-02
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
     </div>
   </AppLayout>
 </template>

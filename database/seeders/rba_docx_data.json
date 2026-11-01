@@ -1,0 +1,1286 @@
+{
+    "accounts": [
+        {
+            "code": "52121111",
+            "name": "Beban Bahan (RM)"
+        },
+        {
+            "code": "52121911",
+            "name": "Beban Barang Non Operasional Lainnya (RM)"
+        },
+        {
+            "code": "52215111",
+            "name": "Beban Jasa Profesi (RM)"
+        },
+        {
+            "code": "52312111",
+            "name": "Beban Pemeliharaan Peralatan dan Mesin (RM)"
+        },
+        {
+            "code": "52411111",
+            "name": "Beban Perjalanan Dinas Biasa (RM)"
+        },
+        {
+            "code": "52511112",
+            "name": "Beban Lembur BLU"
+        },
+        {
+            "code": "52511213",
+            "name": "Beban Konsumsi Rapat\/Kegiatan\/Tamu"
+        },
+        {
+            "code": "52511311",
+            "name": "Beban Jasa BLU"
+        },
+        {
+            "code": "52511511",
+            "name": "Beban Perjalanan BLU"
+        },
+        {
+            "code": "52511911",
+            "name": "Beban Penyediaan Barang dan Jasa BLU"
+        }
+    ],
+    "rba_items": [
+        {
+            "department_code": "JTG",
+            "component_code": "7729.BEI.001.004.AA",
+            "component_name": "Penyelenggaraan dan Pemeliharaan Perkantoran (BOPTN)",
+            "rba_sequence_no": "12",
+            "description": "Pemeliharaan Alat Laboratorium Teknik Geologi",
+            "account_code": "52312111"
+        },
+        {
+            "department_code": "JTG",
+            "component_code": "7729.BEI.002.004.AF",
+            "component_name": "Kuliah Umum (Stadium General) (BOPTN)",
+            "rba_sequence_no": "58",
+            "description": "Snack Kuliah Umum Teknik Geologi",
+            "account_code": "52121111"
+        },
+        {
+            "department_code": "JTG",
+            "component_code": "7729.BEI.002.004.AF",
+            "component_name": "Kuliah Umum (Stadium General) (BOPTN)",
+            "rba_sequence_no": "57",
+            "description": "Makan Kuliah Umum Teknik Geologi",
+            "account_code": "52121111"
+        },
+        {
+            "department_code": "JTG",
+            "component_code": "7729.BEI.002.004.AF",
+            "component_name": "Kuliah Umum (Stadium General) (BOPTN)",
+            "rba_sequence_no": "34",
+            "description": "Transportasi Pembicara Kuliah Umum Teknik Geologi",
+            "account_code": "52411111"
+        },
+        {
+            "department_code": "JTG",
+            "component_code": "7729.BEI.002.004.AF",
+            "component_name": "Kuliah Umum (Stadium General) (BOPTN)",
+            "rba_sequence_no": "33",
+            "description": "Biaya Akomodasi Pembicara Kuliah Umum Teknik Geologi",
+            "account_code": "52411111"
+        },
+        {
+            "department_code": "JTG",
+            "component_code": "7729.BEI.002.004.AF",
+            "component_name": "Kuliah Umum (Stadium General) (BOPTN)",
+            "rba_sequence_no": "53",
+            "description": "Honor Pembicara Kuliah Umum Teknik Geologi",
+            "account_code": "52215111"
+        },
+        {
+            "department_code": "JTG",
+            "component_code": "7729.BEI.002.004.AH",
+            "component_name": "Praktikum (BOPTN)",
+            "rba_sequence_no": "116",
+            "description": "Honor Asisten Fieldtrip Praktikum Teknik Geologi",
+            "account_code": "52215111"
+        },
+        {
+            "department_code": "JTG",
+            "component_code": "7729.BEI.002.004.AH",
+            "component_name": "Praktikum (BOPTN)",
+            "rba_sequence_no": "122",
+            "description": "Honor Asisten Kuliah Lapangan Teknik Geologi",
+            "account_code": "52215111"
+        },
+        {
+            "department_code": "JTG",
+            "component_code": "7729.BEI.002.004.AH",
+            "component_name": "Praktikum (BOPTN)",
+            "rba_sequence_no": "119",
+            "description": "Honor Asisten Mahasiswa Praktikum Teknik Geologi",
+            "account_code": "52215111"
+        },
+        {
+            "department_code": "JTG",
+            "component_code": "7729.BEI.002.004.AH",
+            "component_name": "Praktikum (BOPTN)",
+            "rba_sequence_no": "121",
+            "description": "Biaya Akomodasi Praktikum Lapangan Mata Kuliah Ekskursi Teknik Geologi",
+            "account_code": "52121911"
+        },
+        {
+            "department_code": "JTG",
+            "component_code": "7729.BEI.002.004.AH",
+            "component_name": "Praktikum (BOPTN)",
+            "rba_sequence_no": "138",
+            "description": "Biaya Akomodasi Praktikum Lapangan Geologi Migas Teknik Geologi",
+            "account_code": "52121911"
+        },
+        {
+            "department_code": "JTG",
+            "component_code": "7729.BEI.002.004.AH",
+            "component_name": "Praktikum (BOPTN)",
+            "rba_sequence_no": "128",
+            "description": "Biaya Akomodasi Praktikum Lapangan Petrografi Teknik Geologi",
+            "account_code": "52121911"
+        },
+        {
+            "department_code": "JTG",
+            "component_code": "7729.BEI.002.004.AH",
+            "component_name": "Praktikum (BOPTN)",
+            "rba_sequence_no": "115",
+            "description": "Biaya Praktikum Lapangan Teknik Geologi ke Ngawi",
+            "account_code": "52121911"
+        },
+        {
+            "department_code": "JTG",
+            "component_code": "7729.BEI.002.004.AH",
+            "component_name": "Praktikum (BOPTN)",
+            "rba_sequence_no": "142",
+            "description": "Biaya Praktikum Kimia Dasar ke MIPA Teknik Geologi",
+            "account_code": "52121911"
+        },
+        {
+            "department_code": "JTG",
+            "component_code": "7729.BEI.002.004.AH",
+            "component_name": "Praktikum (BOPTN)",
+            "rba_sequence_no": "134",
+            "description": "Biaya Akomodasi Praktikum Lapangan Geologi Teknik Teknik Geologi",
+            "account_code": "52121911"
+        },
+        {
+            "department_code": "JTG",
+            "component_code": "7729.BEI.002.004.AH",
+            "component_name": "Praktikum (BOPTN)",
+            "rba_sequence_no": "118",
+            "description": "Biaya Praktikum Lapangan Teknik Geologi ke Parangtritis",
+            "account_code": "52121911"
+        },
+        {
+            "department_code": "JTG",
+            "component_code": "7729.BEI.002.004.AH",
+            "component_name": "Praktikum (BOPTN)",
+            "rba_sequence_no": "144",
+            "description": "Biaya Akomodasi Praktikum Lapangan Geofisika Eksplorasi Teknik Geologi",
+            "account_code": "52121911"
+        },
+        {
+            "department_code": "JTG",
+            "component_code": "7729.BEI.002.004.AH",
+            "component_name": "Praktikum (BOPTN)",
+            "rba_sequence_no": "126",
+            "description": "Biaya Akomodasi Praktikum Lapangan Geologi Dasar Teknik Geologi",
+            "account_code": "52121911"
+        },
+        {
+            "department_code": "JTG",
+            "component_code": "7729.BEI.002.004.AH",
+            "component_name": "Praktikum (BOPTN)",
+            "rba_sequence_no": "124",
+            "description": "Biaya Akomodasi Praktikum Lapangan Mineralogi Teknik Geologi",
+            "account_code": "52121911"
+        },
+        {
+            "department_code": "JTG",
+            "component_code": "7729.BEI.002.004.AH",
+            "component_name": "Praktikum (BOPTN)",
+            "rba_sequence_no": "136",
+            "description": "Biaya Akomodasi Praktikum Lapangan Sistem Informasi Geografis Teknik Geologi",
+            "account_code": "52121911"
+        },
+        {
+            "department_code": "JTG",
+            "component_code": "7729.BEI.002.004.AH",
+            "component_name": "Praktikum (BOPTN)",
+            "rba_sequence_no": "140",
+            "description": "Biaya Akomodasi Mata Kuliah Lapangan Karangsambung dan Kulonprogo",
+            "account_code": "52121911"
+        },
+        {
+            "department_code": "JTG",
+            "component_code": "7729.BEI.002.004.AH",
+            "component_name": "Praktikum (BOPTN)",
+            "rba_sequence_no": "132",
+            "description": "Biaya Akomodasi Praktikum Lapangan Mikropaleontologi Teknik Geologi",
+            "account_code": "52121911"
+        },
+        {
+            "department_code": "JTG",
+            "component_code": "7729.BEI.002.004.AH",
+            "component_name": "Praktikum (BOPTN)",
+            "rba_sequence_no": "130",
+            "description": "Biaya Akomodasi Praktikum Lapangan Hidrogeologi Teknik Geologi",
+            "account_code": "52121911"
+        },
+        {
+            "department_code": "JTG",
+            "component_code": "7729.BEI.002.004.CA",
+            "component_name": "Pembinaan UKM\/HIMA (BOPTN)",
+            "rba_sequence_no": "341",
+            "description": "Bantuan Operasional HIMAGI Teknik Geologi",
+            "account_code": "52121911"
+        },
+        {
+            "department_code": "JTG",
+            "component_code": "7729.BEI.002.004.CC",
+            "component_name": "Pengiriman Delegasi Mahasiswa Bidang Penalaran dan Bidang Minat Bakat (BOPTN)",
+            "rba_sequence_no": "353",
+            "description": "Pengiriman Delegasi Mahasiswa Jurusan Teknik Geologi",
+            "account_code": "52121911"
+        },
+        {
+            "department_code": "JTG",
+            "component_code": "7730.DBA.001.053.BI",
+            "component_name": "Kuliah Umum (Stadium General)",
+            "rba_sequence_no": "850",
+            "description": "Transportasi Pembicara Kuliah Umum Teknik Geologi",
+            "account_code": "52511511"
+        },
+        {
+            "department_code": "JTG",
+            "component_code": "7730.DBA.001.053.BI",
+            "component_name": "Kuliah Umum (Stadium General)",
+            "rba_sequence_no": "846",
+            "description": "Biaya Akomodasi Pembicara Kuliah Umum Teknik Geologi",
+            "account_code": "52511511"
+        },
+        {
+            "department_code": "JTG",
+            "component_code": "7730.DBA.002.051.AA",
+            "component_name": "Operasional Perkantoran",
+            "rba_sequence_no": "632",
+            "description": "Keanggotaan ASPRODITEGI Geologi",
+            "account_code": "52511911"
+        },
+        {
+            "department_code": "JTG",
+            "component_code": "7730.DBA.002.051.AA",
+            "component_name": "Operasional Perkantoran",
+            "rba_sequence_no": "614",
+            "description": "Akomodasi Rakornas ASPRODITEGI Geologi",
+            "account_code": "52511511"
+        },
+        {
+            "department_code": "JTG",
+            "component_code": "7730.DBA.002.051.AA",
+            "component_name": "Operasional Perkantoran",
+            "rba_sequence_no": "617",
+            "description": "Transportasi ASPRODITEGI Geologi",
+            "account_code": "52511511"
+        },
+        {
+            "department_code": "JTG",
+            "component_code": "7730.DBA.002.051.AA",
+            "component_name": "Operasional Perkantoran",
+            "rba_sequence_no": "620",
+            "description": "Uang Harian ASPRODITEGI Geologi",
+            "account_code": "52511511"
+        },
+        {
+            "department_code": "JTG",
+            "component_code": "7730.DBA.002.051.AG",
+            "component_name": "Promosi Institusi",
+            "rba_sequence_no": "770",
+            "description": "Plakat Informatika",
+            "account_code": "52511911"
+        },
+        {
+            "department_code": "JTG",
+            "component_code": "7730.DBA.002.051.AG",
+            "component_name": "Promosi Institusi",
+            "rba_sequence_no": "771",
+            "description": "Tumbler Informatika (Promosi Informatika)",
+            "account_code": "52511911"
+        },
+        {
+            "department_code": "JTG",
+            "component_code": "7730.DBA.002.051.AG",
+            "component_name": "Promosi Institusi",
+            "rba_sequence_no": "769",
+            "description": "Kaos Informatika (Promosi Informatika)",
+            "account_code": "52511911"
+        },
+        {
+            "department_code": "JTG",
+            "component_code": "7730.DBA.002.051.AG",
+            "component_name": "Promosi Institusi",
+            "rba_sequence_no": "768",
+            "description": "Goody Bag Informatika (Promosi Informatika)",
+            "account_code": "52511911"
+        },
+        {
+            "department_code": "JTG",
+            "component_code": "7730.DBA.002.053.BB",
+            "component_name": "Pelatihan\/Sertifikasi Kompetensi Tenaga Kependidikan",
+            "rba_sequence_no": "773",
+            "description": "Biaya Akomodasi Pelatihan Tenaga Kependidikan Jurusan Teknik Informatika",
+            "account_code": "52511911"
+        },
+        {
+            "department_code": "JTG",
+            "component_code": "7730.DBA.002.053.BB",
+            "component_name": "Pelatihan\/Sertifikasi Kompetensi Tenaga Kependidikan",
+            "rba_sequence_no": "772",
+            "description": "Biaya Pelatihan Tenaga Kependidikan Jurusan Teknik Informatika",
+            "account_code": "52511911"
+        },
+        {
+            "department_code": "JTG",
+            "component_code": "7730.DBA.002.053.BB",
+            "component_name": "Pelatihan\/Sertifikasi Kompetensi Tenaga Kependidikan",
+            "rba_sequence_no": "774",
+            "description": "Uang Harian Pelatihan Tenaga Kependidikan Jurusan Teknik Informatika",
+            "account_code": "52511911"
+        },
+        {
+            "department_code": "JTG",
+            "component_code": "7730.DBA.002.053.BB",
+            "component_name": "Pelatihan\/Sertifikasi Kompetensi Tenaga Kependidikan",
+            "rba_sequence_no": "775",
+            "description": "Biaya Transportasi Pelatihan Tenaga Kependidikan Jurusan Teknik Informatika",
+            "account_code": "52511911"
+        },
+        {
+            "department_code": "JTIF",
+            "component_code": "7729.BEI.002.004.AF",
+            "component_name": "Kuliah Umum (Stadium General) (BOPTN)",
+            "rba_sequence_no": "61",
+            "description": "Makan Jamuan Tamu Kuliah Umum Informatika",
+            "account_code": "52121111"
+        },
+        {
+            "department_code": "JTIF",
+            "component_code": "7729.BEI.002.004.AF",
+            "component_name": "Kuliah Umum (Stadium General) (BOPTN)",
+            "rba_sequence_no": "62",
+            "description": "Snack Kuliah Umum Jurusan Informatika",
+            "account_code": "52121111"
+        },
+        {
+            "department_code": "JTIF",
+            "component_code": "7729.BEI.002.004.AF",
+            "component_name": "Kuliah Umum (Stadium General) (BOPTN)",
+            "rba_sequence_no": "39",
+            "description": "Akomodasi Pembicara Kuliah Umum Jurusan Informatika",
+            "account_code": "52411111"
+        },
+        {
+            "department_code": "JTIF",
+            "component_code": "7729.BEI.002.004.AF",
+            "component_name": "Kuliah Umum (Stadium General) (BOPTN)",
+            "rba_sequence_no": "40",
+            "description": "Akomodasi Transportasi Pembicara Kuliah Umum Jurusan Informatika",
+            "account_code": "52411111"
+        },
+        {
+            "department_code": "JTIF",
+            "component_code": "7729.BEI.002.004.AF",
+            "component_name": "Kuliah Umum (Stadium General) (BOPTN)",
+            "rba_sequence_no": "51",
+            "description": "Honor Pembicara Kuliah Umum di Luar Kemendikbud Jurusan Informatika",
+            "account_code": "52215111"
+        },
+        {
+            "department_code": "JTIF",
+            "component_code": "7729.BEI.002.004.AG",
+            "component_name": "Perkuliahan Dosen Tamu dari Dunia Industri (BOPTN)",
+            "rba_sequence_no": "72",
+            "description": "Makan Dosen Tamu Informatika",
+            "account_code": "52121111"
+        },
+        {
+            "department_code": "JTIF",
+            "component_code": "7729.BEI.002.004.AG",
+            "component_name": "Perkuliahan Dosen Tamu dari Dunia Industri (BOPTN)",
+            "rba_sequence_no": "73",
+            "description": "Snack Dosen Tamu Informatika",
+            "account_code": "52121111"
+        },
+        {
+            "department_code": "JTIF",
+            "component_code": "7729.BEI.002.004.AG",
+            "component_name": "Perkuliahan Dosen Tamu dari Dunia Industri (BOPTN)",
+            "rba_sequence_no": "64",
+            "description": "Akomodasi Pembicara Dosen Tamu Informatika",
+            "account_code": "52411111"
+        },
+        {
+            "department_code": "JTIF",
+            "component_code": "7729.BEI.002.004.AG",
+            "component_name": "Perkuliahan Dosen Tamu dari Dunia Industri (BOPTN)",
+            "rba_sequence_no": "65",
+            "description": "Akomodasi Transportasi Pembicara Dosen Tamu Informatika",
+            "account_code": "52411111"
+        },
+        {
+            "department_code": "JTIF",
+            "component_code": "7729.BEI.002.004.AG",
+            "component_name": "Perkuliahan Dosen Tamu dari Dunia Industri (BOPTN)",
+            "rba_sequence_no": "71",
+            "description": "Honor Dosen Tamu Informatika",
+            "account_code": "52215111"
+        },
+        {
+            "department_code": "JTIF",
+            "component_code": "7729.BEI.002.004.AH",
+            "component_name": "Praktikum (BOPTN)",
+            "rba_sequence_no": "227",
+            "description": "Honor Dosen Luar Biasa Informatika",
+            "account_code": "52215111"
+        },
+        {
+            "department_code": "JTIF",
+            "component_code": "7729.BEI.002.004.AH",
+            "component_name": "Praktikum (BOPTN)",
+            "rba_sequence_no": "225",
+            "description": "Honor Asisten Mahasiswa Informatika",
+            "account_code": "52215111"
+        },
+        {
+            "department_code": "JTIF",
+            "component_code": "7729.BEI.002.004.AI",
+            "component_name": "Ujian (BOPTN)",
+            "rba_sequence_no": "320",
+            "description": "Honor Pembuatan Soal Ujian Dosen LB Jurusan Teknik Informatika",
+            "account_code": "52215111"
+        },
+        {
+            "department_code": "JTIF",
+            "component_code": "7729.BEI.002.004.AI",
+            "component_name": "Ujian (BOPTN)",
+            "rba_sequence_no": "319",
+            "description": "Honor Koreksi Soal Dosen Luar Biasa",
+            "account_code": "52215111"
+        },
+        {
+            "department_code": "JTIF",
+            "component_code": "7729.BEI.002.004.CA",
+            "component_name": "Pembinaan UKM\/HIMA (BOPTN)",
+            "rba_sequence_no": "342",
+            "description": "Bantuan Operasional Kegiatan HIMA Teknik Informatika",
+            "account_code": "52121911"
+        },
+        {
+            "department_code": "JTIF",
+            "component_code": "7729.BEI.002.004.CC",
+            "component_name": "Pengiriman Delegasi Mahasiswa Bidang Penalaran dan Bidang Minat Bakat (BOPTN)",
+            "rba_sequence_no": "354",
+            "description": "Biaya Pengiriman Delegasi Jurusan Teknik Informatika",
+            "account_code": "52121911"
+        },
+        {
+            "department_code": "JTIF",
+            "component_code": "7729.BEI.002.004.CI",
+            "component_name": "Pembekalan\/Pelatihan\/Sertifikasi Kompetensi Mahasiswa (BOPTN)",
+            "rba_sequence_no": "373",
+            "description": "Bantuan Sertifikasi Keahlian Mahasiswa Jurusan Teknik Informasi",
+            "account_code": "52121911"
+        },
+        {
+            "department_code": "JTIF",
+            "component_code": "7729.BEI.002.004.DB",
+            "component_name": "Pelatihan Tenaga Pendidik\/Sertifikasi Kompetensi Tenaga Pendidik (BOPTN)",
+            "rba_sequence_no": "384",
+            "description": "Akomodasi Pembicara Workshop Penulisan Proposal Penelitian dan PKM Informatika",
+            "account_code": "52411111"
+        },
+        {
+            "department_code": "JTIF",
+            "component_code": "7729.BEI.002.004.DB",
+            "component_name": "Pelatihan Tenaga Pendidik\/Sertifikasi Kompetensi Tenaga Pendidik (BOPTN)",
+            "rba_sequence_no": "398",
+            "description": "Honor Narasumber Workshop Penulisan Proposal Penelitian Informatika",
+            "account_code": "52215111"
+        },
+        {
+            "department_code": "JTIF",
+            "component_code": "7729.BEI.002.004.DB",
+            "component_name": "Pelatihan Tenaga Pendidik\/Sertifikasi Kompetensi Tenaga Pendidik (BOPTN)",
+            "rba_sequence_no": "400",
+            "description": "Konsumsi Makan Workshop Penulisan Proposal Penelitian dan PKM Informatika",
+            "account_code": "52121111"
+        },
+        {
+            "department_code": "JTIF",
+            "component_code": "7729.BEI.002.004.DB",
+            "component_name": "Pelatihan Tenaga Pendidik\/Sertifikasi Kompetensi Tenaga Pendidik (BOPTN)",
+            "rba_sequence_no": "395",
+            "description": "Biaya Pelatihan Tenaga Kependidikan Informatika",
+            "account_code": "52121911"
+        },
+        {
+            "department_code": "JTIF",
+            "component_code": "7729.BEI.002.004.DB",
+            "component_name": "Pelatihan Tenaga Pendidik\/Sertifikasi Kompetensi Tenaga Pendidik (BOPTN)",
+            "rba_sequence_no": "386",
+            "description": "Bantuan Tes Bahasa Inggris Persiapan S3 Jurusan Teknik Informatika",
+            "account_code": "52121911"
+        },
+        {
+            "department_code": "JTIF",
+            "component_code": "7729.BEI.002.004.DB",
+            "component_name": "Pelatihan Tenaga Pendidik\/Sertifikasi Kompetensi Tenaga Pendidik (BOPTN)",
+            "rba_sequence_no": "387",
+            "description": "Bantuan BootCamp S3",
+            "account_code": "52121911"
+        },
+        {
+            "department_code": "JTIF",
+            "component_code": "7729.BEI.002.004.DB",
+            "component_name": "Pelatihan Tenaga Pendidik\/Sertifikasi Kompetensi Tenaga Pendidik (BOPTN)",
+            "rba_sequence_no": "388",
+            "description": "Bantuan Biaya Pelatihan Jurusan Teknik Informatika",
+            "account_code": "52121911"
+        },
+        {
+            "department_code": "JTIF",
+            "component_code": "7729.BEI.002.004.DE",
+            "component_name": "Penyusunan Dokumen Akreditasi Program Studi\/Laboratorium\/Perguruan Tinggi (BOPTN)",
+            "rba_sequence_no": "409",
+            "description": "Visitasi Akreditasi Prodi Teknik Komputer",
+            "account_code": "52121111"
+        },
+        {
+            "department_code": "JTIF",
+            "component_code": "7729.BEI.002.004.DE",
+            "component_name": "Penyusunan Dokumen Akreditasi Program Studi\/Laboratorium\/Perguruan Tinggi (BOPTN)",
+            "rba_sequence_no": "415",
+            "description": "Jamuan Pelaksanaan Akreditasi Teknik Komputer",
+            "account_code": "52121111"
+        },
+        {
+            "department_code": "JTIF",
+            "component_code": "7729.BEI.002.004.DE",
+            "component_name": "Penyusunan Dokumen Akreditasi Program Studi\/Laboratorium\/Perguruan Tinggi (BOPTN)",
+            "rba_sequence_no": "405",
+            "description": "Akreditasi Prodi Teknik Komputer",
+            "account_code": "52121911"
+        },
+        {
+            "department_code": "JTIF",
+            "component_code": "7729.BEI.002.004.DF",
+            "component_name": "Penyusunan\/Evaluasi\/Revisi Kurikulum",
+            "rba_sequence_no": "429",
+            "description": "Honor Pembicara di Luar Departemen Informatika",
+            "account_code": "52215111"
+        },
+        {
+            "department_code": "JTIF",
+            "component_code": "7729.BEI.002.004.DF",
+            "component_name": "Penyusunan\/Evaluasi\/Revisi Kurikulum",
+            "rba_sequence_no": "425",
+            "description": "Transport Pembicara FGD Informatika",
+            "account_code": "52411111"
+        },
+        {
+            "department_code": "JTIF",
+            "component_code": "7730.DBA.001.053.BB",
+            "component_name": "Perkuliahan",
+            "rba_sequence_no": "529",
+            "description": "Uang Harian Kunjungan Industri Informatika",
+            "account_code": "52511511"
+        },
+        {
+            "department_code": "JTIF",
+            "component_code": "7730.DBA.001.053.BB",
+            "component_name": "Perkuliahan",
+            "rba_sequence_no": "528",
+            "description": "Biaya Akomodasi Kunjungan Industri Jurusan Teknik Informatika",
+            "account_code": "52511511"
+        },
+        {
+            "department_code": "JTIF",
+            "component_code": "7730.DBA.001.053.BB",
+            "component_name": "Perkuliahan",
+            "rba_sequence_no": "527",
+            "description": "Biaya Transportasi Kunjungan Industri Jurusan Teknik Informatika",
+            "account_code": "52511511"
+        },
+        {
+            "department_code": "JTIF",
+            "component_code": "7730.DBA.001.053.BC",
+            "component_name": "Praktikum",
+            "rba_sequence_no": "535",
+            "description": "Akomodasi Transportasi KP Jurusan Informatika",
+            "account_code": "52511511"
+        },
+        {
+            "department_code": "JTIF",
+            "component_code": "7730.DBA.001.053.BC",
+            "component_name": "Praktikum",
+            "rba_sequence_no": "534",
+            "description": "Akomodasi KP Jurusan Informatika",
+            "account_code": "52511511"
+        },
+        {
+            "department_code": "JTIF",
+            "component_code": "7730.DBA.001.053.BC",
+            "component_name": "Praktikum",
+            "rba_sequence_no": "536",
+            "description": "Uang Harian KP Jurusan Informatika",
+            "account_code": "52511511"
+        },
+        {
+            "department_code": "JTIF",
+            "component_code": "7730.DBA.001.053.BC",
+            "component_name": "Praktikum",
+            "rba_sequence_no": "852",
+            "description": "Honor Asisten Mahasiswa Informatika",
+            "account_code": "52511311"
+        },
+        {
+            "department_code": "JTIF",
+            "component_code": "7730.DBA.001.053.BI",
+            "component_name": "Kuliah Umum (Stadium General)",
+            "rba_sequence_no": "844",
+            "description": "Akomodasi Transportasi Pembicara Kuliah Umum Jurusan Informatika",
+            "account_code": "52511511"
+        },
+        {
+            "department_code": "JTIF",
+            "component_code": "7730.DBA.001.053.BI",
+            "component_name": "Kuliah Umum (Stadium General)",
+            "rba_sequence_no": "841",
+            "description": "Akomodasi Pembicara Kuliah Umum Jurusan Informatika",
+            "account_code": "52511511"
+        },
+        {
+            "department_code": "JTIF",
+            "component_code": "7730.DBA.001.053.HA",
+            "component_name": "Inisiasi Kerjasama",
+            "rba_sequence_no": "829",
+            "description": "Transport Informatika",
+            "account_code": "52511511"
+        },
+        {
+            "department_code": "JTIF",
+            "component_code": "7730.DBA.001.053.HA",
+            "component_name": "Inisiasi Kerjasama",
+            "rba_sequence_no": "830",
+            "description": "Uang Harian Lokal Informatika",
+            "account_code": "52511511"
+        },
+        {
+            "department_code": "JTIF",
+            "component_code": "7730.DBA.001.053.HA",
+            "component_name": "Inisiasi Kerjasama",
+            "rba_sequence_no": "828",
+            "description": "Akomodasi Informatika",
+            "account_code": "52511511"
+        },
+        {
+            "department_code": "JTIF",
+            "component_code": "7730.DBA.001.053.MB",
+            "component_name": "Pelatihan Tenaga Pendidik\/Sertifikasi Kompetensi Tenaga Pendidik",
+            "rba_sequence_no": "572",
+            "description": "Uang Harian BootCamp Jurusan Teknik Informatika",
+            "account_code": "52511511"
+        },
+        {
+            "department_code": "JTIF",
+            "component_code": "7730.DBA.001.053.MB",
+            "component_name": "Pelatihan Tenaga Pendidik\/Sertifikasi Kompetensi Tenaga Pendidik",
+            "rba_sequence_no": "570",
+            "description": "Biaya Transportasi BootCamp S3 Jurusan Teknik Informatika",
+            "account_code": "52511511"
+        },
+        {
+            "department_code": "JTIF",
+            "component_code": "7730.DBA.001.053.MB",
+            "component_name": "Pelatihan Tenaga Pendidik\/Sertifikasi Kompetensi Tenaga Pendidik",
+            "rba_sequence_no": "571",
+            "description": "Biaya Transportasi Pelatihan",
+            "account_code": "52511511"
+        },
+        {
+            "department_code": "JTIF",
+            "component_code": "7730.DBA.001.053.MB",
+            "component_name": "Pelatihan Tenaga Pendidik\/Sertifikasi Kompetensi Tenaga Pendidik",
+            "rba_sequence_no": "577",
+            "description": "Transport",
+            "account_code": "52511511"
+        },
+        {
+            "department_code": "JTIF",
+            "component_code": "7730.DBA.001.053.MB",
+            "component_name": "Pelatihan Tenaga Pendidik\/Sertifikasi Kompetensi Tenaga Pendidik",
+            "rba_sequence_no": "574",
+            "description": "Uang Harian Pelatihan Jurusan Teknik Informatika",
+            "account_code": "52511511"
+        },
+        {
+            "department_code": "JTIF",
+            "component_code": "7730.DBA.001.053.MB",
+            "component_name": "Pelatihan Tenaga Pendidik\/Sertifikasi Kompetensi Tenaga Pendidik",
+            "rba_sequence_no": "573",
+            "description": "Biaya Akomodasi Pelatihan Jurusan Teknik Informatika",
+            "account_code": "52511511"
+        },
+        {
+            "department_code": "JTIF",
+            "component_code": "7730.DBA.001.053.MB",
+            "component_name": "Pelatihan Tenaga Pendidik\/Sertifikasi Kompetensi Tenaga Pendidik",
+            "rba_sequence_no": "576",
+            "description": "Transport Pelatihan Tenaga Kependidikan",
+            "account_code": "52511511"
+        },
+        {
+            "department_code": "JTIF",
+            "component_code": "7730.DBA.001.053.MB",
+            "component_name": "Pelatihan Tenaga Pendidik\/Sertifikasi Kompetensi Tenaga Pendidik",
+            "rba_sequence_no": "575",
+            "description": "Akomodasi Pelatihan Tenaga Kependidikan",
+            "account_code": "52511511"
+        },
+        {
+            "department_code": "JTIF",
+            "component_code": "7730.DBA.002.051.AA",
+            "component_name": "Operasional Perkantoran",
+            "rba_sequence_no": "700",
+            "description": "Lembur Golongan III Informatika",
+            "account_code": "52511112"
+        },
+        {
+            "department_code": "JTIF",
+            "component_code": "7730.DBA.002.051.AA",
+            "component_name": "Operasional Perkantoran",
+            "rba_sequence_no": "702",
+            "description": "Uang Makan Lembur Golongan III Informatika",
+            "account_code": "52511112"
+        },
+        {
+            "department_code": "JTIF",
+            "component_code": "7730.DBA.002.051.AA",
+            "component_name": "Operasional Perkantoran",
+            "rba_sequence_no": "701",
+            "description": "Lembur Penyusunan\/Evaluasi\/Revisi Kurikulum Informatika",
+            "account_code": "52511112"
+        },
+        {
+            "department_code": "JTIF",
+            "component_code": "7730.DBA.002.051.AA",
+            "component_name": "Operasional Perkantoran",
+            "rba_sequence_no": "712",
+            "description": "Pendaftaran Rakornas APTIKOM",
+            "account_code": "52511911"
+        },
+        {
+            "department_code": "JTIF",
+            "component_code": "7730.DBA.002.051.AA",
+            "component_name": "Operasional Perkantoran",
+            "rba_sequence_no": "710",
+            "description": "Keanggotaan IndoCEISS Informatika",
+            "account_code": "52511911"
+        },
+        {
+            "department_code": "JTIF",
+            "component_code": "7730.DBA.002.051.AA",
+            "component_name": "Operasional Perkantoran",
+            "rba_sequence_no": "708",
+            "description": "Iuran Keanggotaan APTIKOM Informatika",
+            "account_code": "52511911"
+        },
+        {
+            "department_code": "JTIF",
+            "component_code": "7730.DBA.003.051.CA",
+            "component_name": "Publikasi Hasil Penelitian dan Pengabdian Kepada Masyarakat",
+            "rba_sequence_no": "831",
+            "description": "Jamuan Pembicara Informatika",
+            "account_code": "52511213"
+        },
+        {
+            "department_code": "JTS",
+            "component_code": "7729.BEI.001.004.AA",
+            "component_name": "Penyelenggaraan dan Pemeliharaan Perkantoran (BOPTN)",
+            "rba_sequence_no": "9001",
+            "description": "Pemeliharaan Alat Laboratorium Teknik Sipil",
+            "account_code": "52312111"
+        },
+        {
+            "department_code": "JTS",
+            "component_code": "7729.BEI.002.004.AF",
+            "component_name": "Kuliah Umum (Stadium General) (BOPTN)",
+            "rba_sequence_no": "9002",
+            "description": "Makan Kuliah Umum Teknik Sipil",
+            "account_code": "52121111"
+        },
+        {
+            "department_code": "JTS",
+            "component_code": "7729.BEI.002.004.AF",
+            "component_name": "Kuliah Umum (Stadium General) (BOPTN)",
+            "rba_sequence_no": "9003",
+            "description": "Snack Kuliah Umum Teknik Sipil",
+            "account_code": "52121111"
+        },
+        {
+            "department_code": "JTS",
+            "component_code": "7729.BEI.002.004.AF",
+            "component_name": "Kuliah Umum (Stadium General) (BOPTN)",
+            "rba_sequence_no": "9004",
+            "description": "Transportasi Pembicara Kuliah Umum Teknik Sipil",
+            "account_code": "52411111"
+        },
+        {
+            "department_code": "JTS",
+            "component_code": "7729.BEI.002.004.AF",
+            "component_name": "Kuliah Umum (Stadium General) (BOPTN)",
+            "rba_sequence_no": "9005",
+            "description": "Honor Pembicara Kuliah Umum Teknik Sipil",
+            "account_code": "52215111"
+        },
+        {
+            "department_code": "JTS",
+            "component_code": "7729.BEI.002.004.AH",
+            "component_name": "Praktikum (BOPTN)",
+            "rba_sequence_no": "9006",
+            "description": "Honor Asisten Mahasiswa Praktikum Teknik Sipil",
+            "account_code": "52215111"
+        },
+        {
+            "department_code": "JTS",
+            "component_code": "7729.BEI.002.004.AH",
+            "component_name": "Praktikum (BOPTN)",
+            "rba_sequence_no": "9007",
+            "description": "Biaya Praktikum Lapangan Teknik Sipil",
+            "account_code": "52121911"
+        },
+        {
+            "department_code": "JTS",
+            "component_code": "7729.BEI.002.004.CA",
+            "component_name": "Pembinaan UKM\/HIMA (BOPTN)",
+            "rba_sequence_no": "9008",
+            "description": "Bantuan Operasional Himpunan Mahasiswa Teknik Sipil",
+            "account_code": "52121911"
+        },
+        {
+            "department_code": "JTS",
+            "component_code": "7729.BEI.002.004.CC",
+            "component_name": "Pengiriman Delegasi Mahasiswa Bidang Penalaran dan Bidang Minat Bakat (BOPTN)",
+            "rba_sequence_no": "9009",
+            "description": "Pengiriman Delegasi Mahasiswa Teknik Sipil",
+            "account_code": "52121911"
+        },
+        {
+            "department_code": "JTS",
+            "component_code": "7729.BEI.002.004.DB",
+            "component_name": "Pelatihan Tenaga Pendidik\/Sertifikasi Kompetensi Tenaga Pendidik (BOPTN)",
+            "rba_sequence_no": "9010",
+            "description": "Biaya Pelatihan Dosen Teknik Sipil",
+            "account_code": "52121911"
+        },
+        {
+            "department_code": "JTS",
+            "component_code": "7730.DBA.001.053.BB",
+            "component_name": "Perkuliahan",
+            "rba_sequence_no": "9011",
+            "description": "Biaya Transportasi Kunjungan Lapangan Teknik Sipil",
+            "account_code": "52511511"
+        },
+        {
+            "department_code": "JTS",
+            "component_code": "7730.DBA.001.053.BB",
+            "component_name": "Perkuliahan",
+            "rba_sequence_no": "9012",
+            "description": "Uang Harian Kunjungan Lapangan Teknik Sipil",
+            "account_code": "52511511"
+        },
+        {
+            "department_code": "JTS",
+            "component_code": "7730.DBA.001.053.BC",
+            "component_name": "Praktikum",
+            "rba_sequence_no": "9013",
+            "description": "Akomodasi Praktikum Lapangan Teknik Sipil",
+            "account_code": "52511511"
+        },
+        {
+            "department_code": "JTS",
+            "component_code": "7730.DBA.001.053.BI",
+            "component_name": "Kuliah Umum (Stadium General)",
+            "rba_sequence_no": "9014",
+            "description": "Akomodasi Pembicara Kuliah Umum Teknik Sipil",
+            "account_code": "52511511"
+        },
+        {
+            "department_code": "JTS",
+            "component_code": "7730.DBA.001.053.BI",
+            "component_name": "Kuliah Umum (Stadium General)",
+            "rba_sequence_no": "9015",
+            "description": "Transportasi Pembicara Kuliah Umum Teknik Sipil",
+            "account_code": "52511511"
+        },
+        {
+            "department_code": "JTS",
+            "component_code": "7730.DBA.002.051.AA",
+            "component_name": "Operasional Perkantoran",
+            "rba_sequence_no": "9016",
+            "description": "Iuran Keanggotaan Asosiasi Teknik Sipil",
+            "account_code": "52511911"
+        },
+        {
+            "department_code": "JTS",
+            "component_code": "7730.DBA.002.051.AA",
+            "component_name": "Operasional Perkantoran",
+            "rba_sequence_no": "9017",
+            "description": "Lembur Administrasi Teknik Sipil",
+            "account_code": "52511112"
+        },
+        {
+            "department_code": "JTS",
+            "component_code": "7730.DBA.001.053.MB",
+            "component_name": "Pelatihan Tenaga Pendidik\/Sertifikasi Kompetensi Tenaga Pendidik",
+            "rba_sequence_no": "9018",
+            "description": "Akomodasi Pelatihan Dosen Teknik Sipil",
+            "account_code": "52511511"
+        },
+        {
+            "department_code": "JTS",
+            "component_code": "7730.DBA.001.053.MB",
+            "component_name": "Pelatihan Tenaga Pendidik\/Sertifikasi Kompetensi Tenaga Pendidik",
+            "rba_sequence_no": "9019",
+            "description": "Transportasi Pelatihan Dosen Teknik Sipil",
+            "account_code": "52511511"
+        },
+        {
+            "department_code": "JTS",
+            "component_code": "7730.DBA.003.051.CA",
+            "component_name": "Publikasi Hasil Penelitian dan Pengabdian Kepada Masyarakat",
+            "rba_sequence_no": "9020",
+            "description": "Konsumsi Kegiatan Seminar Teknik Sipil",
+            "account_code": "52511213"
+        },
+        {
+            "department_code": "JTE",
+            "component_code": "7729.BEI.001.004.AA",
+            "component_name": "Penyelenggaraan dan Pemeliharaan Perkantoran (BOPTN)",
+            "rba_sequence_no": "9101",
+            "description": "Pemeliharaan Alat Laboratorium Teknik Elektro",
+            "account_code": "52312111"
+        },
+        {
+            "department_code": "JTE",
+            "component_code": "7729.BEI.002.004.AF",
+            "component_name": "Kuliah Umum (Stadium General) (BOPTN)",
+            "rba_sequence_no": "9102",
+            "description": "Makan Kuliah Umum Teknik Elektro",
+            "account_code": "52121111"
+        },
+        {
+            "department_code": "JTE",
+            "component_code": "7729.BEI.002.004.AF",
+            "component_name": "Kuliah Umum (Stadium General) (BOPTN)",
+            "rba_sequence_no": "9103",
+            "description": "Snack Kuliah Umum Teknik Elektro",
+            "account_code": "52121111"
+        },
+        {
+            "department_code": "JTE",
+            "component_code": "7729.BEI.002.004.AF",
+            "component_name": "Kuliah Umum (Stadium General) (BOPTN)",
+            "rba_sequence_no": "9104",
+            "description": "Transportasi Pembicara Kuliah Umum Teknik Elektro",
+            "account_code": "52411111"
+        },
+        {
+            "department_code": "JTE",
+            "component_code": "7729.BEI.002.004.AF",
+            "component_name": "Kuliah Umum (Stadium General) (BOPTN)",
+            "rba_sequence_no": "9105",
+            "description": "Honor Pembicara Kuliah Umum Teknik Elektro",
+            "account_code": "52215111"
+        },
+        {
+            "department_code": "JTE",
+            "component_code": "7729.BEI.002.004.AG",
+            "component_name": "Perkuliahan Dosen Tamu dari Dunia Industri (BOPTN)",
+            "rba_sequence_no": "9106",
+            "description": "Honor Dosen Tamu Teknik Elektro",
+            "account_code": "52215111"
+        },
+        {
+            "department_code": "JTE",
+            "component_code": "7729.BEI.002.004.AG",
+            "component_name": "Perkuliahan Dosen Tamu dari Dunia Industri (BOPTN)",
+            "rba_sequence_no": "9107",
+            "description": "Transportasi Dosen Tamu Teknik Elektro",
+            "account_code": "52411111"
+        },
+        {
+            "department_code": "JTE",
+            "component_code": "7729.BEI.002.004.AH",
+            "component_name": "Praktikum (BOPTN)",
+            "rba_sequence_no": "9108",
+            "description": "Honor Asisten Mahasiswa Praktikum Teknik Elektro",
+            "account_code": "52215111"
+        },
+        {
+            "department_code": "JTE",
+            "component_code": "7729.BEI.002.004.CA",
+            "component_name": "Pembinaan UKM\/HIMA (BOPTN)",
+            "rba_sequence_no": "9109",
+            "description": "Bantuan Operasional Himpunan Mahasiswa Teknik Elektro",
+            "account_code": "52121911"
+        },
+        {
+            "department_code": "JTE",
+            "component_code": "7729.BEI.002.004.CC",
+            "component_name": "Pengiriman Delegasi Mahasiswa Bidang Penalaran dan Bidang Minat Bakat (BOPTN)",
+            "rba_sequence_no": "9110",
+            "description": "Pengiriman Delegasi Mahasiswa Teknik Elektro",
+            "account_code": "52121911"
+        },
+        {
+            "department_code": "JTE",
+            "component_code": "7729.BEI.002.004.CI",
+            "component_name": "Pembekalan\/Pelatihan\/Sertifikasi Kompetensi Mahasiswa (BOPTN)",
+            "rba_sequence_no": "9111",
+            "description": "Bantuan Sertifikasi Kompetensi Mahasiswa Teknik Elektro",
+            "account_code": "52121911"
+        },
+        {
+            "department_code": "JTE",
+            "component_code": "7730.DBA.001.053.BB",
+            "component_name": "Perkuliahan",
+            "rba_sequence_no": "9112",
+            "description": "Biaya Kunjungan Industri Teknik Elektro",
+            "account_code": "52511511"
+        },
+        {
+            "department_code": "JTE",
+            "component_code": "7730.DBA.001.053.BC",
+            "component_name": "Praktikum",
+            "rba_sequence_no": "9113",
+            "description": "Akomodasi Praktikum Lapangan Teknik Elektro",
+            "account_code": "52511511"
+        },
+        {
+            "department_code": "JTE",
+            "component_code": "7730.DBA.001.053.BI",
+            "component_name": "Kuliah Umum (Stadium General)",
+            "rba_sequence_no": "9114",
+            "description": "Akomodasi Pembicara Kuliah Umum Teknik Elektro",
+            "account_code": "52511511"
+        },
+        {
+            "department_code": "JTE",
+            "component_code": "7730.DBA.001.053.BI",
+            "component_name": "Kuliah Umum (Stadium General)",
+            "rba_sequence_no": "9115",
+            "description": "Transportasi Pembicara Kuliah Umum Teknik Elektro",
+            "account_code": "52511511"
+        },
+        {
+            "department_code": "JTE",
+            "component_code": "7730.DBA.002.051.AA",
+            "component_name": "Operasional Perkantoran",
+            "rba_sequence_no": "9116",
+            "description": "Iuran Keanggotaan Asosiasi Teknik Elektro",
+            "account_code": "52511911"
+        },
+        {
+            "department_code": "JTE",
+            "component_code": "7730.DBA.002.051.AA",
+            "component_name": "Operasional Perkantoran",
+            "rba_sequence_no": "9117",
+            "description": "Lembur Administrasi Teknik Elektro",
+            "account_code": "52511112"
+        },
+        {
+            "department_code": "JTE",
+            "component_code": "7730.DBA.001.053.MB",
+            "component_name": "Pelatihan Tenaga Pendidik\/Sertifikasi Kompetensi Tenaga Pendidik",
+            "rba_sequence_no": "9118",
+            "description": "Biaya Akomodasi Pelatihan Dosen Teknik Elektro",
+            "account_code": "52511511"
+        },
+        {
+            "department_code": "JTE",
+            "component_code": "7730.DBA.001.053.MB",
+            "component_name": "Pelatihan Tenaga Pendidik\/Sertifikasi Kompetensi Tenaga Pendidik",
+            "rba_sequence_no": "9119",
+            "description": "Uang Harian Pelatihan Dosen Teknik Elektro",
+            "account_code": "52511511"
+        },
+        {
+            "department_code": "JTE",
+            "component_code": "7730.DBA.003.051.CA",
+            "component_name": "Publikasi Hasil Penelitian dan Pengabdian Kepada Masyarakat",
+            "rba_sequence_no": "9120",
+            "description": "Konsumsi Kegiatan Seminar Teknik Elektro",
+            "account_code": "52511213"
+        },
+        {
+            "department_code": "JTI",
+            "component_code": "7729.BEI.001.004.AA",
+            "component_name": "Penyelenggaraan dan Pemeliharaan Perkantoran (BOPTN)",
+            "rba_sequence_no": "9201",
+            "description": "Pemeliharaan Alat Laboratorium Teknik Industri",
+            "account_code": "52312111"
+        },
+        {
+            "department_code": "JTI",
+            "component_code": "7729.BEI.002.004.AF",
+            "component_name": "Kuliah Umum (Stadium General) (BOPTN)",
+            "rba_sequence_no": "9202",
+            "description": "Makan Kuliah Umum Teknik Industri",
+            "account_code": "52121111"
+        },
+        {
+            "department_code": "JTI",
+            "component_code": "7729.BEI.002.004.AF",
+            "component_name": "Kuliah Umum (Stadium General) (BOPTN)",
+            "rba_sequence_no": "9203",
+            "description": "Snack Kuliah Umum Teknik Industri",
+            "account_code": "52121111"
+        },
+        {
+            "department_code": "JTI",
+            "component_code": "7729.BEI.002.004.AF",
+            "component_name": "Kuliah Umum (Stadium General) (BOPTN)",
+            "rba_sequence_no": "9204",
+            "description": "Transportasi Pembicara Kuliah Umum Teknik Industri",
+            "account_code": "52411111"
+        },
+        {
+            "department_code": "JTI",
+            "component_code": "7729.BEI.002.004.AF",
+            "component_name": "Kuliah Umum (Stadium General) (BOPTN)",
+            "rba_sequence_no": "9205",
+            "description": "Honor Pembicara Kuliah Umum Teknik Industri",
+            "account_code": "52215111"
+        },
+        {
+            "department_code": "JTI",
+            "component_code": "7729.BEI.002.004.AG",
+            "component_name": "Perkuliahan Dosen Tamu dari Dunia Industri (BOPTN)",
+            "rba_sequence_no": "9206",
+            "description": "Honor Dosen Tamu Teknik Industri",
+            "account_code": "52215111"
+        },
+        {
+            "department_code": "JTI",
+            "component_code": "7729.BEI.002.004.AH",
+            "component_name": "Praktikum (BOPTN)",
+            "rba_sequence_no": "9207",
+            "description": "Honor Asisten Mahasiswa Praktikum Teknik Industri",
+            "account_code": "52215111"
+        },
+        {
+            "department_code": "JTI",
+            "component_code": "7729.BEI.002.004.AH",
+            "component_name": "Praktikum (BOPTN)",
+            "rba_sequence_no": "9208",
+            "description": "Biaya Praktikum Lapangan Teknik Industri",
+            "account_code": "52121911"
+        },
+        {
+            "department_code": "JTI",
+            "component_code": "7729.BEI.002.004.CA",
+            "component_name": "Pembinaan UKM\/HIMA (BOPTN)",
+            "rba_sequence_no": "9209",
+            "description": "Bantuan Operasional Himpunan Mahasiswa Teknik Industri",
+            "account_code": "52121911"
+        },
+        {
+            "department_code": "JTI",
+            "component_code": "7729.BEI.002.004.CC",
+            "component_name": "Pengiriman Delegasi Mahasiswa Bidang Penalaran dan Bidang Minat Bakat (BOPTN)",
+            "rba_sequence_no": "9210",
+            "description": "Pengiriman Delegasi Mahasiswa Teknik Industri",
+            "account_code": "52121911"
+        },
+        {
+            "department_code": "JTI",
+            "component_code": "7729.BEI.002.004.CI",
+            "component_name": "Pembekalan\/Pelatihan\/Sertifikasi Kompetensi Mahasiswa (BOPTN)",
+            "rba_sequence_no": "9211",
+            "description": "Bantuan Sertifikasi Kompetensi Mahasiswa Teknik Industri",
+            "account_code": "52121911"
+        },
+        {
+            "department_code": "JTI",
+            "component_code": "7729.BEI.002.004.DF",
+            "component_name": "Penyusunan\/Evaluasi\/Revisi Kurikulum",
+            "rba_sequence_no": "9212",
+            "description": "Konsumsi FGD Kurikulum Teknik Industri",
+            "account_code": "52121111"
+        },
+        {
+            "department_code": "JTI",
+            "component_code": "7730.DBA.001.053.BB",
+            "component_name": "Perkuliahan",
+            "rba_sequence_no": "9213",
+            "description": "Biaya Transportasi Kunjungan Industri Teknik Industri",
+            "account_code": "52511511"
+        },
+        {
+            "department_code": "JTI",
+            "component_code": "7730.DBA.001.053.BB",
+            "component_name": "Perkuliahan",
+            "rba_sequence_no": "9214",
+            "description": "Akomodasi Kunjungan Industri Teknik Industri",
+            "account_code": "52511511"
+        },
+        {
+            "department_code": "JTI",
+            "component_code": "7730.DBA.001.053.BC",
+            "component_name": "Praktikum",
+            "rba_sequence_no": "9215",
+            "description": "Akomodasi Praktikum Teknik Industri",
+            "account_code": "52511511"
+        },
+        {
+            "department_code": "JTI",
+            "component_code": "7730.DBA.001.053.BI",
+            "component_name": "Kuliah Umum (Stadium General)",
+            "rba_sequence_no": "9216",
+            "description": "Transportasi Pembicara Kuliah Umum Teknik Industri",
+            "account_code": "52511511"
+        },
+        {
+            "department_code": "JTI",
+            "component_code": "7730.DBA.002.051.AA",
+            "component_name": "Operasional Perkantoran",
+            "rba_sequence_no": "9217",
+            "description": "Iuran Keanggotaan Asosiasi Teknik Industri",
+            "account_code": "52511911"
+        },
+        {
+            "department_code": "JTI",
+            "component_code": "7730.DBA.002.051.AA",
+            "component_name": "Operasional Perkantoran",
+            "rba_sequence_no": "9218",
+            "description": "Lembur Administrasi Teknik Industri",
+            "account_code": "52511112"
+        },
+        {
+            "department_code": "JTI",
+            "component_code": "7730.DBA.001.053.MB",
+            "component_name": "Pelatihan Tenaga Pendidik\/Sertifikasi Kompetensi Tenaga Pendidik",
+            "rba_sequence_no": "9219",
+            "description": "Akomodasi Pelatihan Dosen Teknik Industri",
+            "account_code": "52511511"
+        },
+        {
+            "department_code": "JTI",
+            "component_code": "7730.DBA.003.051.CA",
+            "component_name": "Publikasi Hasil Penelitian dan Pengabdian Kepada Masyarakat",
+            "rba_sequence_no": "9220",
+            "description": "Konsumsi Kegiatan Seminar Teknik Industri",
+            "account_code": "52511213"
+        }
+    ]
+}

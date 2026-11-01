@@ -81,9 +81,9 @@ class BudgetHierarchySeeder extends Seeder
         // Seed Components
         foreach ($data['components'] ?? [] as $item) {
             BudgetComponent::updateOrCreate(
-                ['code' => $item['Code'] ?? '', 'fiscal_year' => $item['Effective_Year'] ?? 2026],
+                ['full_code' => $item['Full_Code'] ?? $item['Code'] ?? '', 'fiscal_year' => $item['Effective_Year'] ?? 2026],
                 [
-                    'full_code' => $item['Full_Code'] ?? null,
+                    'code' => $item['Code'] ?? '',
                     'parent_ro_code' => $item['Parent_RO'] ?? null,
                     'name' => $item['Name'] ?? '',
                     'data_status' => $item['Data_Status'] ?? 'OFFICIAL',
@@ -94,9 +94,9 @@ class BudgetHierarchySeeder extends Seeder
         // Seed Subcomponents
         foreach ($data['subcomponents'] ?? [] as $item) {
             BudgetSubcomponent::updateOrCreate(
-                ['code' => $item['Code'] ?? '', 'fiscal_year' => $item['Effective_Year'] ?? 2026],
+                ['full_code' => $item['Full_Code'] ?? $item['Code'] ?? '', 'fiscal_year' => $item['Effective_Year'] ?? 2026],
                 [
-                    'full_code' => $item['Full_Code'] ?? null,
+                    'code' => $item['Code'] ?? '',
                     'parent_component_code' => $item['Parent_Component'] ?? null,
                     'name' => $item['Name'] ?? '',
                     'header_color' => 'green',

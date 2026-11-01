@@ -58,6 +58,10 @@ class ReportController extends Controller
         }
         if ($revision) {
             $bucketQuery->where('budget_version_id', $revision);
+        } else {
+            $bucketQuery->whereHas('budgetVersion', function ($q) {
+                $q->where('status', 'ACTIVE');
+            });
         }
         if ($fund) {
             $bucketQuery->where('funding_source_id', $fund);

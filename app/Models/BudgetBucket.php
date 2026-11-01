@@ -27,6 +27,8 @@ class BudgetBucket extends Model
         'reserved_budget',
         'realized_budget',
         'available_balance',
+        'needs_review',
+        'data_incomplete',
     ];
 
     protected $casts = [
@@ -35,6 +37,8 @@ class BudgetBucket extends Model
         'reserved_budget' => 'decimal:2',
         'realized_budget' => 'decimal:2',
         'available_balance' => 'decimal:2',
+        'needs_review' => 'boolean',
+        'data_incomplete' => 'boolean',
     ];
 
     public function fiscalYear(): BelongsTo

@@ -14,13 +14,16 @@ class RuleConfig extends Model
         'rule_code',
         'rule_name',
         'category',
+        'indicator_type',
         'parameters',
+        'parameter_version',
         'is_active',
         'description',
     ];
 
     protected $casts = [
         'parameters' => 'array',
+        'parameter_version' => 'integer',
         'is_active' => 'boolean',
     ];
 

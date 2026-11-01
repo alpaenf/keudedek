@@ -89,6 +89,8 @@ Route::middleware('auth')->group(function () {
     // Transactions / Submissions
     Route::resource('submissions', SubmissionController::class)->only(['index', 'create', 'store', 'show']);
     Route::post('submissions/{submission}/resubmit', [SubmissionController::class, 'resubmit'])->name('submissions.resubmit');
+    Route::post('submissions/{submission}/cancel', [SubmissionController::class, 'cancel'])->name('submissions.cancel');
+    Route::post('submissions/{submission}/correct', [SubmissionController::class, 'correct'])->name('submissions.correct');
     Route::get('submissions/{submission}/print', [SubmissionController::class, 'printDocument'])->name('submissions.print');
     Route::get('submissions/{submission}/export-pdf', [SubmissionController::class, 'exportPdf'])->name('submissions.export-pdf');
     Route::get('submissions/{submission}/export-docx', [SubmissionController::class, 'exportDocx'])->name('submissions.export-docx');
@@ -111,6 +113,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/warnings/{earlyWarning}/acknowledge', [EarlyWarningController::class, 'acknowledge'])->name('warnings.acknowledge');
     Route::post('/warnings/{earlyWarning}/resolve', [EarlyWarningController::class, 'resolve'])->name('warnings.resolve');
     Route::post('/warnings/reevaluate', [EarlyWarningController::class, 'reevaluate'])->name('warnings.reevaluate');
+    Route::post('/warnings/parameters/{ruleCode}', [EarlyWarningController::class, 'updateParameter'])->name('warnings.parameters.update');
 
     // Admin Submission Templates & Format
     Route::get('/admin/submission-templates', [SubmissionTemplateController::class, 'index'])->name('admin.submission-templates.index');
