@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\BudgetBucket;
-use App\Models\BudgetVersion;
+use App\Models\BudgetLine;
 use App\Models\Department;
 use App\Models\DocumentType;
 use App\Models\FiscalYear;
@@ -21,6 +21,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -165,21 +166,34 @@ class SubmissionController extends Controller
         $departments = ScopeService::getSelectableDepartments($user);
         $studyPrograms = ScopeService::getSelectableStudyPrograms($user, $user?->department_id);
 
-        $queryBuckets = BudgetBucket::with(['department', 'fundingSource', 'budgetVersion']);
-        ScopeService::applyDepartmentScope($queryBuckets, $user);
-        $rawBuckets = $queryBuckets->get();
+        $fiscalYear = FiscalYear::where('status', 'ACTIVE')->first();
+        $activeFiscalYear = $fiscalYear?->year ?? 2026;
 
-        $activeFiscalYear = FiscalYear::where('status', 'ACTIVE')->first()?->year ?? 2026;
-        $activeVersion = BudgetVersion::where('status', 'ACTIVE')->first();
-        $activeFundingSource = FundingSource::where('code', 'RM')->first() ?? FundingSource::first();
+        // Ambil semua sumber dana yang memiliki versi anggaran ACTIVE pada tahun anggaran ini
+        $availableFundingSources = FundingSource::whereHas('budgetVersions', function ($q) use ($fiscalYear) {
+            $q->where('status', 'ACTIVE')
+                ->when($fiscalYear, fn ($fyq) => $fyq->where('fiscal_year_id', $fiscalYear->id));
+        })->with(['budgetVersions' => function ($q) use ($fiscalYear) {
+            $q->where('status', 'ACTIVE')
+                ->when($fiscalYear, fn ($fyq) => $fyq->where('fiscal_year_id', $fiscalYear->id));
+        }])->orderBy('code')->get();
 
-        // Retrieve initial top 25 budget lines for user's scope
-        $initialBudgetLines = BudgetCalculationService::searchBudgetLines(
+        // Tentukan selected funding source
+        $selectedFundingSourceId = $request->filled('funding_source_id')
+            ? (int) $request->funding_source_id
+            : $availableFundingSources->first()?->id;
+
+        $selectedFundingSource = $availableFundingSources->firstWhere('id', $selectedFundingSourceId) ?? $availableFundingSources->first();
+        $activeVersion = $selectedFundingSource?->budgetVersions?->first();
+
+        // Retrieve initial top 25 budget lines for user's scope and selected funding source
+        $initialBudgetLines = $activeVersion ? BudgetCalculationService::searchBudgetLines(
             user: $user,
             departmentId: $user?->department_id,
-            budgetVersionId: $activeVersion?->id,
+            budgetVersionId: $activeVersion->id,
+            fundingSourceId: $selectedFundingSource?->id,
             limit: 25
-        );
+        ) : [];
 
         $transactionTypes = TransactionType::where('is_active', true)->get();
         $documentTypes = DocumentType::where('is_active', true)->get();
@@ -187,12 +201,14 @@ class SubmissionController extends Controller
         return Inertia::render('Submissions/Create', [
             'departments' => $departments,
             'studyPrograms' => $studyPrograms,
+            'availableFundingSources' => $availableFundingSources,
+            'selectedFundingSourceId' => $selectedFundingSource?->id,
             'initialBudgetLines' => $initialBudgetLines,
             'transactionTypes' => $transactionTypes,
             'documentTypes' => $documentTypes,
             'activeFiscalYear' => $activeFiscalYear,
             'activeVersion' => $activeVersion,
-            'activeFundingSource' => $activeFundingSource,
+            'activeFundingSource' => $selectedFundingSource,
             'userDepartmentId' => $user?->department_id,
             'userStudyProgramId' => $user?->study_program_id,
             'userRole' => $user?->role === 'WD' ? 'WAKIL_DEKAN' : $user?->role,
@@ -214,6 +230,7 @@ class SubmissionController extends Controller
 
         $request->validate([
             'budget_line_id' => 'required|exists:budget_lines,id',
+            'funding_source_id' => 'nullable|exists:funding_sources,id',
             'budget_bucket_id' => 'nullable|exists:budget_buckets,id',
             'evidence_number' => 'required|string|max:100',
             'transaction_date' => 'required|date',
@@ -235,6 +252,52 @@ class SubmissionController extends Controller
         ]);
 
         $fiscalYear = FiscalYear::where('status', 'ACTIVE')->firstOrFail();
+
+        // 1. Verifikasi Budget Line dan Versinya (Anti-tampering)
+        $budgetLine = BudgetLine::with(['budgetVersion', 'fundingSource', 'budgetBucket'])->findOrFail($request->budget_line_id);
+        $lineVersion = $budgetLine->budgetVersion;
+
+        if (! $lineVersion || $lineVersion->status !== 'ACTIVE') {
+            throw ValidationException::withMessages([
+                'budget_line_id' => 'Pos anggaran yang dipilih bukan berasal dari versi anggaran berstatus ACTIVE.',
+            ]);
+        }
+
+        if ((int) $lineVersion->fiscal_year_id !== (int) $fiscalYear->id) {
+            throw ValidationException::withMessages([
+                'budget_line_id' => 'Tahun anggaran pos anggaran tidak sesuai dengan tahun anggaran aktif.',
+            ]);
+        }
+
+        // 2. Verifikasi Sumber Dana jika dikirimkan oleh frontend (Anti-tampering)
+        if ($request->filled('funding_source_id') && (int) $request->funding_source_id !== (int) $budgetLine->funding_source_id) {
+            throw ValidationException::withMessages([
+                'funding_source_id' => 'Sumber dana yang dipilih tidak sesuai dengan pos anggaran yang dipilih.',
+            ]);
+        }
+
+        // 3. Verifikasi Bucket jika dikirimkan
+        if ($request->filled('budget_bucket_id')) {
+            $controlBucket = $budgetLine->budgetBucket;
+            if ($controlBucket && (int) $controlBucket->id !== (int) $request->budget_bucket_id) {
+                $targetBucket = BudgetBucket::find($request->budget_bucket_id);
+                if (! $targetBucket || (int) $targetBucket->funding_source_id !== (int) $budgetLine->funding_source_id || (int) $targetBucket->budget_version_id !== (int) $lineVersion->id) {
+                    throw ValidationException::withMessages([
+                        'budget_bucket_id' => 'Pos anggaran control bucket tidak sah atau tidak cocok dengan sumber dana/versi aktif.',
+                    ]);
+                }
+            }
+        }
+
+        // 4. Verifikasi Department Scope untuk PTK / KAJUR / KAPRODI
+        if ($user->hasRole(['PTK', 'KAJUR', 'KAPRODI'])) {
+            if ((int) $budgetLine->department_id !== (int) $user->department_id) {
+                throw ValidationException::withMessages([
+                    'budget_line_id' => 'Akses Ditolak: Baris anggaran yang dipilih berada di luar unit/jurusan kerja Anda.',
+                ]);
+            }
+        }
+
         $submissionNumber = 'TRX/'.date('Y/m').'/'.str_pad(rand(1, 999), 3, '0', STR_PAD_LEFT);
         $status = in_array($request->submit_action, ['PROCESSING', 'SUBMITTED']) ? 'PROCESSING' : $request->submit_action;
 

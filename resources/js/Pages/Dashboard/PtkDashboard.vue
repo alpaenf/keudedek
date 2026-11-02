@@ -17,6 +17,7 @@ import {
   FileText,
   HelpCircle
 } from 'lucide-vue-next';
+import { router } from '@inertiajs/vue3';
 import StackedBarChart from '../../Components/Dashboard/StackedBarChart.vue';
 import LineTrendChart from '../../Components/Dashboard/LineTrendChart.vue';
 
@@ -36,12 +37,27 @@ const props = defineProps({
   activeFiscalYear: [String, Number],
   revisionNumber: String,
   fundSourceCode: String,
+  fundingSources: {
+    type: Array,
+    default: () => [],
+  },
+  selectedFundingSourceId: [String, Number],
   thisMonthCount: Number,
   thisMonthAmount: Number,
   returnedSubmissions: Array,
   processingSubmissions: Array,
   monthlyTrend: Object,
 });
+
+const onFundingSourceChange = (e) => {
+  const val = e.target.value;
+  router.get('/dashboard', {
+    funding_source_id: val ? val : undefined,
+  }, {
+    preserveState: true,
+    preserveScroll: true,
+  });
+};
 
 const actionTab = ref('returned'); // 'returned', 'processing', 'warnings'
 
@@ -89,10 +105,19 @@ const getStatusBadge = (status) => {
           <span>TA {{ activeFiscalYear || '2026' }}</span>
         </div>
 
-        <!-- Funding Source Pill -->
-        <div class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-700">
+        <!-- Funding Source Select Pill -->
+        <div class="flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-700">
           <Wallet class="w-3.5 h-3.5 text-slate-400 shrink-0" />
-          <span>{{ fundSourceCode || 'RM' }}</span>
+          <select 
+            :value="selectedFundingSourceId || ''" 
+            @change="onFundingSourceChange"
+            class="bg-transparent border-none text-xs font-semibold text-slate-700 focus:ring-0 cursor-pointer pr-5 py-0.5"
+          >
+            <option value="">Semua Sumber Dana</option>
+            <option v-for="fs in fundingSources" :key="fs.id" :value="fs.id">
+              {{ fs.code }} - {{ fs.name }}
+            </option>
+          </select>
         </div>
 
         <!-- Revision Pill -->

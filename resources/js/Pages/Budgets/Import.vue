@@ -37,6 +37,16 @@ const form = useForm({
 
 const isDragging = ref(false);
 const selectedFileName = ref('');
+const isCustomRevision = ref(false);
+
+const toggleCustomRevision = () => {
+  isCustomRevision.value = !isCustomRevision.value;
+  if (isCustomRevision.value) {
+    form.revision_no = 'Rev 04';
+  } else {
+    form.revision_no = props.activeVersion?.revision_no || 'Rev 00';
+  }
+};
 
 const onFileChange = (e) => {
   const file = e.target.files[0] || null;
@@ -255,8 +265,32 @@ const getStatusBadge = (st) => {
 
               <!-- Revision -->
               <div>
-                <label class="block font-semibold text-slate-700 mb-1">Versi Revisi Pagu</label>
-                <select v-model="form.revision_no" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:ring-2 focus:ring-sky-500">
+                <div class="flex items-center justify-between mb-1">
+                  <label class="font-semibold text-slate-700">Versi Revisi Pagu</label>
+                  <button 
+                    type="button" 
+                    @click="toggleCustomRevision" 
+                    id="btn-toggle-custom-revision"
+                    class="text-[10px] text-sky-600 hover:text-sky-700 font-bold underline"
+                  >
+                    {{ isCustomRevision ? 'Pilih dari Daftar' : '+ Input Revisi Baru' }}
+                  </button>
+                </div>
+                <input 
+                  v-if="isCustomRevision" 
+                  v-model="form.revision_no" 
+                  id="input-custom-revision"
+                  type="text" 
+                  placeholder="Contoh: Rev 04" 
+                  class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:ring-2 focus:ring-sky-500" 
+                  required 
+                />
+                <select 
+                  v-else 
+                  v-model="form.revision_no" 
+                  id="select-budget-version"
+                  class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:ring-2 focus:ring-sky-500"
+                >
                   <option v-for="bv in budgetVersions" :key="bv.id" :value="bv.revision_no">
                     {{ bv.revision_no }} ({{ bv.status }})
                   </option>

@@ -28,6 +28,11 @@ import {
 const props = defineProps({
   departments: Array,
   studyPrograms: Array,
+  availableFundingSources: {
+    type: Array,
+    default: () => [],
+  },
+  selectedFundingSourceId: [String, Number],
   initialBudgetLines: Array,
   transactionTypes: Array,
   documentTypes: Array,
@@ -37,6 +42,21 @@ const props = defineProps({
   userDepartmentId: [String, Number],
   userStudyProgramId: [String, Number],
   userRole: String,
+});
+
+// Dynamic Funding Source & Version State
+const selectedFundingSource = ref(
+  props.availableFundingSources?.find(fs => fs.id == props.selectedFundingSourceId) ||
+  props.activeFundingSource ||
+  props.availableFundingSources?.[0] ||
+  null
+);
+
+const currentActiveVersion = computed(() => {
+  if (selectedFundingSource.value?.budget_versions?.length > 0) {
+    return selectedFundingSource.value.budget_versions.find(v => v.status === 'ACTIVE') || selectedFundingSource.value.budget_versions[0];
+  }
+  return props.activeVersion || null;
 });
 
 // Autocomplete State
@@ -50,6 +70,7 @@ const isHierarchyExpanded = ref(false);
 const today = new Date().toISOString().split('T')[0];
 
 const form = useForm({
+  funding_source_id: selectedFundingSource.value?.id ?? '',
   budget_line_id: selectedBudgetLine.value?.id ?? '',
   budget_bucket_id: selectedBudgetLine.value?.control_bucket?.id ?? '',
   evidence_number: '',
@@ -63,6 +84,46 @@ const form = useForm({
   documents: {}, // document_type_id -> File
 });
 
+// On Funding Source Changed by PTK
+const selectFundingSource = async (fs) => {
+  selectedFundingSource.value = fs;
+  form.funding_source_id = fs.id;
+  selectedBudgetLine.value = null;
+  form.budget_line_id = '';
+  form.budget_bucket_id = '';
+  searchInput.value = '';
+  isDropdownOpen.value = false;
+
+  isSearching.value = true;
+  try {
+    const params = new URLSearchParams();
+    if (currentActiveVersion.value?.id) {
+      params.append('budget_version_id', currentActiveVersion.value.id);
+    }
+    if (fs.id) {
+      params.append('funding_source_id', fs.id);
+    }
+    if (props.userDepartmentId) {
+      params.append('department_id', props.userDepartmentId);
+    }
+
+    const res = await fetch(`/api/budget-lines/search?${params.toString()}`);
+    if (res.ok) {
+      const json = await res.json();
+      searchResults.value = json.data || [];
+      if (searchResults.value.length > 0) {
+        selectedBudgetLine.value = searchResults.value[0];
+        form.budget_line_id = searchResults.value[0].id;
+        form.budget_bucket_id = searchResults.value[0].control_bucket?.id || '';
+      }
+    }
+  } catch (err) {
+    console.error('Error fetching budget lines for funding source:', err);
+  } finally {
+    isSearching.value = false;
+  }
+};
+
 // Search Debounce Logic
 let debounceTimeout = null;
 const performSearch = () => {
@@ -75,8 +136,11 @@ const performSearch = () => {
       if (searchInput.value.trim()) {
         params.append('q', searchInput.value.trim());
       }
-      if (props.activeVersion?.id) {
-        params.append('budget_version_id', props.activeVersion.id);
+      if (currentActiveVersion.value?.id) {
+        params.append('budget_version_id', currentActiveVersion.value.id);
+      }
+      if (selectedFundingSource.value?.id) {
+        params.append('funding_source_id', selectedFundingSource.value.id);
       }
       if (props.userDepartmentId) {
         params.append('department_id', props.userDepartmentId);
@@ -153,6 +217,9 @@ const onFileSelected = (e) => {
 
 const submitTransaction = (action = 'PROCESSING') => {
   form.submit_action = action;
+  if (selectedFundingSource.value?.id) {
+    form.funding_source_id = selectedFundingSource.value.id;
+  }
   form.post('/submissions', {
     preserveScroll: true,
   });
@@ -200,11 +267,11 @@ onMounted(() => {
           </p>
         </div>
 
-        <!-- Automatic Context Badge (Read-Only) -->
+        <!-- Dynamic Context Badge -->
         <div class="flex items-center gap-2 bg-sky-50 border border-sky-200/80 px-4 py-2 rounded-2xl text-xs shadow-sm shrink-0">
           <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
           <span class="font-extrabold text-sky-950">
-            TA {{ activeFiscalYear }} &bull; {{ activeFundingSource?.code || 'RM' }} &bull; {{ activeVersion?.revision_no || 'Rev 00' }} &bull; {{ selectedBudgetLine?.department?.code || 'FT' }}
+            TA {{ activeFiscalYear }} &bull; {{ selectedFundingSource?.code || 'RM' }} &bull; {{ currentActiveVersion?.revision_no || 'Rev 00' }} &bull; {{ selectedBudgetLine?.department?.code || 'FT' }}
           </span>
         </div>
       </div>
@@ -212,13 +279,58 @@ onMounted(() => {
       <form @submit.prevent="submitTransaction('PROCESSING')" class="space-y-6">
 
         <!-- ================================================== -->
-        <!-- 1. AUTOCOMPLETE POS ANGGARAN / NO URUT RBA        -->
+        <!-- 1. PILIH SUMBER DANA (RM / BOPTN / UKT / SBSN / PNBP) -->
+        <!-- ================================================== -->
+        <div class="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-4">
+          <div class="border-b border-slate-100 pb-3 flex items-center justify-between">
+            <div>
+              <h2 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <span class="px-2 py-0.5 bg-sky-100 text-sky-800 text-[10px] font-black rounded-md">1</span>
+                <span>Sumber Dana Anggaran</span>
+              </h2>
+              <p class="text-xs text-slate-500 mt-0.5">Pilih sumber dana yang memiliki versi anggaran aktif pada Tahun Anggaran {{ activeFiscalYear }}.</p>
+            </div>
+            <div v-if="selectedFundingSource" class="text-right">
+              <span class="text-[10px] font-bold text-slate-400 block uppercase">Versi Aktif</span>
+              <span class="text-xs font-black text-sky-900 bg-sky-100 px-2 py-0.5 rounded-md">
+                {{ currentActiveVersion?.revision_no || 'Rev 00' }}
+              </span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <button
+              v-for="fs in availableFundingSources"
+              :key="fs.id"
+              type="button"
+              @click="selectFundingSource(fs)"
+              :class="[
+                'p-3.5 rounded-2xl border text-left transition relative flex flex-col justify-between gap-2',
+                selectedFundingSource?.id === fs.id
+                  ? 'border-sky-500 bg-sky-50/70 ring-2 ring-sky-500/20'
+                  : 'border-slate-200 bg-slate-50/50 hover:bg-slate-100/70'
+              ]"
+            >
+              <div class="flex items-center justify-between w-full">
+                <span class="font-black text-sm text-slate-900">{{ fs.code }}</span>
+                <span v-if="selectedFundingSource?.id === fs.id" class="w-2 h-2 rounded-full bg-sky-600"></span>
+              </div>
+              <div class="text-[11px] text-slate-500 font-medium truncate">
+                {{ fs.name }}
+              </div>
+            </button>
+          </div>
+          <div v-if="form.errors.funding_source_id" class="text-rose-600 text-[11px] font-bold">{{ form.errors.funding_source_id }}</div>
+        </div>
+
+        <!-- ================================================== -->
+        <!-- 2. AUTOCOMPLETE POS ANGGARAN / NO URUT RBA        -->
         <!-- ================================================== -->
         <div id="budget-line-autocomplete-wrapper" class="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-4 relative">
           <div class="border-b border-slate-100 pb-3">
             <h2 class="text-sm font-bold text-slate-900 flex items-center gap-2">
-              <span class="px-2 py-0.5 bg-sky-100 text-sky-800 text-[10px] font-black rounded-md">1</span>
-              <span>Pilih Pos Anggaran / Nomor Urut RBA</span>
+              <span class="px-2 py-0.5 bg-sky-100 text-sky-800 text-[10px] font-black rounded-md">2</span>
+              <span>Pilih Pos Anggaran / Nomor Urut RBA ({{ selectedFundingSource?.code || 'RM' }})</span>
             </h2>
             <p class="text-xs text-slate-500 mt-0.5">Ketik No Urut RBA, uraian belanja, atau kode akun untuk memilih.</p>
           </div>

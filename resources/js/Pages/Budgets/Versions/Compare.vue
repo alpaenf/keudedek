@@ -30,6 +30,12 @@ const props = defineProps({
   summary: Object,
 });
 
+const activateTarget = () => {
+  if (props.targetVersion && confirm(`Aktifkan versi anggaran ${props.targetVersion?.revision_no} sebagai pagu aktif berjalan?`)) {
+    router.post(`/budget-versions/${props.targetVersion?.id}/activate`);
+  }
+};
+
 const baseVersionId = ref(props.baseVersion?.id || '');
 const targetVersionId = ref(props.targetVersion?.id || '');
 
@@ -107,6 +113,15 @@ const formatDelta = (val) => {
         </div>
 
         <div class="flex items-center gap-2">
+          <button 
+            v-if="targetVersion && targetVersion.status !== 'ACTIVE'"
+            @click="activateTarget"
+            id="btn-activate-target-version"
+            class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-2xl transition shadow-sm flex items-center gap-1.5"
+          >
+            <CheckCircle2 class="w-4 h-4" />
+            <span>Aktifkan Versi {{ targetVersion.revision_no }}</span>
+          </button>
           <Link 
             href="/budget-versions" 
             class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-2xl transition shadow-sm"

@@ -18,8 +18,15 @@ class DashboardController extends Controller
         }
 
         $selectedDepartmentId = $request->query('department_id');
+        $selectedFundingSourceId = $request->query('funding_source_id');
+        $selectedFiscalYear = $request->query('fiscal_year');
 
-        $payload = DashboardService::getPayload($user, $selectedDepartmentId);
+        $payload = DashboardService::getPayload(
+            $user,
+            $selectedDepartmentId,
+            $selectedFundingSourceId,
+            $selectedFiscalYear
+        );
 
         return Inertia::render('Dashboard', $payload);
     }

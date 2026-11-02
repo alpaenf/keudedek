@@ -297,6 +297,7 @@ class BudgetBucketController extends Controller
         $search = $request->query('q', $request->query('search'));
         $departmentId = $request->filled('department_id') ? (int) $request->department_id : null;
         $budgetVersionId = $request->filled('budget_version_id') ? (int) $request->budget_version_id : null;
+        $fundingSourceId = $request->filled('funding_source_id') ? (int) $request->funding_source_id : null;
         $limit = min(50, max(1, (int) $request->query('limit', 25)));
 
         $lines = BudgetCalculationService::searchBudgetLines(
@@ -304,6 +305,7 @@ class BudgetBucketController extends Controller
             search: $search,
             departmentId: $departmentId,
             budgetVersionId: $budgetVersionId,
+            fundingSourceId: $fundingSourceId,
             limit: $limit
         );
 

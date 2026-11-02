@@ -571,18 +571,21 @@ class EarlyWarningService
             return 0;
         }
 
-        $activeVersion = BudgetVersion::where('status', 'ACTIVE')->first();
-        if (! $activeVersion) {
-            return 0;
-        }
-
-        $activeBuckets = BudgetBucket::where('budget_version_id', $activeVersion->id)
-            ->get()
-            ->keyBy(fn ($b) => "{$b->department_id}_{$b->account_code}_{$b->subcomponent_full_code}");
-
         $generated = 0;
 
         foreach ($draftVersions as $draft) {
+            $activeVersion = BudgetVersion::where('fiscal_year_id', $draft->fiscal_year_id)
+                ->where('funding_source_id', $draft->funding_source_id)
+                ->where('status', 'ACTIVE')
+                ->first();
+
+            if (! $activeVersion) {
+                continue;
+            }
+
+            $activeBuckets = BudgetBucket::where('budget_version_id', $activeVersion->id)
+                ->get()
+                ->keyBy(fn ($b) => "{$b->department_id}_{$b->account_code}_{$b->subcomponent_full_code}");
             $draftBuckets = BudgetBucket::where('budget_version_id', $draft->id)->get();
 
             foreach ($draftBuckets as $dBucket) {

@@ -268,7 +268,9 @@ class BudgetControlService
                 }
 
                 $fiscalYear = FiscalYear::where('status', 'ACTIVE')->first() ?? $bucket->fiscalYear;
-                $submissionNumber = 'TRX/'.date('Y/m').'/'.str_pad((string) rand(1, 9999), 4, '0', STR_PAD_LEFT);
+                do {
+                    $submissionNumber = 'TRX/'.date('Y/m').'/'.str_pad((string) mt_rand(1, 999999), 6, '0', STR_PAD_LEFT);
+                } while (Submission::where('submission_number', $submissionNumber)->exists());
                 $defaultTrxTypeId = TransactionType::where('is_active', true)->first()?->id ?? TransactionType::first()?->id;
 
                 $submission = Submission::create([

@@ -2,18 +2,23 @@
 
 namespace Tests\Feature;
 
+use App\Models\BudgetBucket;
+use App\Models\BudgetVersion;
+use App\Models\Department;
+use App\Models\FiscalYear;
+use App\Models\FundingSource;
 use App\Models\Submission;
 use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class ReportExportTest extends TestCase
 {
+    use RefreshDatabase;
+
     public function test_can_export_reports_to_pdf_xlsx_csv_docx(): void
     {
-        $user = User::where('role', 'ADMIN')->first() ?? User::first();
-        if (! $user) {
-            $this->markTestSkipped('No user found in database');
-        }
+        $user = User::factory()->create(['role' => 'ADMIN']);
 
         $this->actingAs($user);
 
@@ -40,15 +45,52 @@ class ReportExportTest extends TestCase
 
     public function test_can_export_submission_to_pdf_docx_print(): void
     {
-        $user = User::where('role', 'ADMIN')->first() ?? User::first();
-        if (! $user) {
-            $this->markTestSkipped('No user found in database');
-        }
+        $user = User::factory()->create(['role' => 'ADMIN']);
 
-        $sub = Submission::first();
-        if (! $sub) {
-            $this->markTestSkipped('No submission found in database');
-        }
+        $fy = FiscalYear::firstOrCreate(
+            ['year' => 2026],
+            ['status' => 'ACTIVE', 'start_date' => '2026-01-01', 'end_date' => '2026-12-31']
+        );
+        $fs = FundingSource::firstOrCreate(
+            ['code' => 'RM'],
+            ['name' => 'Rupiah Murni', 'is_active' => true]
+        );
+        $dept = Department::firstOrCreate(
+            ['code' => 'JTIF'],
+            ['name' => 'Teknik Informatika', 'is_active' => true]
+        );
+        $v = BudgetVersion::create([
+            'fiscal_year_id' => $fy->id,
+            'funding_source_id' => $fs->id,
+            'revision_no' => 'Rev 00',
+            'status' => 'ACTIVE',
+        ]);
+        $bucket = BudgetBucket::create([
+            'fiscal_year_id' => $fy->id,
+            'budget_version_id' => $v->id,
+            'department_id' => $dept->id,
+            'funding_source_id' => $fs->id,
+            'account_code' => '521211',
+            'account_name' => 'Belanja Bahan',
+            'subcomponent_full_code' => '023.17.WA.4257.EBA.994.001.AA',
+            'allocated_budget' => 10000000,
+            'reserved_budget' => 0,
+            'realized_budget' => 0,
+            'available_balance' => 10000000,
+        ]);
+
+        $sub = Submission::create([
+            'submission_number' => 'TRX/2026/001',
+            'evidence_number' => 'KW-001',
+            'transaction_date' => '2026-03-01',
+            'title' => 'Pembelian ATK',
+            'amount' => 1500000,
+            'status' => 'PROCESSING',
+            'department_id' => $dept->id,
+            'fiscal_year_id' => $fy->id,
+            'budget_bucket_id' => $bucket->id,
+            'created_by' => $user->id,
+        ]);
 
         $this->actingAs($user);
 

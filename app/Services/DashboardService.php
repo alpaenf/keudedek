@@ -21,8 +21,12 @@ class DashboardService
     /**
      * Get complete dashboard payload tailored to user role and department scope.
      */
-    public static function getPayload(User $user, ?string $selectedDepartmentId = null): array
-    {
+    public static function getPayload(
+        User $user,
+        ?string $selectedDepartmentId = null,
+        ?string $selectedFundingSourceId = null,
+        ?string $selectedFiscalYear = null
+    ): array {
         $role = $user->role === 'WD' ? 'WAKIL_DEKAN' : $user->role;
 
         // Enforce department scope for PTK, KAJUR, and KAPRODI
@@ -31,16 +35,52 @@ class DashboardService
         }
 
         // Active fiscal year
-        $activeYear = FiscalYear::where('status', 'ACTIVE')->first()?->year ?? 2026;
+        $fiscalYearObj = $selectedFiscalYear
+            ? FiscalYear::where('year', (int) $selectedFiscalYear)->first()
+            : FiscalYear::where('status', 'ACTIVE')->first();
+        $activeYear = $fiscalYearObj?->year ?? 2026;
 
-        // Base scoped queries - ensure pos anggaran uses the ACTIVE budget version (RBC-01)
-        $activeVersion = BudgetVersion::where('status', 'ACTIVE')->first();
-        $queryBuckets = BudgetBucket::with(['department', 'fundingSource']);
-        if ($activeVersion) {
-            $queryBuckets->where('budget_version_id', $activeVersion->id);
+        // Active funding sources that have active versions in this fiscal year
+        $activeFundingSources = FundingSource::whereHas('budgetVersions', function ($q) use ($fiscalYearObj) {
+            $q->where('status', 'ACTIVE');
+            if ($fiscalYearObj) {
+                $q->where('fiscal_year_id', $fiscalYearObj->id);
+            }
+        })->get();
+
+        // Active versions to aggregate
+        $activeVersionsQuery = BudgetVersion::where('status', 'ACTIVE');
+        if ($fiscalYearObj) {
+            $activeVersionsQuery->where('fiscal_year_id', $fiscalYearObj->id);
         }
+        if (! empty($selectedFundingSourceId)) {
+            $activeVersionsQuery->where('funding_source_id', $selectedFundingSourceId);
+        }
+        $activeVersions = $activeVersionsQuery->with('fundingSource')->get();
+        $activeVersionIds = $activeVersions->pluck('id')->toArray();
+
+        // Base scoped queries - ensure pos anggaran uses strictly the ACTIVE budget versions (RBC-01)
+        $queryBuckets = BudgetBucket::with(['department', 'fundingSource']);
+        if (! empty($activeVersionIds)) {
+            $queryBuckets->whereIn('budget_version_id', $activeVersionIds);
+        } else {
+            $queryBuckets->whereRaw('1 = 0');
+        }
+
         $querySubmissions = Submission::with(['department', 'studyProgram', 'budgetBucket', 'creator', 'currentWorkflowStep']);
+        if ($fiscalYearObj) {
+            $querySubmissions->where('fiscal_year_id', $fiscalYearObj->id);
+        }
+        if (! empty($selectedFundingSourceId)) {
+            $querySubmissions->whereHas('budgetBucket', fn ($q) => $q->where('funding_source_id', $selectedFundingSourceId));
+        } elseif (! empty($activeVersionIds)) {
+            $querySubmissions->whereHas('budgetBucket', fn ($q) => $q->whereIn('budget_version_id', $activeVersionIds));
+        }
+
         $queryWarnings = EarlyWarning::with(['department', 'budgetBucket', 'acknowledger']);
+        if (! empty($selectedFundingSourceId)) {
+            $queryWarnings->whereHas('budgetBucket', fn ($q) => $q->where('funding_source_id', $selectedFundingSourceId));
+        }
 
         ScopeService::applyDepartmentScope($queryBuckets, $user, $selectedDepartmentId);
         ScopeService::applyDepartmentScope($querySubmissions, $user, $selectedDepartmentId);
@@ -116,9 +156,11 @@ class DashboardService
         // Department Summaries (5 Jurusan condition & stacked bar data)
         // Ensure only active budget version buckets are counted to avoid double counting across revisions (F-07, KF-09)
         $rawDeptSummaries = Department::with([
-            'budgetBuckets' => function ($q) use ($activeVersion) {
-                if ($activeVersion) {
-                    $q->where('budget_version_id', $activeVersion->id);
+            'budgetBuckets' => function ($q) use ($activeVersionIds) {
+                if (! empty($activeVersionIds)) {
+                    $q->whereIn('budget_version_id', $activeVersionIds);
+                } else {
+                    $q->whereRaw('1 = 0');
                 }
             },
             'earlyWarnings',
@@ -292,6 +334,19 @@ class DashboardService
             ->where(fn ($q) => $q->where('status', 'ACTIVE')->orWhere('lifecycle_state', 'OPEN'))
             ->count();
 
+        $selectedFundObj = ! empty($selectedFundingSourceId) ? FundingSource::find($selectedFundingSourceId) : null;
+        $fundSourceCode = $selectedFundObj ? $selectedFundObj->code : 'SEMUA';
+
+        if ($selectedFundObj && $activeVersions->isNotEmpty()) {
+            $revisionNumber = $activeVersions->first()->revision_no;
+        } elseif ($activeVersions->count() === 1) {
+            $revisionNumber = $activeVersions->first()->revision_no;
+        } elseif ($activeVersions->count() > 1) {
+            $revisionNumber = 'Multi-Versi Aktif';
+        } else {
+            $revisionNumber = 'Belum Ada Pagu Aktif';
+        }
+
         return [
             'userRole' => $role,
             'scopeLabel' => $scopeLabel,
@@ -327,12 +382,13 @@ class DashboardService
             'attentionItemsCount' => $attentionItemsCount,
             'adminMetrics' => $adminMetrics,
             'departments' => ScopeService::getSelectableDepartments($user),
-            'fundingSources' => FundingSource::all(),
+            'fundingSources' => $activeFundingSources->isNotEmpty() ? $activeFundingSources : FundingSource::all(),
             'selectedDepartmentId' => $selectedDepartmentId,
+            'selectedFundingSourceId' => $selectedFundingSourceId ? (int) $selectedFundingSourceId : null,
             'activeFiscalYear' => $activeYear,
-            'revisionNumber' => 'Rev 02',
-            'fundSourceCode' => 'RM',
-            'periodLabel' => 'Jan–Agu 2026',
+            'revisionNumber' => $revisionNumber,
+            'fundSourceCode' => $fundSourceCode,
+            'periodLabel' => "Jan–Des {$activeYear}",
         ];
     }
 

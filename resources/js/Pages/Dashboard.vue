@@ -40,6 +40,7 @@ const props = defineProps({
   departments: Array,
   fundingSources: Array,
   selectedDepartmentId: [String, Number],
+  selectedFundingSourceId: [String, Number],
   activeFiscalYear: [String, Number],
   departmentName: String,
   prodiName: String,
@@ -60,13 +61,7 @@ const currentRole = computed(() => {
 });
 
 const dashboardTitle = computed(() => {
-  if (currentRole.value === 'PTU') {
-    return 'Dashboard PTU (Penguji Tagihan Unit BLU)';
-  }
-  if (currentRole.value === 'BENDAHARA') {
-    return 'Dashboard Bendahara Pengeluaran Pembantu';
-  }
-  return `Dashboard ${currentRole.value}`;
+  return 'Dashboard';
 });
 </script>
 
@@ -78,8 +73,11 @@ const dashboardTitle = computed(() => {
       :departments="departments"
       :fundingSources="fundingSources"
       :selectedDepartmentId="selectedDepartmentId"
+      :selectedFundingSourceId="selectedFundingSourceId"
       :activeFiscalYear="activeFiscalYear"
       :userRole="currentRole"
+      :fundSourceCode="fundSourceCode"
+      :revisionNumber="revisionNumber"
     />
 
     <!-- Role-Specific Views Dynamic Switching -->
@@ -100,6 +98,8 @@ const dashboardTitle = computed(() => {
       :activeFiscalYear="activeFiscalYear"
       :revisionNumber="revisionNumber"
       :fundSourceCode="fundSourceCode"
+      :fundingSources="fundingSources"
+      :selectedFundingSourceId="selectedFundingSourceId"
       :thisMonthCount="thisMonthCount"
       :thisMonthAmount="thisMonthAmount"
       :returnedSubmissions="returnedSubmissions"

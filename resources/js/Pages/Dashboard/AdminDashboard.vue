@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import { Bar } from 'vue-chartjs';
+import { CheckCircle2 } from 'lucide-vue-next';
 import {
   Chart as ChartJS,
   Title,
@@ -88,8 +89,14 @@ const mappingChartOptions = computed(() => ({
     <!-- Clean Section Header -->
     <div class="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-200/80">
       <div>
-        <h2 class="text-xl font-extrabold text-slate-900 tracking-tight">Kesehatan Data &amp; Konfigurasi System Administrator</h2>
-        <p class="text-xs text-slate-500">Monitoring validitas mapping pos anggaran, riwayat import data SIPEDA, dan audit trail log.</p>
+        <div class="flex items-center gap-2.5">
+          <h2 class="text-xl font-extrabold text-slate-900 tracking-tight">Kondisi Sistem:</h2>
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-emerald-100/90 text-emerald-800 text-xs font-bold rounded-full border border-emerald-200/90 shadow-2xs">
+            <CheckCircle2 class="w-4 h-4 text-emerald-600 shrink-0" />
+            Normal
+          </span>
+        </div>
+        <p class="text-xs text-slate-500 mt-1">Seluruh layanan inti SIKARA berjalan dengan baik.</p>
       </div>
 
       <div class="flex flex-wrap items-center gap-3">
@@ -108,61 +115,71 @@ const mappingChartOptions = computed(() => ({
       </div>
     </div>
 
-    <!-- 6 Clean Admin System & Budget Foundation KPI Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 sm:gap-4">
+    <!-- 6 Clean & Simple Admin KPI Cards -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
       <!-- 1. TA Aktif -->
-      <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-1">
-        <div class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">TA AKTIF</div>
-        <div class="text-lg font-black text-slate-900 font-sans">
+      <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-2xs space-y-1.5 hover:border-slate-300 transition-colors">
+        <div class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">TA Aktif</div>
+        <div class="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
           TA {{ adminMetrics?.active_fiscal_year || 2026 }}
         </div>
-        <div class="text-[11px] text-emerald-700 font-bold">Status Aktif</div>
+        <div class="flex items-center gap-1.5 text-xs text-emerald-600 font-medium">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+          Status Aktif
+        </div>
       </div>
 
       <!-- 2. Revisi Aktif -->
-      <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-1">
-        <div class="text-[10px] font-bold text-indigo-700 uppercase tracking-wider">REVISI AKTIF</div>
-        <div class="text-lg font-black text-indigo-900 font-sans">
+      <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-2xs space-y-1.5 hover:border-slate-300 transition-colors">
+        <div class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Revisi Aktif</div>
+        <div class="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
           {{ adminMetrics?.active_revision || 'Rev 00' }}
         </div>
-        <div class="text-[11px] text-indigo-600 truncate">{{ adminMetrics?.active_version_label || 'DIPA Induk' }}</div>
+        <div class="text-xs text-slate-500" :title="adminMetrics?.active_version_label || 'DIPA Induk Aktif'">
+          {{ (adminMetrics?.active_revision === 'Rev 00' || !adminMetrics?.active_revision) ? 'DIPA Induk Aktif' : 'Revisi Pagu Aktif' }}
+        </div>
       </div>
 
       <!-- 3. Budget Line -->
-      <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-1">
-        <div class="text-[10px] font-bold text-sky-700 uppercase tracking-wider">BUDGET LINE</div>
-        <div class="text-lg font-black text-sky-950 font-sans">
+      <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-2xs space-y-1.5 hover:border-slate-300 transition-colors">
+        <div class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Budget Line</div>
+        <div class="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
           {{ adminMetrics?.total_budget_lines || 0 }}
         </div>
-        <div class="text-[11px] text-slate-500">Pos Baris RBA</div>
+        <div class="text-xs text-slate-500">Pos Baris RBA</div>
       </div>
 
       <!-- 4. Unmapped Lines -->
-      <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-1">
-        <div class="text-[10px] font-bold text-amber-700 uppercase tracking-wider">UNMAPPED</div>
-        <div class="text-lg font-black text-amber-950 font-sans">
+      <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-2xs space-y-1.5 hover:border-slate-300 transition-colors">
+        <div class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Unmapped</div>
+        <div class="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
           {{ adminMetrics?.unmapped_count || 0 }}
         </div>
-        <div class="text-[11px] text-amber-600 font-semibold">Perlu Mapping</div>
+        <div 
+          class="text-xs" 
+          :class="(adminMetrics?.unmapped_count || 0) > 0 ? 'text-amber-600 font-medium' : 'text-slate-500'"
+        >
+          {{ (adminMetrics?.unmapped_count || 0) > 0 ? 'Perlu Mapping' : 'Semua Terpetakan' }}
+        </div>
       </div>
 
       <!-- 5. Users -->
-      <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-1">
-        <div class="text-[10px] font-bold text-slate-600 uppercase tracking-wider">PENGGUNA</div>
-        <div class="text-lg font-black text-slate-900 font-sans">
+      <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-2xs space-y-1.5 hover:border-slate-300 transition-colors">
+        <div class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Pengguna</div>
+        <div class="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
           {{ adminMetrics?.active_users_count || 0 }}
         </div>
-        <div class="text-[11px] text-slate-500">Akun Terdaftar</div>
+        <div class="text-xs text-slate-500">Akun Terdaftar</div>
       </div>
 
       <!-- 6. Import Terakhir -->
-      <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-1">
-        <div class="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">IMPORT TERAKHIR</div>
-        <div class="text-xs font-black text-slate-900 font-mono truncate" :title="adminMetrics?.last_import?.file_name || 'Belum ada import'">
-          {{ adminMetrics?.last_import?.file_name ? adminMetrics.last_import.file_name.substring(0, 16) + '...' : 'Belum ada' }}
+      <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-2xs space-y-1.5 hover:border-slate-300 transition-colors">
+        <div class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Import Terakhir</div>
+        <div class="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+          {{ adminMetrics?.last_import?.imported_rows ? adminMetrics.last_import.imported_rows + ' Baris' : '—' }}
         </div>
-        <div class="text-[11px] text-emerald-700 font-semibold">
-          {{ adminMetrics?.last_import?.imported_rows ? adminMetrics.last_import.imported_rows + ' baris' : 'N/A' }}
+        <div class="text-xs text-slate-500" :title="adminMetrics?.last_import?.file_name || 'Belum Ada Import'">
+          {{ adminMetrics?.last_import ? 'Data Terakhir Diimport' : 'Belum Ada Import' }}
         </div>
       </div>
     </div>

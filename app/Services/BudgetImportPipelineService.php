@@ -253,14 +253,30 @@ class BudgetImportPipelineService
             $subcompName = trim((string) ($row[15] ?? 'Operasional Jurusan'));
             $accountCode = trim((string) ($row[16] ?? ''));
             $accountName = trim((string) ($row[17] ?? 'Belanja Operasional'));
-            $description = trim((string) ($row[18] ?? "Belanja Pos {$rbaSeq}"));
-            $volume = (float) str_replace(['.', ',', ' '], ['', '.', ''], trim((string) ($row[19] ?? '1')));
-            $unit = trim((string) ($row[20] ?? 'Kegiatan')) ?: 'Kegiatan';
-            $unitPrice = (float) str_replace(['.', ',', 'Rp', ' '], ['', '.', '', ''], trim((string) ($row[21] ?? '0')));
-            $budgetAmount = (float) str_replace(['.', ',', 'Rp', ' '], ['', '.', '', ''], trim((string) ($row[22] ?? '0')));
+            // Check if column 18 is numeric (SIMAPAN format: Alokasi at col 18, Realisasi col 19, Sisa col 20, Keterangan col 22)
+            $col18 = trim((string) ($row[18] ?? ''));
+            $col22 = trim((string) ($row[22] ?? ''));
+            $num18 = (float) str_replace(['.', ',', 'Rp', ' '], ['', '.', '', ''], $col18);
+            $num22 = (float) str_replace(['.', ',', 'Rp', ' '], ['', '.', '', ''], $col22);
 
-            if ($budgetAmount <= 0 && $volume > 0 && $unitPrice > 0) {
-                $budgetAmount = $volume * $unitPrice;
+            if ($num18 > 0 && ($num22 <= 0 || ! is_numeric(str_replace(['.', ','], '', $col22)))) {
+                // SIMAPAN 23-column format: col 18 is Alokasi, col 22 is Keterangan
+                $description = trim((string) ($row[22] ?? "Belanja Pos {$rbaSeq}"));
+                $volume = 1.0;
+                $unit = 'Kegiatan';
+                $unitPrice = $num18;
+                $budgetAmount = $num18;
+            } else {
+                // Standard 23-column format: col 18 is Description, col 19 volume, col 20 unit, col 21 unit_price, col 22 budget_amount
+                $description = trim((string) ($row[18] ?? "Belanja Pos {$rbaSeq}"));
+                $volume = (float) str_replace(['.', ',', ' '], ['', '.', ''], trim((string) ($row[19] ?? '1')));
+                $unit = trim((string) ($row[20] ?? 'Kegiatan')) ?: 'Kegiatan';
+                $unitPrice = (float) str_replace(['.', ',', 'Rp', ' '], ['', '.', '', ''], trim((string) ($row[21] ?? '0')));
+                $budgetAmount = $num22;
+
+                if ($budgetAmount <= 0 && $volume > 0 && $unitPrice > 0) {
+                    $budgetAmount = $volume * $unitPrice;
+                }
             }
 
             // 1. Department Mapping Check

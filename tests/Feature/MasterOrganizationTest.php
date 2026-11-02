@@ -2,19 +2,23 @@
 
 namespace Tests\Feature;
 
+use App\Models\BudgetBucket;
+use App\Models\BudgetVersion;
 use App\Models\Department;
+use App\Models\FiscalYear;
+use App\Models\FundingSource;
 use App\Models\StudyProgram;
 use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class MasterOrganizationTest extends TestCase
 {
+    use RefreshDatabase;
+
     public function test_non_admin_cannot_access_master_organisasi(): void
     {
-        $ptkUser = User::where('role', 'PTK')->first();
-        if (! $ptkUser) {
-            $this->markTestSkipped('No PTK user found');
-        }
+        $ptkUser = User::factory()->create(['role' => 'PTK']);
 
         $response = $this->actingAs($ptkUser)->get('/master/departments');
         $response->assertStatus(403);
@@ -22,10 +26,7 @@ class MasterOrganizationTest extends TestCase
 
     public function test_admin_can_access_master_organisasi_both_tabs(): void
     {
-        $adminUser = User::where('role', 'ADMIN')->first();
-        if (! $adminUser) {
-            $this->markTestSkipped('No admin user found');
-        }
+        $adminUser = User::factory()->create(['role' => 'ADMIN']);
 
         // Tab 1: Departments
         $responseDept = $this->actingAs($adminUser)->get('/master/departments?tab=departments');
@@ -38,10 +39,7 @@ class MasterOrganizationTest extends TestCase
 
     public function test_admin_can_create_update_toggle_department(): void
     {
-        $adminUser = User::where('role', 'ADMIN')->first();
-        if (! $adminUser) {
-            $this->markTestSkipped('No admin user found');
-        }
+        $adminUser = User::factory()->create(['role' => 'ADMIN']);
 
         $this->actingAs($adminUser);
 
@@ -90,12 +88,12 @@ class MasterOrganizationTest extends TestCase
 
     public function test_admin_can_create_update_toggle_study_program(): void
     {
-        $adminUser = User::where('role', 'ADMIN')->first();
-        if (! $adminUser) {
-            $this->markTestSkipped('No admin user found');
-        }
+        $adminUser = User::factory()->create(['role' => 'ADMIN']);
 
-        $parentDept = Department::where('type', 'DEPARTMENT')->first() ?? Department::first();
+        $parentDept = Department::firstOrCreate(
+            ['code' => 'JTIF'],
+            ['name' => 'Teknik Informatika', 'type' => 'DEPARTMENT', 'is_active' => true]
+        );
 
         $this->actingAs($adminUser);
 
@@ -142,16 +140,40 @@ class MasterOrganizationTest extends TestCase
 
     public function test_delete_safety_blocks_referenced_department_deletion(): void
     {
-        $adminUser = User::where('role', 'ADMIN')->first();
-        if (! $adminUser) {
-            $this->markTestSkipped('No admin user found');
-        }
+        $adminUser = User::factory()->create(['role' => 'ADMIN']);
 
-        // Department with relations (e.g. JTIF or FT)
-        $deptWithBudget = Department::whereHas('budgetBuckets')->first();
-        if (! $deptWithBudget) {
-            $this->markTestSkipped('No department with budget buckets found');
-        }
+        $fy = FiscalYear::firstOrCreate(
+            ['year' => 2026],
+            ['status' => 'ACTIVE', 'start_date' => '2026-01-01', 'end_date' => '2026-12-31']
+        );
+        $fs = FundingSource::firstOrCreate(
+            ['code' => 'RM'],
+            ['name' => 'Rupiah Murni', 'is_active' => true]
+        );
+        $deptWithBudget = Department::firstOrCreate(
+            ['code' => 'JTIF'],
+            ['name' => 'Teknik Informatika', 'type' => 'DEPARTMENT', 'is_active' => true]
+        );
+        $v = BudgetVersion::create([
+            'fiscal_year_id' => $fy->id,
+            'funding_source_id' => $fs->id,
+            'revision_no' => 'Rev 00',
+            'status' => 'ACTIVE',
+        ]);
+
+        BudgetBucket::create([
+            'fiscal_year_id' => $fy->id,
+            'budget_version_id' => $v->id,
+            'department_id' => $deptWithBudget->id,
+            'funding_source_id' => $fs->id,
+            'account_code' => '521211',
+            'account_name' => 'Belanja Bahan',
+            'subcomponent_full_code' => '023.17.WA.4257.EBA.994.001.AA',
+            'allocated_budget' => 10000000,
+            'reserved_budget' => 0,
+            'realized_budget' => 0,
+            'available_balance' => 10000000,
+        ]);
 
         $response = $this->actingAs($adminUser)->delete("/master/departments/{$deptWithBudget->id}");
         $response->assertSessionHas('error');

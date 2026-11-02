@@ -26,7 +26,8 @@ import {
   PlusCircle,
   Settings,
   GitCompare,
-  Layers
+  Layers,
+  ChevronLeft
 } from 'lucide-vue-next';
 
 defineProps({
@@ -44,6 +45,19 @@ const role = computed(() => {
 });
 
 const isMobileMenuOpen = ref(false);
+const isSidebarCollapsed = ref(typeof window !== 'undefined' && localStorage.getItem('sikara_sidebar_collapsed') === 'true');
+
+const toggleSidebar = () => {
+  if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+    isMobileMenuOpen.value = !isMobileMenuOpen.value;
+  } else {
+    isSidebarCollapsed.value = !isSidebarCollapsed.value;
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('sikara_sidebar_collapsed', isSidebarCollapsed.value ? 'true' : 'false');
+    }
+  }
+};
+
 const isSuccessDismissed = ref(false);
 const isErrorDismissed = ref(false);
 
@@ -76,23 +90,30 @@ const logout = () => {
     <!-- Nested White Professional Sidebar -->
     <aside 
       :class="[
-        'fixed lg:sticky top-0 left-0 h-screen w-64 bg-white text-slate-700 flex flex-col shrink-0 shadow-2xl lg:shadow-sm z-50 select-none border-r border-slate-200 transition-transform duration-300 ease-in-out',
-        isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        'fixed lg:sticky top-0 left-0 h-screen bg-white text-slate-700 flex flex-col shrink-0 shadow-2xl lg:shadow-sm z-50 select-none border-r border-slate-200 transition-all duration-300 ease-in-out',
+        isMobileMenuOpen ? 'translate-x-0 w-64' : '-translate-x-full lg:translate-x-0',
+        isSidebarCollapsed ? 'lg:-translate-x-full lg:w-0 lg:border-r-0 lg:overflow-hidden lg:opacity-0' : 'lg:w-64 lg:translate-x-0 lg:opacity-100'
       ]"
     >
       <!-- Brand Logo Header -->
-      <div class="h-20 px-6 flex items-center justify-between border-b border-slate-100 shrink-0">
+      <div class="h-20 px-5 flex items-center justify-between border-b border-slate-100 shrink-0">
         <Link href="/" class="flex items-center gap-3 group" @click="isMobileMenuOpen = false">
           <img src="/image/SIKARALOGO.png" alt="Logo SIKARA FT UNSOED" class="w-10 h-10 object-contain rounded-xl shadow-sm group-hover:scale-105 transition" />
-          <div>
+          <div class="whitespace-nowrap">
             <h1 class="font-black text-slate-900 tracking-tight text-lg leading-tight">SIKARA</h1>
             <p class="text-[11px] text-sky-700 font-bold">FT UNSOED</p>
           </div>
         </Link>
 
-        <!-- Close button on Mobile -->
-        <button @click="isMobileMenuOpen = false" class="lg:hidden p-1.5 text-slate-400 hover:text-slate-700 rounded-lg">
-          <X class="w-5 h-5" />
+        <!-- Close / Collapse Button (Mobile & Desktop) -->
+        <button 
+          @click="toggleSidebar" 
+          class="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition"
+          title="Tutup Sidebar Menu"
+          aria-label="Tutup Sidebar Menu"
+        >
+          <X class="w-5 h-5 lg:hidden" />
+          <ChevronLeft class="w-5 h-5 hidden lg:block" />
         </button>
       </div>
 
@@ -335,9 +356,10 @@ const logout = () => {
       <header class="h-20 bg-white/85 backdrop-blur-md border-b border-slate-200 sticky top-0 z-20 px-4 sm:px-8 flex items-center justify-between shadow-sm">
         <div class="flex items-center gap-3">
           <button 
-            @click="isMobileMenuOpen = true" 
-            class="lg:hidden p-2 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition"
-            title="Buka Menu"
+            @click="toggleSidebar" 
+            class="p-2 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition flex items-center justify-center border border-slate-200/80 bg-slate-50/50 shadow-2xs"
+            title="Buka / Tutup Sidebar Menu"
+            aria-label="Buka / Tutup Sidebar Menu"
           >
             <Menu class="w-5 h-5" />
           </button>

@@ -141,6 +141,7 @@ class BudgetCalculationService
         ?string $search = null,
         ?int $departmentId = null,
         ?int $budgetVersionId = null,
+        ?int $fundingSourceId = null,
         int $limit = 25
     ): array {
         $query = BudgetLine::with([
@@ -168,6 +169,11 @@ class BudgetCalculationService
             $query->whereHas('budgetVersion', function (Builder $vq) {
                 $vq->where('status', 'ACTIVE');
             });
+        }
+
+        // 3. Funding Source filter
+        if ($fundingSourceId) {
+            $query->where('funding_source_id', $fundingSourceId);
         }
 
         // 3. Multi-field Search: No RBA, uraian, akun, kegiatan, subkomponen
@@ -263,15 +269,56 @@ class BudgetCalculationService
         return Submission::where('fiscal_year_id', $bucket->fiscal_year_id)
             ->where('department_id', $bucket->department_id)
             ->where(function (Builder $query) use ($bucket) {
-                $query->where('budget_bucket_id', $bucket->id)
-                    ->orWhere('original_budget_bucket_id', $bucket->id)
-                    ->orWhereHas('budgetBucket', function (Builder $bq) use ($bucket) {
-                        $bq->where('department_id', $bucket->department_id)
-                            ->where('account_code', $bucket->account_code)
-                            ->where(function ($sq) use ($bucket) {
-                                if ($bucket->subcomponent_full_code) {
-                                    $sq->where('subcomponent_full_code', $bucket->subcomponent_full_code);
-                                }
+                // 1. Direct current bucket assignment (ensuring originalBudgetBucket does not conflict)
+                $query->where(function (Builder $dirQ) use ($bucket) {
+                    $dirQ->where('budget_bucket_id', $bucket->id)
+                        ->where(function (Builder $chkOriginal) use ($bucket) {
+                            $chkOriginal->whereNull('original_budget_bucket_id')
+                                ->orWhereHas('originalBudgetBucket', function (Builder $obq) use ($bucket) {
+                                    $obq->where('funding_source_id', $bucket->funding_source_id);
+                                });
+                        });
+                })
+                // 2. Or current budgetBucket matching same funding source and Pos Anggaran identity
+                    ->orWhere(function (Builder $bqMatch) use ($bucket) {
+                        $bqMatch->whereHas('budgetBucket', function (Builder $bq) use ($bucket) {
+                            $bq->where('funding_source_id', $bucket->funding_source_id)
+                                ->where('department_id', $bucket->department_id)
+                                ->where('account_code', $bucket->account_code)
+                                ->where(function ($sq) use ($bucket) {
+                                    if ($bucket->subcomponent_full_code) {
+                                        $sq->where('subcomponent_full_code', $bucket->subcomponent_full_code);
+                                    }
+                                });
+                        })
+                            ->where(function (Builder $chkOriginal) use ($bucket) {
+                                $chkOriginal->whereNull('original_budget_bucket_id')
+                                    ->orWhereHas('originalBudgetBucket', function (Builder $obq) use ($bucket) {
+                                        $obq->where('funding_source_id', $bucket->funding_source_id);
+                                    });
+                            });
+                    })
+                // 3. Or originalBudgetBucket matching same funding source and Pos Anggaran identity
+                    ->orWhere(function (Builder $oq) use ($bucket) {
+                        $oq->whereNotNull('original_budget_bucket_id')
+                            ->where(function (Builder $chkCurrent) use ($bucket) {
+                                $chkCurrent->whereNull('budget_bucket_id')
+                                    ->orWhereHas('budgetBucket', function (Builder $cbq) use ($bucket) {
+                                        $cbq->where('funding_source_id', $bucket->funding_source_id);
+                                    });
+                            })
+                            ->where(function (Builder $nested) use ($bucket) {
+                                $nested->where('original_budget_bucket_id', $bucket->id)
+                                    ->orWhereHas('originalBudgetBucket', function (Builder $obq) use ($bucket) {
+                                        $obq->where('funding_source_id', $bucket->funding_source_id)
+                                            ->where('department_id', $bucket->department_id)
+                                            ->where('account_code', $bucket->account_code)
+                                            ->where(function ($osq) use ($bucket) {
+                                                if ($bucket->subcomponent_full_code) {
+                                                    $osq->where('subcomponent_full_code', $bucket->subcomponent_full_code);
+                                                }
+                                            });
+                                    });
                             });
                     });
             });
@@ -306,14 +353,60 @@ class BudgetCalculationService
         $allocated = (float) $bucket->allocated_budget;
         $available = $allocated - $reserved - $realized;
 
+        // Check for cross-funding-source integrity anomalies pointing to this bucket
+        $conflictingSubs = Submission::where(function (Builder $q) use ($bucket) {
+            $q->where('budget_bucket_id', $bucket->id)
+                ->orWhere('original_budget_bucket_id', $bucket->id);
+        })
+            ->whereNotNull('budget_bucket_id')
+            ->whereNotNull('original_budget_bucket_id')
+            ->whereExists(function ($sub) {
+                $sub->selectRaw(1)
+                    ->from('budget_buckets as bb_curr')
+                    ->join('budget_buckets as bb_orig', 'bb_orig.id', '=', 'submissions.original_budget_bucket_id')
+                    ->whereColumn('bb_curr.id', 'submissions.budget_bucket_id')
+                    ->whereColumn('bb_curr.funding_source_id', '!=', 'bb_orig.funding_source_id');
+            });
+
+        $hasIntegrityAnomaly = $conflictingSubs->exists();
+        if ($hasIntegrityAnomaly) {
+            // Flag anomalous transactions for financial administrator review
+            $conflictingSubs->update(['needs_review' => true]);
+        }
+
         $bucket->reserved_budget = $reserved;
         $bucket->realized_budget = $realized;
         $bucket->available_balance = $available;
-        $bucket->needs_review = ($available < 0);
-        $bucket->data_incomplete = $hasUnmappedStatus;
+        $bucket->needs_review = ($available < 0) || $hasIntegrityAnomaly;
+        $bucket->data_incomplete = $hasUnmappedStatus || $hasIntegrityAnomaly;
         $bucket->save();
 
         return $bucket;
+    }
+
+    /**
+     * Query transactions flagged as integrity anomalies (cross-funding-source conflict).
+     * Occurs when budget_bucket_id and original_budget_bucket_id point to buckets of different funding sources.
+     */
+    public static function getIntegrityAnomalies(?int $fiscalYearId = null): Builder
+    {
+        $query = Submission::query()
+            ->with(['budgetBucket.fundingSource', 'originalBudgetBucket.fundingSource', 'department'])
+            ->whereNotNull('budget_bucket_id')
+            ->whereNotNull('original_budget_bucket_id')
+            ->whereExists(function ($sub) {
+                $sub->selectRaw(1)
+                    ->from('budget_buckets as bb_curr')
+                    ->join('budget_buckets as bb_orig', 'bb_orig.id', '=', 'submissions.original_budget_bucket_id')
+                    ->whereColumn('bb_curr.id', 'submissions.budget_bucket_id')
+                    ->whereColumn('bb_curr.funding_source_id', '!=', 'bb_orig.funding_source_id');
+            });
+
+        if ($fiscalYearId) {
+            $query->where('fiscal_year_id', $fiscalYearId);
+        }
+
+        return $query;
     }
 
     /**
@@ -326,14 +419,30 @@ class BudgetCalculationService
         $r = (float) $bucket->realized_budget;
         $s = $p - $c - $r;
 
+        $hasIntegrityAnomaly = (bool) $bucket->needs_review && Submission::where(function (Builder $q) use ($bucket) {
+            $q->where('budget_bucket_id', $bucket->id)
+                ->orWhere('original_budget_bucket_id', $bucket->id);
+        })
+            ->whereNotNull('budget_bucket_id')
+            ->whereNotNull('original_budget_bucket_id')
+            ->whereExists(function ($sub) {
+                $sub->selectRaw(1)
+                    ->from('budget_buckets as bb_curr')
+                    ->join('budget_buckets as bb_orig', 'bb_orig.id', '=', 'submissions.original_budget_bucket_id')
+                    ->whereColumn('bb_curr.id', 'submissions.budget_bucket_id')
+                    ->whereColumn('bb_curr.funding_source_id', '!=', 'bb_orig.funding_source_id');
+            })
+            ->exists();
+
         return [
             'bucket_id' => $bucket->id,
             'pagu' => $p,
             'commitment' => $c,
             'realization' => $r,
             'available' => $s,
-            'needs_review' => (bool) $bucket->needs_review || ($s < 0),
-            'data_incomplete' => (bool) $bucket->data_incomplete,
+            'needs_review' => (bool) $bucket->needs_review || ($s < 0) || $hasIntegrityAnomaly,
+            'data_incomplete' => (bool) $bucket->data_incomplete || $hasIntegrityAnomaly,
+            'has_integrity_anomaly' => $hasIntegrityAnomaly,
         ];
     }
 }

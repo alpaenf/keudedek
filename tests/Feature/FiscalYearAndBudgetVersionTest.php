@@ -7,16 +7,16 @@ use App\Models\BudgetVersion;
 use App\Models\FiscalYear;
 use App\Models\FundingSource;
 use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class FiscalYearAndBudgetVersionTest extends TestCase
 {
+    use RefreshDatabase;
+
     public function test_non_authorized_roles_receive_403_on_administrasi_fiscal_years(): void
     {
-        $ptkUser = User::where('role', 'PTK')->first();
-        if (! $ptkUser) {
-            $this->markTestSkipped('No PTK user found');
-        }
+        $ptkUser = User::factory()->create(['role' => 'PTK']);
 
         $response = $this->actingAs($ptkUser)->get('/master/fiscal-years');
         $response->assertStatus(403);
@@ -24,22 +24,20 @@ class FiscalYearAndBudgetVersionTest extends TestCase
 
     public function test_admin_and_kabag_can_access_administrasi_fiscal_years(): void
     {
-        $adminUser = User::where('role', 'ADMIN')->first();
-        $kabagUser = User::where('role', 'KABAG')->first();
+        $adminUser = User::factory()->create(['role' => 'ADMIN']);
+        $kabagUser = User::factory()->create(['role' => 'KABAG']);
 
-        if ($adminUser) {
-            $responseAdmin = $this->actingAs($adminUser)->get('/master/fiscal-years');
-            $responseAdmin->assertStatus(200);
-        }
+        $responseAdmin = $this->actingAs($adminUser)->get('/master/fiscal-years');
+        $responseAdmin->assertStatus(200);
 
-        if ($kabagUser) {
-            $responseKabag = $this->actingAs($kabagUser)->get('/master/fiscal-years');
-            $responseKabag->assertStatus(200);
-        }
+        $responseKabag = $this->actingAs($kabagUser)->get('/master/fiscal-years');
+        $responseKabag->assertStatus(200);
     }
 
     public function test_rm_is_mvp_enabled_default_and_inactive_source_handling(): void
     {
+        $adminUser = User::factory()->create(['role' => 'ADMIN']);
+
         $rm = FundingSource::firstOrCreate(
             ['code' => 'RM'],
             ['name' => 'Rupiah Murni', 'is_mvp_enabled' => true, 'is_active' => true, 'status' => 'ACTIVE']
@@ -48,30 +46,30 @@ class FiscalYearAndBudgetVersionTest extends TestCase
         $this->assertTrue((bool) $rm->is_mvp_enabled);
         $this->assertTrue((bool) $rm->is_active);
 
-        $adminUser = User::where('role', 'ADMIN')->first();
-        if (! $adminUser) {
-            $this->markTestSkipped('No admin user found');
-        }
-
         // Toggle funding source
-        $sbsn = FundingSource::where('code', 'SBSN')->first();
-        if ($sbsn) {
-            $initialStatus = $sbsn->status;
-            $this->actingAs($adminUser)->post("/master/funding-sources/{$sbsn->id}/toggle-active");
-            $sbsn->refresh();
-            $this->assertNotEquals($initialStatus, $sbsn->status);
-        }
+        $sbsn = FundingSource::firstOrCreate(
+            ['code' => 'SBSN'],
+            ['name' => 'Surat Berharga Syariah Negara', 'is_active' => true, 'status' => 'ACTIVE']
+        );
+
+        $initialStatus = $sbsn->status;
+        $this->actingAs($adminUser)->post("/master/funding-sources/{$sbsn->id}/toggle-active");
+        $sbsn->refresh();
+        $this->assertNotEquals($initialStatus, $sbsn->status);
     }
 
     public function test_only_one_active_version_per_year_and_fund_source_and_audit_logged(): void
     {
-        $adminUser = User::where('role', 'ADMIN')->first();
-        if (! $adminUser) {
-            $this->markTestSkipped('No admin user found');
-        }
+        $adminUser = User::factory()->create(['role' => 'ADMIN']);
 
-        $fy = FiscalYear::first();
-        $fs = FundingSource::where('code', 'RM')->first();
+        $fy = FiscalYear::firstOrCreate(
+            ['year' => 2026],
+            ['status' => 'ACTIVE', 'start_date' => '2026-01-01', 'end_date' => '2026-12-31']
+        );
+        $fs = FundingSource::firstOrCreate(
+            ['code' => 'RM'],
+            ['name' => 'Rupiah Murni', 'is_active' => true, 'status' => 'ACTIVE']
+        );
 
         // 1. Create Rev 01 (ACTIVE)
         $rev1 = BudgetVersion::updateOrCreate(
@@ -115,13 +113,16 @@ class FiscalYearAndBudgetVersionTest extends TestCase
 
     public function test_revision_conflict_detection(): void
     {
-        $adminUser = User::where('role', 'ADMIN')->first();
-        if (! $adminUser) {
-            $this->markTestSkipped('No admin user found');
-        }
+        $adminUser = User::factory()->create(['role' => 'ADMIN']);
 
-        $fy = FiscalYear::first();
-        $fs = FundingSource::where('code', 'RM')->first();
+        $fy = FiscalYear::firstOrCreate(
+            ['year' => 2026],
+            ['status' => 'ACTIVE', 'start_date' => '2026-01-01', 'end_date' => '2026-12-31']
+        );
+        $fs = FundingSource::firstOrCreate(
+            ['code' => 'RM'],
+            ['name' => 'Rupiah Murni', 'is_active' => true, 'status' => 'ACTIVE']
+        );
 
         // Check index endpoint calculation
         $response = $this->actingAs($adminUser)->get("/master/fiscal-years?tab=budget-versions&fiscal_year_id={$fy->id}&funding_source_id={$fs->id}");

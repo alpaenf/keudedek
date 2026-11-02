@@ -214,7 +214,9 @@ class BudgetStructureController extends Controller
         $model = $this->tabMap[$type]['model'];
         $record = $model::findOrFail($id);
 
-        $usedCount = $this->resolveUsedCounts($type, [$record->code], null)[$record->code] ?? 0;
+        $identifier = ($type === 'subcomponent' && ! empty($record->full_code)) ? $record->full_code : $record->code;
+        $usedCounts = $this->resolveUsedCounts($type, [$identifier], null);
+        $usedCount = $usedCounts[$identifier] ?? 0;
 
         if ($usedCount > 0 && $record->status === 'ACTIVE') {
             return redirect()->route('master.budget-structure.index', ['tab' => $type])
@@ -265,12 +267,22 @@ class BudgetStructureController extends Controller
 
         switch ($type) {
             case 'subcomponent':
-                $counts = BudgetBucket::whereIn('subcomponent_full_code', $codes)
+                $counts = BudgetBucket::where(function ($q) use ($codes) {
+                    $q->whereIn('subcomponent_full_code', $codes);
+                    foreach ($codes as $code) {
+                        $q->orWhere('subcomponent_full_code', 'like', "%.{$code}");
+                    }
+                })
                     ->selectRaw('subcomponent_full_code as code, COUNT(*) as cnt')
                     ->groupBy('subcomponent_full_code')
                     ->pluck('cnt', 'code');
                 foreach ($counts as $code => $cnt) {
                     $result[$code] = (int) $cnt;
+                    foreach ($codes as $c) {
+                        if ($c === $code || str_ends_with($code, ".{$c}")) {
+                            $result[$c] = (int) $cnt;
+                        }
+                    }
                 }
                 break;
 
